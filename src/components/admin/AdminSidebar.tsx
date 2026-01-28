@@ -70,7 +70,31 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         <PlanBadge plan="advanced" collapsed={isCollapsed} />
       </div>
 
-
+      {/* Debug Logo */}
+      <div className="relative">
+        <img
+          src={logo}
+          alt="Barnum"
+          className={cn(
+            "object-contain opacity-0",
+            isCollapsed ? "h-20 w-20" : "h-28 max-w-full"
+          )}
+        />
+        <div
+          className="absolute inset-0 bg-primary-gradient"
+          style={{
+            maskImage: `url(${logo})`,
+            maskSize: 'contain',
+            maskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            WebkitMaskImage: `url(${logo})`,
+            WebkitMaskSize: 'contain',
+            WebkitMaskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center'
+          }}
+        />
+        <span className="absolute bottom-0 right-0 text-xs text-red-500 font-bold bg-white px-1">DEBUG-V2</span>
+      </div>
 
       {/* Botão Nova Consulta */}
       <div className="p-3">
