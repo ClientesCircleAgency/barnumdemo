@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { Plus, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -59,7 +60,7 @@ export default function AgendaPage() {
 
   // Navigation handlers
   const goToToday = () => setCurrentDate(new Date());
-  
+
   const goPrevious = () => {
     switch (viewMode) {
       case 'day':
@@ -105,21 +106,16 @@ export default function AgendaPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-serif italic text-foreground text-lg lg:text-2xl">
-            {viewMode === 'day' ? 'Agenda do Dia' : viewMode === 'week' ? 'Semana' : 'Mês'}
-          </h1>
-          <p className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-widest capitalize">
-            {getTitle()}
-          </p>
-        </div>
-        
-        <Button onClick={() => setWizardOpen(true)} size="sm" className="gap-1.5 bg-primary-gradient hover:opacity-90">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Nova</span>
-        </Button>
-      </div>
+      <PageHeader
+        title={viewMode === 'day' ? 'Agenda do Dia' : viewMode === 'week' ? 'Semana' : 'Mês'}
+        subtitle={getTitle()}
+        actions={
+          <Button onClick={() => setWizardOpen(true)} size="sm" className="gap-1.5 bg-primary-gradient hover:opacity-90">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova</span>
+          </Button>
+        }
+      />
 
       {/* Controls - Stacked on mobile */}
       <div className="space-y-3">
@@ -128,7 +124,7 @@ export default function AgendaPage() {
           <Button variant="outline" size="icon" onClick={goPrevious} className="h-8 w-8 shrink-0">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
+
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="flex-1 justify-start gap-2 text-xs lg:text-sm h-8">
@@ -151,11 +147,11 @@ export default function AgendaPage() {
               />
             </PopoverContent>
           </Popover>
-          
+
           <Button variant="outline" size="icon" onClick={goNext} className="h-8 w-8 shrink-0">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          
+
           <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 text-xs shrink-0">
             Hoje
           </Button>
@@ -195,9 +191,9 @@ export default function AgendaPage() {
 
       {/* Content based on view mode */}
       {viewMode === 'day' && (
-        <DayView 
-          appointments={dayAppointments} 
-          onAppointmentClick={handleAppointmentClick} 
+        <DayView
+          appointments={dayAppointments}
+          onAppointmentClick={handleAppointmentClick}
         />
       )}
 

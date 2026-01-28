@@ -8,7 +8,9 @@ import { pt } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { AppointmentsChart } from '@/components/admin/AppointmentsChart';
+import { PageHeader } from '@/components/admin/PageHeader';
 import type { AppointmentStatus } from '@/types/clinic';
+
 export default function DashboardPage() {
   const { appointments, patients } = useClinic();
   const { data: requests = [] } = useAppointmentRequests();
@@ -29,15 +31,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Minimal Header */}
-      <div className="text-center md:text-left">
-        <p className="font-serif italic text-foreground text-xl md:text-2xl">
-          Bem-vindo de volta, Dr. Barnun
-        </p>
-        <p className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">
-          {currentDate}
-        </p>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="Bem-vindo de volta, Dr. Barnun"
+        subtitle={currentDate}
+      />
 
       {/* KPI Cards Grid - Aligned with content below */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

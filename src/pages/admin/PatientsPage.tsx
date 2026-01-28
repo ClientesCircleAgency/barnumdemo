@@ -64,12 +64,10 @@ export default function PatientsPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-serif italic text-foreground text-lg lg:text-2xl">Pacientes</h1>
-        <p className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">
-          {patients.length} pacientes registados
-        </p>
-      </div>
+      <PageHeader
+        title="Pacientes"
+        subtitle={`${patients.length} pacientes registados`}
+      />
 
       {/* Barra de pesquisa */}
       <div className="flex flex-col sm:flex-row gap-2">

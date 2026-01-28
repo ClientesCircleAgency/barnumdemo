@@ -64,32 +64,17 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
     >
       {/* Logo - Barnun */}
       <div className={cn(
-        "flex items-center justify-center border-b border-sidebar-border overflow-visible relative",
-        isCollapsed ? "h-16 p-1" : "h-20 p-2"
+        "flex items-center justify-center border-b border-sidebar-border/50",
+        isCollapsed ? "h-16 py-2" : "h-24 py-4"
       )}>
-        <div className="relative">
-          <img
-            src={logo}
-            alt="Barnun"
-            className={cn(
-              "object-contain opacity-0",
-              isCollapsed ? "h-20 w-20" : "h-28 max-w-full"
-            )}
-          />
-          <div
-            className="absolute inset-0 bg-primary-gradient"
-            style={{
-              maskImage: `url(${logo})`,
-              maskSize: 'contain',
-              maskRepeat: 'no-repeat',
-              maskPosition: 'center',
-              WebkitMaskImage: `url(${logo})`,
-              WebkitMaskSize: 'contain',
-              WebkitMaskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center'
-            }}
-          />
-        </div>
+        <img
+          src={logo}
+          alt="Barnun"
+          className={cn(
+            "object-contain transition-all duration-300",
+            isCollapsed ? "h-10 w-10 opacity-100" : "h-16 w-auto opacity-100" // opacity-100 to actually show it
+          )}
+        />
       </div>
 
       {/* Plan Badge */}

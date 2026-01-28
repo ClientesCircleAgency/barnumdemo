@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { NotificationsDropdown } from './NotificationsDropdown';
+import logo from '@/assets/logo-barnum-new.png';
 
 const pageTitles: Record<string, { title: string }> = {
   '/admin/dashboard': { title: 'Dashboard' },
@@ -107,10 +108,15 @@ export function AdminLayout() {
             collapsed && 'lg:ml-16'
           )}
         >
+          import logo from '@/assets/logo-barnum-new.png';
+
+          // ... inside component ...
+
           {/* Top Header */}
-          <header className="h-14 lg:h-16 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-xs">
-            <div className="flex items-center gap-3">
-              {/* Mobile menu button */}
+          <header className="h-16 lg:h-20 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-sm relative">
+
+            {/* Left: Mobile Menu Trigger */}
+            <div className="flex items-center z-10">
               <Button
                 variant="ghost"
                 size="icon"
@@ -119,18 +125,21 @@ export function AdminLayout() {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="font-sans text-base lg:text-lg font-semibold text-foreground">
-                  {pageInfo.title}
-                </h1>
-              </div>
             </div>
-            <div className="flex items-center gap-2 lg:gap-4">
-              {/* Notifications */}
-              <NotificationsDropdown />
 
-              {/* User Avatar */}
-              <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20">
+            {/* Center: Brand Logo */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <img
+                src={logo}
+                alt="Barnun"
+                className="h-10 lg:h-12 w-auto object-contain"
+              />
+            </div>
+
+            {/* Right: Actions */}
+            <div className="flex items-center gap-2 lg:gap-4 z-10">
+              <NotificationsDropdown />
+              <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20 cursor-pointer">
                 <AvatarFallback className="bg-primary text-primary-foreground font-sans font-semibold text-xs lg:text-sm">
                   DF
                 </AvatarFallback>

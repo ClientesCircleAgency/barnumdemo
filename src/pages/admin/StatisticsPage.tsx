@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClinic } from '@/context/ClinicContext';
@@ -156,15 +157,10 @@ export default function StatisticsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-serif font-semibold text-foreground">
-          Estatísticas
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Análise de consultas e desempenho da clínica
-        </p>
-      </div>
+      <PageHeader
+        title="Estatísticas"
+        subtitle="Análise de consultas e desempenho da clínica"
+      />
 
       {/* Period Filter */}
       <Card className="p-1.5 w-fit bg-muted border-0">

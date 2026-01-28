@@ -63,6 +63,12 @@ export function AppointmentSection() {
 
   const watchServiceType = watch('serviceType');
 
+  // IDs retrieved from Supabase audit/migration logs
+  const SPECIALTY_IDS = {
+    dentaria: '22222222-2222-2222-2222-222222222222',
+    rejuvenescimento: '11111111-1111-1111-1111-111111111111', // Repurposed/New ID
+  };
+
   const onSubmit = async (data: AppointmentFormData) => {
     try {
       await addRequest.mutateAsync({
@@ -70,7 +76,7 @@ export function AppointmentSection() {
         email: data.email,
         phone: data.phone,
         nif: data.nif,
-        service_type: data.serviceType,
+        specialty_id: SPECIALTY_IDS[data.serviceType],
         preferred_date: data.preferredDate,
         preferred_time: data.preferredTime,
       });

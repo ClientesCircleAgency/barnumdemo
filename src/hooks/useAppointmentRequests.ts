@@ -7,7 +7,7 @@ export interface AppointmentRequest {
   email: string;
   phone: string;
   nif: string;
-  service_type: 'dentaria' | 'rejuvenescimento';
+  specialty_id: string;
   preferred_date: string;
   preferred_time: string;
   status: 'pending' | 'approved' | 'rejected' | 'converted';

@@ -99,9 +99,9 @@ const DroppableColumnContent = forwardRef<HTMLDivElement, DroppableColumnProps>(
           </div>
           <span className={cn(
             'text-xs lg:text-sm font-medium',
-            column.id === 'waiting' ? 'text-yellow-600' : 
-            column.id === 'in_progress' ? 'text-orange-600' : 
-            'text-muted-foreground'
+            column.id === 'waiting' ? 'text-yellow-600' :
+              column.id === 'in_progress' ? 'text-orange-600' :
+                'text-muted-foreground'
           )}>
             {count}
           </span>
@@ -116,7 +116,7 @@ const DroppableColumnContent = forwardRef<HTMLDivElement, DroppableColumnProps>(
               </div>
               <p className="text-xs lg:text-sm text-muted-foreground">{column.emptyTitle}</p>
               <p className="text-xs lg:text-sm text-muted-foreground">{column.emptyDescription}</p>
-              
+
               {/* Drop zone indicator for waiting column */}
               {column.showDropZone && (
                 <div className="mt-4 lg:mt-8 w-full max-w-[150px] lg:max-w-[200px] border-2 border-dashed border-yellow-400 rounded-xl p-4 lg:p-6 text-center">
@@ -158,7 +158,7 @@ export default function WaitingRoomPage() {
   const { data: professionals = [] } = useProfessionals();
   const { data: consultationTypes = [] } = useConsultationTypes();
   const updateAppointmentStatus = useUpdateAppointmentStatus();
-  
+
 
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -247,20 +247,20 @@ export default function WaitingRoomPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="bg-card border border-border rounded-xl p-4 lg:p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="font-serif italic text-foreground text-lg lg:text-2xl">Sala de Espera</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="font-mono text-xs text-muted-foreground uppercase tracking-wide">{formattedDate}</span>
-            </div>
+      <PageHeader
+        title="Sala de Espera"
+        subtitle={formattedDate}
+        badge={
+          <div className="flex items-center gap-2 mt-1">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
           </div>
-          {activeProfessionals.length > 0 && (
+        }
+        actions={
+          activeProfessionals.length > 0 && (
             <div className="flex items-center gap-2 bg-muted rounded-full px-3 py-1.5">
               {activeProfessionals.slice(0, 3).map((prof) => (
                 <Avatar key={prof.id} className="h-6 w-6 lg:h-7 lg:w-7 border-2 border-background">
-                  <AvatarFallback 
+                  <AvatarFallback
                     className="text-[9px] lg:text-[10px] font-medium text-white"
                     style={{ backgroundColor: prof.color }}
                   >
@@ -272,9 +272,9 @@ export default function WaitingRoomPage() {
                 <span className="text-xs text-muted-foreground">+{activeProfessionals.length - 3}</span>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <DndContext
         sensors={sensors}
