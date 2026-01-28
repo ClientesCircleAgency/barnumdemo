@@ -62,25 +62,14 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         !isMobile && (isCollapsed ? 'w-16' : 'w-64')
       )}
     >
-      {/* Logo - Barnun */}
-      <div className={cn(
-        "flex items-center justify-center border-b border-sidebar-border/50",
-        isCollapsed ? "h-16 py-2" : "h-24 py-4"
-      )}>
-        <img
-          src={logo}
-          alt="Barnun"
-          className={cn(
-            "object-contain transition-all duration-300",
-            isCollapsed ? "h-10 w-10 opacity-100" : "h-16 w-auto opacity-100" // opacity-100 to actually show it
-          )}
-        />
-      </div>
+      {/* Logo Removed - Now in Top Header */}
 
-      {/* Plan Badge */}
-      <div className="px-3 py-2">
+      {/* Plan Badge (moved up) */}
+      <div className={cn("px-3 border-b border-sidebar-border/50", isCollapsed ? "py-2" : "py-4")}>
         <PlanBadge plan="advanced" collapsed={isCollapsed} />
       </div>
+
+
 
       {/* Botão Nova Consulta */}
       <div className="p-3">
