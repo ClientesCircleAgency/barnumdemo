@@ -9,6 +9,7 @@ export interface ContactMessage {
   message: string;
   is_read: boolean;
   created_at: string;
+  status: 'new' | 'read' | 'archived'; // Computed field for backwards compatibility
 }
 
 export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'is_read' | 'created_at'>;
@@ -23,7 +24,11 @@ export function useContactMessages() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as ContactMessage[];
+      // Map is_read boolean to status for backwards compatibility
+      return (data || []).map(msg => ({
+        ...msg,
+        status: msg.is_read ? 'read' : 'new'
+      })) as ContactMessage[];
     },
   });
 }
@@ -69,6 +74,28 @@ export function useMarkContactMessageAsRead() {
   });
 }
 
+export function useUpdateContactMessageStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'read' | 'archived' }) => {
+      // Map status to is_read boolean (we'll use a separate field for archived later if needed)
+      const { data, error } = await supabase
+        .from('contact_messages')
+        .update({ is_read: status === 'read' || status === 'archived' })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact_messages'] });
+    },
+  });
+}
+
 export function useDeleteContactMessage() {
   const queryClient = useQueryClient();
 
@@ -86,3 +113,4 @@ export function useDeleteContactMessage() {
     },
   });
 }
+
