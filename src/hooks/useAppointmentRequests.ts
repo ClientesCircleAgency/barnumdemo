@@ -65,7 +65,6 @@ export function useUpdateAppointmentRequestStatus() {
         .from('appointment_requests')
         .update({
           status,
-          processed_at: new Date().toISOString(),
         })
         .eq('id', id);
 
