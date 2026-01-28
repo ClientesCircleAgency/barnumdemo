@@ -10,6 +10,7 @@ import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useAddAppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -33,6 +34,7 @@ const appointmentSchema = z.object({
   phone: z.string().min(9, 'Telefone inválido').max(20),
   nif: z.string().length(9, 'NIF deve ter 9 dígitos').regex(/^\d+$/, 'NIF deve conter apenas números'),
   serviceType: z.enum(['dentaria', 'rejuvenescimento'], { required_error: 'Selecione o tipo de consulta' }),
+  reason: z.string().min(10, 'Por favor descreva o motivo da consulta (mínimo 10 caracteres)'),
   preferredDate: z.string().min(1, 'Selecione uma data'),
   preferredTime: z.string().min(1, 'Selecione uma hora'),
 });
@@ -76,6 +78,7 @@ export function AppointmentSection() {
         email: data.email,
         phone: data.phone,
         nif: data.nif,
+        reason: data.reason,
         specialty_id: SPECIALTY_IDS[data.serviceType],
         preferred_date: data.preferredDate,
         preferred_time: data.preferredTime,
@@ -221,6 +224,20 @@ export function AppointmentSection() {
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email.message}</p>
+                )}
+              </div>
+
+              {/* Reason (Full Width) */}
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="reason">Motivo da Consulta</Label>
+                <Textarea
+                  id="reason"
+                  placeholder="Descreva brevemente o motivo da sua consulta"
+                  {...register('reason')}
+                  className={cn("rounded-xl min-h-[100px]", errors.reason && 'border-destructive')}
+                />
+                {errors.reason && (
+                  <p className="text-sm text-destructive">{errors.reason.message}</p>
                 )}
               </div>
 

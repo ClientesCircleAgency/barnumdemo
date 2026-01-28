@@ -8,6 +8,7 @@ export interface AppointmentRequest {
   phone: string;
   nif: string;
   specialty_id: string;
+  reason: string;
   preferred_date: string;
   preferred_time: string;
   status: 'pending' | 'approved' | 'rejected' | 'converted';

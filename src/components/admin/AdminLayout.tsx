@@ -108,9 +108,7 @@ export function AdminLayout() {
             collapsed && 'lg:ml-16'
           )}
         >
-          import logo from '@/assets/logo-barnum-new.png';
 
-          // ... inside component ...
 
           {/* Top Header */}
           <header className="h-16 lg:h-20 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-sm relative">

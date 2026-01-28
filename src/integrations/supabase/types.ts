@@ -27,6 +27,7 @@ export type Database = {
           preferred_time: string
           processed_at: string | null
           processed_by: string | null
+          reason: string
           specialty_id: string
           status: string
           updated_at: string
@@ -43,6 +44,7 @@ export type Database = {
           preferred_time: string
           processed_at?: string | null
           processed_by?: string | null
+          reason: string
           specialty_id: string
           status?: string
           updated_at?: string
@@ -59,6 +61,7 @@ export type Database = {
           preferred_time?: string
           processed_at?: string | null
           processed_by?: string | null
+          reason?: string
           specialty_id?: string
           status?: string
           updated_at?: string
