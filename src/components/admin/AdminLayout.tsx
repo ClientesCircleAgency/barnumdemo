@@ -98,7 +98,7 @@ export function AdminLayout() {
             <img
               src={logo}
               alt="Barnun"
-              className="h-16 lg:h-24 w-auto object-contain"
+              className="h-16 lg:h-24 w-auto object-contain mix-blend-multiply"
             />
           </div>
 
