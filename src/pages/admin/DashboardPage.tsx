@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
 import { useContactMessages } from '@/hooks/useContactMessages';
+import { useSpecialties } from '@/hooks/useSpecialties';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -15,6 +16,7 @@ export default function DashboardPage() {
   const { appointments, patients } = useClinic();
   const { data: requests = [] } = useAppointmentRequests();
   const { data: contactMessages = [] } = useContactMessages();
+  const { data: specialties = [] } = useSpecialties();
 
   const todayDate = format(new Date(), 'yyyy-MM-dd');
   const todayAppointments = appointments.filter(
@@ -212,7 +214,7 @@ export default function DashboardPage() {
                     {req.name}
                   </p>
                   <p className="font-mono text-[10px] lg:text-xs text-muted-foreground">
-                    {req.service_type === 'rejuvenescimento' ? 'Rejuvenescimento' : 'Dentária'} • {format(new Date(req.preferred_date), "d MMM", { locale: pt })}
+                    {specialties.find(s => s.id === req.specialty_id)?.name || 'Especialidade desconhecida'} • {format(new Date(req.preferred_date), "d MMM", { locale: pt })}
                   </p>
                 </div>
                 <Badge variant="secondary" className="shrink-0 font-mono text-[10px] lg:text-xs px-1.5">

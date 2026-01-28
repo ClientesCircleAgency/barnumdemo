@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Check, X, Clock, Sparkles, Smile, Search, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
@@ -15,7 +15,18 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useAppointmentRequests, useUpdateAppointmentRequestStatus, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useContactMessages, useUpdateContactMessageStatus, type ContactMessage } from '@/hooks/useContactMessages';
 import { usePatients, useAddPatient } from '@/hooks/usePatients';
@@ -47,6 +58,18 @@ export default function RequestsPage() {
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+
+  // Reset selected professional when modal opens/closes
+  useEffect(() => {
+    if (selectedRequest) {
+      // Try to pre-select a professional if one matches the specialty
+      const relevantProf = professionals.find(p => p.specialty_id === selectedRequest.specialty_id);
+      setSelectedProfessionalId(relevantProf?.id || '');
+    } else {
+      setSelectedProfessionalId('');
+    }
+  }, [selectedRequest, professionals]);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const processedRequests = requests.filter(r => r.status !== 'pending');
@@ -58,9 +81,13 @@ export default function RequestsPage() {
     r.phone.includes(searchQuery)
   );
 
-  // Convert request to pre-confirmed appointment
+  // Convert request to confirmed appointment
   const handleConvertToAppointment = async () => {
     if (!selectedRequest) return;
+    if (!selectedProfessionalId) {
+      toast.error('Por favor selecione um profissional');
+      return;
+    }
 
     setIsConverting(true);
     try {
@@ -77,18 +104,13 @@ export default function RequestsPage() {
         patient = newPatient;
       }
 
-      // 2. Determine specialty and consultation type
-      const specialty = specialties.find(s =>
-        selectedRequest.service_type === 'rejuvenescimento'
-          ? s.name.toLowerCase().includes('rejuv') || s.name.toLowerCase().includes('estética')
-          : s.name.toLowerCase().includes('dent')
-      );
+      // 2. Determine consultation type and professional
+      const consultationType = consultationTypes[0]; // Use first available as default
 
-      const consultationType = consultationTypes[0]; // Use first available
-      const professional = professionals.find(p => p.specialty_id === specialty?.id) || professionals[0];
+      const professional = professionals.find(p => p.id === selectedProfessionalId);
 
-      if (!specialty || !consultationType || !professional) {
-        toast.error('Configuração incompleta. Verifique especialidades e profissionais.');
+      if (!consultationType || !professional) {
+        toast.error('Configuração incompleta. Verifique profissionais e tipos de consulta.');
         return;
       }
 
@@ -96,16 +118,17 @@ export default function RequestsPage() {
       await addAppointment.mutateAsync({
         patient_id: patient.id,
         professional_id: professional.id,
-        specialty_id: specialty.id,
+        specialty_id: selectedRequest.specialty_id, // Use the real specialty_id
         consultation_type_id: consultationType.id,
         date: selectedRequest.preferred_date,
         time: selectedRequest.preferred_time,
         duration: consultationType.default_duration,
         status: 'confirmed',
-        notes: `Convertido de pedido online. NIF: ${selectedRequest.nif}`,
+        notes: `Convertido de pedido online. NIF: ${selectedRequest.nif} | Motivo: ${selectedRequest.reason}`,
       });
 
       // 4. Update request status
+      // We do NOT set assigned_professional_id because the column does not exist in the schema.
       await updateRequestStatus.mutateAsync({ id: selectedRequest.id, status: 'converted' });
 
       toast.success('Consulta confirmada criada com sucesso.');
@@ -241,9 +264,11 @@ export default function RequestsPage() {
                     <div className="flex items-center gap-4 min-w-0">
                       <div className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                        request.service_type === 'rejuvenescimento' ? "bg-primary/10" : "bg-purple-100"
+                        // Find specialty name to determine icon/color
+                        specialties.find(s => s.id === request.specialty_id)?.name.toLowerCase().includes('rejuv')
+                          ? "bg-primary/10" : "bg-purple-100"
                       )}>
-                        {request.service_type === 'rejuvenescimento' ? (
+                        {specialties.find(s => s.id === request.specialty_id)?.name.toLowerCase().includes('rejuv') ? (
                           <Sparkles className="h-5 w-5 text-primary" />
                         ) : (
                           <Smile className="h-5 w-5 text-purple-600" />
@@ -351,9 +376,10 @@ export default function RequestsPage() {
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center",
-                  selectedRequest.service_type === 'rejuvenescimento' ? "bg-primary/10" : "bg-purple-100"
+                  specialties.find(s => s.id === selectedRequest.specialty_id)?.name.toLowerCase().includes('rejuv')
+                    ? "bg-primary/10" : "bg-purple-100"
                 )}>
-                  {selectedRequest.service_type === 'rejuvenescimento' ? (
+                  {specialties.find(s => s.id === selectedRequest.specialty_id)?.name.toLowerCase().includes('rejuv') ? (
                     <Sparkles className="h-6 w-6 text-primary" />
                   ) : (
                     <Smile className="h-6 w-6 text-purple-600" />
@@ -362,7 +388,7 @@ export default function RequestsPage() {
                 <div>
                   <p className="font-semibold text-lg">{selectedRequest.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {selectedRequest.service_type === 'rejuvenescimento' ? 'Rejuvenescimento Facial' : 'Medicina Dentária'}
+                    {specialties.find(s => s.id === selectedRequest.specialty_id)?.name || 'Especialidade desconhecida'}
                   </p>
                 </div>
               </div>
@@ -392,7 +418,23 @@ export default function RequestsPage() {
                 </div>
               </div>
 
-              <div className="text-xs text-muted-foreground">
+              <div className="space-y-2 pt-2">
+                <Label>Atribuir Profissional</Label>
+                <Select value={selectedProfessionalId} onValueChange={setSelectedProfessionalId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um profissional" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {professionals.map((professional) => (
+                      <SelectItem key={professional.id} value={professional.id}>
+                        {professional.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="text-xs text-muted-foreground pt-2 border-t">
                 Recebido: {format(new Date(selectedRequest.created_at), "d MMM yyyy 'às' HH:mm", { locale: pt })}
               </div>
 
