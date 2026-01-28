@@ -77,7 +77,42 @@ export function AdminLayout() {
 
   return (
     <ClinicProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background pt-16 lg:pt-20">
+        {/* Top Header - Fixed Full Width */}
+        <header className="fixed top-0 left-0 right-0 h-16 lg:h-20 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between z-50 shadow-sm">
+          
+          {/* Left: Mobile Menu Trigger */}
+          <div className="flex items-center z-10 w-20">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
+
+          {/* Center: Brand Logo */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <img 
+              src={logo} 
+              alt="Barnun" 
+              className="h-10 lg:h-14 w-auto object-contain"
+            />
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center justify-end gap-2 lg:gap-4 z-10 w-20">
+            <NotificationsDropdown />
+            <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20 cursor-pointer">
+              <AvatarFallback className="bg-primary text-primary-foreground font-sans font-semibold text-xs lg:text-sm">
+                DF
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </header>
+
         {/* Desktop Sidebar */}
         <div className="hidden lg:block">
           <AdminSidebar
@@ -90,7 +125,7 @@ export function AdminLayout() {
 
         {/* Mobile Sidebar Sheet */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border">
+          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border pt-16">
             <AdminSidebar
               collapsed={false}
               onToggle={() => { }}
@@ -103,48 +138,11 @@ export function AdminLayout() {
 
         <div
           className={cn(
-            'min-h-screen transition-all duration-300 flex flex-col',
+            'transition-all duration-300 flex flex-col',
             'lg:ml-64',
             collapsed && 'lg:ml-16'
           )}
         >
-
-
-          {/* Top Header */}
-          <header className="h-16 lg:h-20 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30 shadow-sm relative">
-
-            {/* Left: Mobile Menu Trigger */}
-            <div className="flex items-center z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => setMobileMenuOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Center: Brand Logo */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <img
-                src={logo}
-                alt="Barnun"
-                className="h-10 lg:h-12 w-auto object-contain"
-              />
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2 lg:gap-4 z-10">
-              <NotificationsDropdown />
-              <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20 cursor-pointer">
-                <AvatarFallback className="bg-primary text-primary-foreground font-sans font-semibold text-xs lg:text-sm">
-                  DF
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          </header>
-
           {/* Main Content */}
           <main className={cn(
             'flex-1 overflow-auto',
