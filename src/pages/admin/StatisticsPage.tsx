@@ -158,8 +158,8 @@ export default function StatisticsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Estatísticas"
-        subtitle="Análise de consultas e desempenho da clínica"
+        title="Estatísticas de Marcações"
+        subtitle="Análise de volume e performance das consultas (exclui canceladas)"
       />
 
       {/* Period Filter */}

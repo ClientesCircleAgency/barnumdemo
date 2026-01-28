@@ -33,8 +33,8 @@ export default function DashboardPage() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Page Header */}
       <PageHeader
-        title="Bem-vindo de volta, Dr. Barnun"
-        subtitle={currentDate}
+        title="Dashboard"
+        subtitle="Visão geral da clínica"
       />
 
       {/* KPI Cards Grid - Aligned with content below */}
