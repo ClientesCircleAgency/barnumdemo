@@ -15,9 +15,6 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -146,8 +143,9 @@ export default function RequestsPage() {
       await updateRequestStatus.mutateAsync({ id, status: 'rejected' });
       toast.success('Pedido rejeitado');
       setSelectedRequest(null);
-    } catch {
-      toast.error('Erro ao rejeitar pedido');
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      toast.error('Erro ao rejeitar pedido: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     }
   };
 
