@@ -28,7 +28,7 @@ export default function StatisticsPage() {
   const { appointments } = useClinic();
   const [activePeriod, setActivePeriod] = useState<Period>('month');
 
-  // Filter to only active statuses (MediFranco logic)
+  // Filter to only active statuses (Barnum logic)
   const activeAppointments = useMemo(() => {
     return appointments.filter(apt =>
       (ACTIVE_STATUSES as readonly string[]).includes(apt.status)
@@ -79,7 +79,7 @@ export default function StatisticsPage() {
     });
   }, [activeAppointments, activePeriod, periodBounds]);
 
-  // KPI Calculations (MediFranco logic)
+  // KPI Calculations (Barnum logic)
   const kpis = useMemo(() => {
     return {
       total: periodAppointments.length,

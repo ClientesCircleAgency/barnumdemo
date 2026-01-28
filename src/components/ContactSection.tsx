@@ -34,7 +34,7 @@ const contactInfo = [
   {
     icon: Mail,
     label: 'Email',
-    value: 'geral@medifranco.pt',
+    value: 'geral@barnum.pt',
   },
   {
     icon: Clock,
@@ -86,9 +86,8 @@ export function ContactSection() {
       <div className="container mx-auto px-4">
         <div
           ref={ref}
-          className={`transition-all duration-700 ${
-            isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
+          className={`transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
         >
           {/* Section Header */}
           <div className="text-center mb-12">
@@ -134,7 +133,7 @@ export function ContactSection() {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Localização MediFranco"
+                  title="Localização Barnum"
                 />
               </div>
             </div>

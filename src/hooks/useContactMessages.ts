@@ -12,7 +12,7 @@ export interface ContactMessage {
   status: 'new' | 'read' | 'archived'; // Computed field for backwards compatibility
 }
 
-export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'is_read' | 'created_at'>;
+export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'is_read' | 'created_at' | 'status'>;
 
 export function useContactMessages() {
   return useQuery({

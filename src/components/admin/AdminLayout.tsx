@@ -77,10 +77,10 @@ export function AdminLayout() {
 
   return (
     <ClinicProvider>
-      <div className="min-h-screen bg-background pt-16 lg:pt-20">
+      <div className="min-h-screen bg-background pt-24 lg:pt-28">
         {/* Top Header - Fixed Full Width */}
-        <header className="fixed top-0 left-0 right-0 h-16 lg:h-20 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between z-50 shadow-sm">
-          
+        <header className="fixed top-0 left-0 right-0 h-24 lg:h-28 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between z-50 shadow-sm">
+
           {/* Left: Mobile Menu Trigger */}
           <div className="flex items-center z-10 w-20">
             <Button
@@ -95,10 +95,10 @@ export function AdminLayout() {
 
           {/* Center: Brand Logo */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <img 
-              src={logo} 
-              alt="Barnun" 
-              className="h-10 lg:h-14 w-auto object-contain"
+            <img
+              src={logo}
+              alt="Barnun"
+              className="h-16 lg:h-24 w-auto object-contain"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function AdminLayout() {
 
         {/* Mobile Sidebar Sheet */}
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border pt-16">
+          <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border pt-24">
             <AdminSidebar
               collapsed={false}
               onToggle={() => { }}
