@@ -1,4 +1,4 @@
-# Barnum WhatsApp Integration - n8n Implementation Guide
+﻿# Barnun WhatsApp Integration - n8n Implementation Guide
 
 **Version:** 1.0  
 **Last Updated:** 2026-01-28  
@@ -8,7 +8,7 @@
 
 ## 📋 Overview
 
-This document provides complete technical specifications for integrating Barnum's appointment system with n8n workflows via WhatsApp automation.
+This document provides complete technical specifications for integrating Barnun's appointment system with n8n workflows via WhatsApp automation.
 
 **Integration Type:** Webhook-based (bidirectional)  
 **Protocol:** HTTPS POST with HMAC signature verification  
@@ -47,11 +47,11 @@ This document provides complete technical specifications for integrating Barnum'
 
 ## 🌐 Endpoints
 
-### 1. **Outbound** (n8n receives events from Barnum)
+### 1. **Outbound** (n8n receives events from Barnun)
 
 **URL:** `https://YOUR-N8N-DOMAIN.com/webhook/whatsapp-barnum`  
 **Method:** POST  
-**Purpose:** Barnum sends appointment events to n8n for WhatsApp processing
+**Purpose:** Barnun sends appointment events to n8n for WhatsApp processing
 
 **Headers:**
 ```
@@ -64,11 +64,11 @@ X-Event-Type: {event_type}
 
 ---
 
-### 2. **Inbound** (Barnum receives callbacks from n8n)
+### 2. **Inbound** (Barnun receives callbacks from n8n)
 
 **URL:** `https://barnum.DOMAIN.com/api/webhook`  
 **Method:** POST  
-**Purpose:** n8n sends patient responses/actions back to Barnum
+**Purpose:** n8n sends patient responses/actions back to Barnun
 
 **Headers:**
 ```
@@ -82,15 +82,15 @@ X-Webhook-Signature: {HMAC-SHA256-signature} (optional but recommended)
 
 ### How to Generate HMAC Signature (Outbound)
 
-**When n8n RECEIVES from Barnum:**
+**When n8n RECEIVES from Barnun:**
 
-n8n must **verify** the signature sent by Barnum:
+n8n must **verify** the signature sent by Barnun:
 
 ```javascript
 // In n8n HTTP Request node (Function node for verification)
 const crypto = require('crypto');
 
-const secret = 'YOUR_WEBHOOK_SECRET'; // Same as configured in Barnum
+const secret = 'YOUR_WEBHOOK_SECRET'; // Same as configured in Barnun
 const payload = JSON.stringify($input.item.json); // The received body
 const receivedSignature = $input.item.headers['x-webhook-signature'];
 
@@ -109,15 +109,15 @@ if (receivedSignature !== expectedSignature) {
 
 ### How to Generate HMAC Signature (Inbound)
 
-**When n8n SENDS to Barnum:**
+**When n8n SENDS to Barnun:**
 
 n8n must **generate** and send the signature:
 
 ```javascript
-// In n8n Function node (before HTTP Request to Barnum)
+// In n8n Function node (before HTTP Request to Barnun)
 const crypto = require('crypto');
 
-const secret = 'YOUR_WEBHOOK_SECRET'; // Same as configured in Barnum
+const secret = 'YOUR_WEBHOOK_SECRET'; // Same as configured in Barnun
 const payload = {
   action: 'confirm',
   appointmentId: '{{$json.appointmentId}}',
@@ -152,7 +152,7 @@ return {
 **Timing:** Immediately after appointment creation  
 **Purpose:** Send initial confirmation request to patient
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Endpoint:** n8n webhook  
 **Event Type:** `appointment.pre_confirmed`
@@ -212,7 +212,7 @@ Por favor, confirme a sua presença:
 ❌ Cancelar: {{action_links.cancel}}
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Not required** - Patient clicks action link directly (handled by `/api/action`)
 
@@ -224,7 +224,7 @@ Por favor, confirme a sua presença:
 **Timing:** On-demand  
 **Purpose:** Suggest alternative times to patient
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.time_suggestion`
 
@@ -292,7 +292,7 @@ Temos as seguintes opções disponíveis para {{specialty.name}}:
 Clique na sua opção preferida para confirmar!
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Not required** - Patient clicks action link directly
 
@@ -304,7 +304,7 @@ Clique na sua opção preferida para confirmar!
 **Timing:** -24 hours before appointment date/time  
 **Purpose:** Reminder for confirmed appointments
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.confirmation_24h`
 
@@ -371,7 +371,7 @@ Opções:
 ❌ Cancelar: {{action_links.cancel}}
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Endpoint:** `POST https://barnum.DOMAIN.com/api/webhook`
 
@@ -395,7 +395,7 @@ Opções:
 **Timing:** +1 hour after no-show  
 **Purpose:** Offer reschedule to patients who missed appointment
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.no_show_reschedule`
 
@@ -461,7 +461,7 @@ Gostaríamos de reagendar? Temos disponibilidade:
 Ou responda com a opção preferida.
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Endpoint:** `POST https://barnum.DOMAIN.com/api/webhook`
 
@@ -488,7 +488,7 @@ Ou responda com a opção preferida.
 **Timing:** Immediately after cancellation  
 **Purpose:** Offer immediate reschedule
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.patient_cancelled`
 
@@ -570,7 +570,7 @@ Gostaria de reagendar? Temos as seguintes opções:
 Ou responda com outra data de preferência.
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Endpoint:** `POST https://barnum.DOMAIN.com/api/webhook`
 
@@ -594,7 +594,7 @@ Ou responda com outra data de preferência.
 **Timing:** +2 hours after appointment completion  
 **Purpose:** Request patient review/feedback
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.review_reminder`
 
@@ -655,7 +655,7 @@ Ou deixe uma avaliação no Google:
 Muito obrigado! 🙏
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Endpoint:** `POST https://barnum.DOMAIN.com/api/webhook`
 
@@ -693,7 +693,7 @@ Muito obrigado! 🙏
 **Timing:** Scheduled campaign  
 **Purpose:** Re-engage inactive patients
 
-#### **Outbound Payload (Barnum → n8n)**
+#### **Outbound Payload (Barnun → n8n)**
 
 **Event Type:** `patient.reactivation`
 
@@ -754,7 +754,7 @@ Serviços disponíveis:
 Aguardamos o seu contacto!
 ```
 
-#### **Inbound Callback (n8n → Barnum)**
+#### **Inbound Callback (n8n → Barnun)**
 
 **Endpoint:** `POST https://barnum.DOMAIN.com/api/webhook`
 
@@ -778,10 +778,10 @@ Aguardamos o seu contacto!
 
 ### How Action Links Work
 
-1. **Barnum generates** secure token via `generate_action_token()` database function
+1. **Barnun generates** secure token via `generate_action_token()` database function
 2. **Token embedded** in WhatsApp message URL
 3. **Patient clicks** link → opens in browser
-4. **Barnum validates** token and performs action
+4. **Barnun validates** token and performs action
 5. **Patient sees** HTML success/error page
 6. **Token marked** as used (cannot be reused)
 
@@ -844,7 +844,7 @@ https://barnum.DOMAIN.com/api/action?type=reschedule&token={{token}}
 3. ✅ Marks token as used
 4. ✅ Updates workflow: `response = 'reschedule requested via link'`
 5. ✅ Returns HTML page: "Pedido de Reagendamento 📅"
-6. 📧 **Barnum team notified** to contact patient
+6. 📧 **Barnun team notified** to contact patient
 
 **Expected Result:**
 - Patient sees blue info page
@@ -877,7 +877,7 @@ WHATSAPP_API_TOKEN=your-whatsapp-token
 
 ### 2. **Webhook Configuration**
 
-#### Inbound Webhook (Receive from Barnum)
+#### Inbound Webhook (Receive from Barnun)
 
 **Create:** HTTP Webhook Trigger node
 
@@ -907,7 +907,7 @@ return $input.item.json; // Pass through if valid
 
 ---
 
-#### Outbound HTTP Request (Send to Barnum)
+#### Outbound HTTP Request (Send to Barnun)
 
 **Create:** HTTP Request node
 
@@ -1011,7 +1011,7 @@ return {
 - ✅ **Fallback:** Send email/SMS if WhatsApp fails
 - ✅ **Alert:** Notify team on critical failures
 
-**Error Response to Barnum:**
+**Error Response to Barnun:**
 ```json
 {
   "success": false,
@@ -1027,10 +1027,10 @@ return {
 
 #### Manual Tests
 
-- [ ] **Test 1:** Receive event from Barnum → Verify HMAC passes
+- [ ] **Test 1:** Receive event from Barnun → Verify HMAC passes
 - [ ] **Test 2:** Send WhatsApp message → Verify patient receives
-- [ ] **Test 3:** Click action link → Verify Barnum updates correctly
-- [ ] **Test 4:** Send callback to Barnum → Verify HMAC generated correctly
+- [ ] **Test 3:** Click action link → Verify Barnun updates correctly
+- [ ] **Test 4:** Send callback to Barnun → Verify HMAC generated correctly
 - [ ] **Test 5:** Error scenario → Verify retry logic works
 - [ ] **Test 6:** Invalid HMAC → Verify rejection (401)
 - [ ] **Test 7:** Expired token → Verify error page shown
@@ -1047,7 +1047,7 @@ curl -X POST https://YOUR-N8N-DOMAIN.com/webhook/whatsapp-barnum \
     "appointment": {...}
   }'
 
-# Test Barnum callback
+# Test Barnun callback
 curl -X POST https://barnum.DOMAIN.com/api/webhook \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Signature: YOUR_HMAC_HERE" \
@@ -1065,7 +1065,7 @@ curl -X POST https://barnum.DOMAIN.com/api/webhook \
 
 - **Message Delivery Rate:** % of successful WhatsApp sends
 - **Action Link Clicks:** Track clicks per message type
-- **Callback Success Rate:** % of successful Barnum callbacks
+- **Callback Success Rate:** % of successful Barnun callbacks
 - **HMAC Failures:** Security monitoring
 - **Average Response Time:** Patient engagement metrics
 
@@ -1097,7 +1097,7 @@ curl -X POST https://barnum.DOMAIN.com/api/webhook \
 - [ ] Error handling and retries in place
 - [ ] Monitoring and logging configured
 - [ ] Test with 5 real appointments
-- [ ] Barnum team notified of go-live date
+- [ ] Barnun team notified of go-live date
 - [ ] Rollback plan documented
 
 ---
@@ -1108,7 +1108,7 @@ curl -X POST https://barnum.DOMAIN.com/api/webhook \
 Email: dev@barnum.DOMAIN.com  
 Slack: #whatsapp-integration (if applicable)
 
-**Barnum API Documentation:**  
+**Barnun API Documentation:**  
 https://docs.barnum.DOMAIN.com/webhooks
 
 **Webhook Status Page:**  
@@ -1169,7 +1169,7 @@ if (!verifyHMAC(payload, receivedSig, secret)) {
 | Action link expired | Token expired | Tokens valid for 7 days by default |
 | Token already used | Duplicate click | Each token can only be used once |
 | WhatsApp not delivered | Invalid phone format | Use E.164 format: +351XXXXXXXXX |
-| Callback timeout | Slow Barnum response | Implement timeout (30s recommended) |
+| Callback timeout | Slow Barnun response | Implement timeout (30s recommended) |
 
 ---
 

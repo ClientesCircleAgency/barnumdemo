@@ -13,7 +13,7 @@ export function Footer() {
           <div className="space-y-6 text-center md:text-left">
             <div className="flex justify-center md:justify-start">
               <div className="relative inline-block">
-                <img src={logo} alt="Barnum" className="h-28 w-auto opacity-0" />
+                <img src={logo} alt="Barnun" className="h-28 w-auto opacity-0" />
                 <div
                   className="absolute inset-0 bg-primary-gradient"
                   style={{
@@ -151,7 +151,7 @@ export function Footer() {
       <div className="border-t border-background/10">
         <div className="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-background/50 text-sm text-center md:text-left">
-            © {currentYear} Barnum. Todos os direitos reservados.
+            © {currentYear} Barnun. Todos os direitos reservados.
           </p>
           <div className="flex gap-6">
             <a href="#" className="text-background/50 hover:text-primary text-sm transition-colors">

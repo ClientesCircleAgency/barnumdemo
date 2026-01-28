@@ -123,7 +123,7 @@ ${slotsText}
 
 Para confirmar, responda com o número da opção pretendida ou contacte-nos.
 
-Clínica Barnum`;
+Clínica Barnun`;
   };
 
   const handleSend = () => {

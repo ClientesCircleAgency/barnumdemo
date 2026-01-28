@@ -1,6 +1,6 @@
-# BACKEND REPLICATION GUIDE - BARNUM
+﻿# BACKEND REPLICATION GUIDE - BARNUM
 
-**Project:** Barnum - Clínica de Medicina Dentária e Rejuvenescimento Facial  
+**Project:** Barnun - Clínica de Medicina Dentária e Rejuvenescimento Facial  
 **Version:** 1.0  
 **Last Updated:** 2026-01-27  
 **Purpose:** Complete guide to replicate the backend architecture in another project

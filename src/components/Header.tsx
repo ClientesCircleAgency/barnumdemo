@@ -47,7 +47,7 @@ export function Header() {
         <a href="#hero" className="flex items-center absolute left-1/2 -translate-x-1/2 md:relative md:left-0 md:translate-x-0 group">
           <div className="relative">
             {/* Ghost image for dimensions */}
-            <img alt="Barnum" className="h-20 md:h-24 w-auto opacity-0" src={logo} />
+            <img alt="Barnun" className="h-20 md:h-24 w-auto opacity-0" src={logo} />
             {/* Gradient Mask */}
             <div
               className="absolute inset-0 bg-primary-gradient"

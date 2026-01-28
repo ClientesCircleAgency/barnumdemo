@@ -26,7 +26,7 @@ export function AboutSection() {
               <span className="text-sm font-medium text-accent-foreground">Sobre Nós</span>
             </div>
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
-              Conheça a <span className="text-primary-gradient">Barnum</span>
+              Conheça a <span className="text-primary-gradient">Barnun</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
               Há mais de 15 anos a cuidar da sua saúde oral e estética facial, com uma equipa
@@ -42,7 +42,7 @@ export function AboutSection() {
                 <div className="rounded-3xl overflow-hidden shadow-2xl border border-border">
                   <img
                     src={fundadoresImg}
-                    alt="Os Fundadores da Barnum"
+                    alt="Os Fundadores da Barnun"
                     className="w-full h-auto object-cover"
                   />
                 </div>
@@ -57,13 +57,13 @@ export function AboutSection() {
                 </h3>
                 <div className="space-y-4 text-muted-foreground leading-relaxed">
                   <p>
-                    Crescemos a ver o nosso pai, <strong className="text-foreground">Dr. Barnum</strong>,
+                    Crescemos a ver o nosso pai, <strong className="text-foreground">Dr. Barnun</strong>,
                     a exercer uma medicina diferente. Uma medicina de carinho genuíno, onde a conquista
                     da confiança dos doentes se traduzia em actos de verdadeiro reconhecimento.
                   </p>
                   <p>
                     Essa forma de estar na medicina ficou-nos marcada na memória, inspirando a criação
-                    da <strong className="text-foreground">Barnum</strong> — uma clínica onde cada paciente
+                    da <strong className="text-foreground">Barnun</strong> — uma clínica onde cada paciente
                     é tratado com o mesmo cuidado e dedicação que o nosso pai sempre demonstrou.
                   </p>
                   <p>

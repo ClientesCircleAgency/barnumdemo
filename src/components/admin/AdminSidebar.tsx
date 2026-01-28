@@ -62,7 +62,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         !isMobile && (isCollapsed ? 'w-16' : 'w-64')
       )}
     >
-      {/* Logo - Barnum */}
+      {/* Logo - Barnun */}
       <div className={cn(
         "flex items-center justify-center border-b border-sidebar-border overflow-visible relative",
         isCollapsed ? "h-16 p-1" : "h-20 p-2"
@@ -70,7 +70,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         <div className="relative">
           <img
             src={logo}
-            alt="Barnum"
+            alt="Barnun"
             className={cn(
               "object-contain opacity-0",
               isCollapsed ? "h-20 w-20" : "h-28 max-w-full"

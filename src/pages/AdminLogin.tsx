@@ -81,7 +81,7 @@ export default function AdminLogin() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="relative inline-block mx-auto mb-4">
-            <img alt="Barnum" src={logo} className="h-16 w-auto opacity-0" />
+            <img alt="Barnun" src={logo} className="h-16 w-auto opacity-0" />
             <div
               className="absolute inset-0 bg-primary-gradient"
               style={{

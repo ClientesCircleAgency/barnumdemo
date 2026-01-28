@@ -27,7 +27,7 @@ export function HeroSection() {
         {/* Logo */}
         <div className="relative inline-block mx-auto mb-8">
           {/* Ghost image for dimensions */}
-          <img alt="Barnum" className="h-48 md:h-64 lg:h-80 w-auto opacity-0" src={logo} />
+          <img alt="Barnun" className="h-48 md:h-64 lg:h-80 w-auto opacity-0" src={logo} />
           {/* Gradient Mask */}
           <div
             className="absolute inset-0 bg-primary-gradient drop-shadow-lg"

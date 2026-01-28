@@ -32,7 +32,7 @@ export default function DashboardPage() {
       {/* Minimal Header */}
       <div className="text-center md:text-left">
         <p className="font-serif italic text-foreground text-xl md:text-2xl">
-          Bem-vindo de volta, Dr. Barnum
+          Bem-vindo de volta, Dr. Barnun
         </p>
         <p className="font-mono text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">
           {currentDate}

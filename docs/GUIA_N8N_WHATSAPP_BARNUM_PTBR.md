@@ -1,4 +1,4 @@
-# Guia de Integração WhatsApp - Barnum + n8n
+﻿# Guia de Integração WhatsApp - Barnun + n8n
 
 **Versão:** 1.0 Final  
 **Data:** 28 de Janeiro de 2026  
@@ -8,7 +8,7 @@
 
 ## 📋 Sumário Executivo
 
-Este documento é o guia técnico oficial para implementar as automações WhatsApp do Barnum via n8n.
+Este documento é o guia técnico oficial para implementar as automações WhatsApp do Barnun via n8n.
 
 **Tipo de Integração:** Webhook bidirecional  
 **Protocolo:** HTTPS POST com assinatura HMAC  
@@ -65,7 +65,7 @@ Este documento é o guia técnico oficial para implementar as automações Whats
 
 ## 🌐 2. Endpoints Oficiais
 
-### 2.1 Inbound Webhook (n8n → Barnum)
+### 2.1 Inbound Webhook (n8n → Barnun)
 
 **Endpoint Principal:**
 ```
@@ -93,7 +93,7 @@ X-Webhook-Signature: {assinatura-hmac-sha256}
 
 ---
 
-### 2.2 Action Links (Paciente → Barnum)
+### 2.2 Action Links (Paciente → Barnun)
 
 Links clicáveis enviados ao paciente via WhatsApp.
 
@@ -115,11 +115,11 @@ GET https://barnum.DOMAIN.com/api/action?type=reschedule&token={TOKEN_SEGURO}
 **Observações:**
 - Tokens são de uso único (válidos por 7 dias)
 - Clique retorna página HTML estilizada de sucesso
-- Barnum atualiza BD automaticamente
+- Barnun atualiza BD automaticamente
 
 ---
 
-### 2.3 Outbox Processor (Interno Barnum)
+### 2.3 Outbox Processor (Interno Barnun)
 
 **Endpoint:**
 ```
@@ -134,7 +134,7 @@ Authorization: Bearer {INTERNAL_API_SECRET}
 Content-Type: application/json
 ```
 
-**Observação:** Este endpoint é **INTERNO** ao Barnum. O n8n **não** chama este endpoint - apenas **recebe** eventos dele via webhook configurado.
+**Observação:** Este endpoint é **INTERNO** ao Barnun. O n8n **não** chama este endpoint - apenas **recebe** eventos dele via webhook configurado.
 
 ---
 
@@ -142,7 +142,7 @@ Content-Type: application/json
 
 ### 3.1 Assinatura HMAC SHA-256
 
-Todas as comunicações entre Barnum ↔ n8n usam HMAC para garantir autenticidade.
+Todas as comunicações entre Barnun ↔ n8n usam HMAC para garantir autenticidade.
 
 #### Como Funciona
 
@@ -154,13 +154,13 @@ Todas as comunicações entre Barnum ↔ n8n usam HMAC para garantir autenticida
 
 ---
 
-### 3.2 Verificar HMAC (n8n recebe de Barnum)
+### 3.2 Verificar HMAC (n8n recebe de Barnun)
 
 **No n8n - Function Node após Webhook Trigger:**
 
 ```javascript
 // Configuração
-const secret = '{{$env.WEBHOOK_SECRET}}'; // Mesma chave que Barnum
+const secret = '{{$env.WEBHOOK_SECRET}}'; // Mesma chave que Barnun
 const receivedSignature = $input.item.headers['x-webhook-signature'];
 const payload = JSON.stringify($input.item.json);
 
@@ -181,7 +181,7 @@ return $input.item.json;
 
 ---
 
-### 3.3 Gerar HMAC (n8n envia para Barnum)
+### 3.3 Gerar HMAC (n8n envia para Barnun)
 
 **No n8n - Function Node antes de HTTP Request:**
 
@@ -226,7 +226,7 @@ Body:
 ### 3.4 Tokens de Ação (Action Links)
 
 **Características:**
-- ✅ Gerados no Barnum via função de BD `generate_action_token()`
+- ✅ Gerados no Barnun via função de BD `generate_action_token()`
 - ✅ Base64 de 24 bytes aleatórios (criptograficamente seguros)
 - ✅ Uso único (marcados como `used` após clique)
 - ✅ Expiração de 7 dias
@@ -244,12 +244,12 @@ Body:
 
 ### 4.1 Consulta Pré-confirmada
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Nova consulta criada (`INSERT` na tabela `appointments`)
 - Condição: `status IN ('scheduled', 'confirmed')`
 - Timing: Imediatamente após criação
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.pre_confirmed`
 
@@ -318,11 +318,11 @@ Até breve! 😊
 
 ### 4.2 Sugestão de Horário
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Manual ou sem vagas disponíveis
 - Timing: On-demand
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.time_suggestion`
 
@@ -400,12 +400,12 @@ Clique na sua opção preferida para confirmar! ✅
 
 ### 4.3 Confirmar consulta 24h antes
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: 24 horas antes da consulta confirmada
 - Condição: `status = 'confirmed'` AND `date - 24h`
 - Timing: Agendado para -24h
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.confirmation_24h`
 
@@ -494,12 +494,12 @@ Se o paciente responder via mensagem texto (em vez de clicar no link):
 
 ### 4.4 Reagendar (não compareceu)
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Consulta marcada como 'no_show'
 - Condição: `OLD.status != 'no_show' AND NEW.status = 'no_show'`
 - Timing: +1 hora após marcar como no-show
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.no_show_reschedule`
 
@@ -586,12 +586,12 @@ Ou responda com a opção preferida. Estamos aqui para ajudar! 💙
 
 ### 4.5 Reagendar (não vou)
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Paciente cancela consulta
 - Condição: `status = 'cancelled'` por ação do paciente
 - Timing: Imediatamente após cancelamento
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.patient_cancelled`
 
@@ -696,12 +696,12 @@ Ou responda com outra data de preferência. 📅
 
 ### 4.6 Lembrete review 2h após concluída
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Consulta concluída
 - Condição: `OLD.status != 'completed' AND NEW.status = 'completed'`
 - Timing: +2 horas após conclusão
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `appointment.review_reminder`
 
@@ -796,12 +796,12 @@ Muito obrigado! 🙏
 
 ### 4.7 Reativação de clientes (6 meses sem atividade)
 
-#### **Trigger no Barnum**
+#### **Trigger no Barnun**
 - Evento: Campanha agendada de reativação
 - Condição: Paciente sem consultas há 180+ dias
 - Timing: Campanhas mensais/trimestrais
 
-#### **Payload (Barnum → n8n)**
+#### **Payload (Barnun → n8n)**
 
 **Event Type:** `patient.reactivation`
 
@@ -902,7 +902,7 @@ WHATSAPP_API_TOKEN=seu-token-whatsapp
 
 ---
 
-### 5.2 Webhook Trigger (Receber de Barnum)
+### 5.2 Webhook Trigger (Receber de Barnun)
 
 **Criar:** Webhook Trigger Node
 
@@ -982,7 +982,7 @@ return $input.item.json;
 
 ---
 
-### 5.4 HTTP Request para Barnum (Callback)
+### 5.4 HTTP Request para Barnun (Callback)
 
 **Criar:** HTTP Request Node
 
@@ -1074,7 +1074,7 @@ return { json: error };
 ### 6.1 Configuração Inicial
 
 - [ ] **Variáveis de ambiente configuradas** no n8n
-  - WEBHOOK_SECRET (partilhada com Barnum)
+  - WEBHOOK_SECRET (partilhada com Barnun)
   - BARNUM_WEBHOOK_URL
   - WHATSAPP_API_URL
   - WHATSAPP_API_TOKEN
@@ -1091,7 +1091,7 @@ return { json: error };
 
 ### 6.2 URLs a Configurar
 
-**No Barnum (enviado por e-mail):**
+**No Barnun (enviado por e-mail):**
 ```
 N8N_WEBHOOK_BASE_URL=https://SEU-N8N-DOMAIN.com/webhook/whatsapp-barnum
 ```
@@ -1142,7 +1142,7 @@ Disparar workflow manualmente com dados de teste.
 
 ---
 
-#### Teste 4: Callback para Barnum
+#### Teste 4: Callback para Barnun
 
 Testar envio de callback com ação `confirm`.
 
@@ -1196,11 +1196,11 @@ Clicar no mesmo link 2 vezes.
 
 | Erro | Causa | Solução |
 |------|-------|---------|
-| **401 Unauthorized** | HMAC inválido | Verificar que WEBHOOK_SECRET é igual em Barnum e n8n |
+| **401 Unauthorized** | HMAC inválido | Verificar que WEBHOOK_SECRET é igual em Barnun e n8n |
 | **Mensagem não entregue** | Formato telefone errado | Usar formato E.164: +351XXXXXXXXX |
-| **Token expirado** | Link com +7 dias | Gerar novo token no Barnum |
+| **Token expirado** | Link com +7 dias | Gerar novo token no Barnun |
 | **Token já usado** | Clique duplicado | Normal - cada token só pode ser usado 1 vez |
-| **Callback timeout** | Barnum lento | Aumentar timeout HTTP Request para 30s |
+| **Callback timeout** | Barnun lento | Aumentar timeout HTTP Request para 30s |
 | **Variáveis não substituídas** | Sintaxe errada | Usar `{{$json.campo}}` e não `${campo}` |
 
 ---
@@ -1243,7 +1243,7 @@ Clicar no mesmo link 2 vezes.
 - [ ] Monitorização e alertas ativos
 - [ ] Teste com 5 consultas reais
 - [ ] Documentação interna criada
-- [ ] Equipa Barnum notificada da data de go-live
+- [ ] Equipa Barnun notificada da data de go-live
 - [ ] Plano de rollback documentado
 
 ---

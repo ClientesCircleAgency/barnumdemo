@@ -4,7 +4,7 @@ export const initialTestimonials: Testimonial[] = [
   {
     id: '1',
     clientName: 'António Silva',
-    content: 'Excelente atendimento! A Dra. Maria foi muito profissional e atenciosa. O meu tratamento de implantes foi um sucesso total. Recomendo vivamente a Barnum.',
+    content: 'Excelente atendimento! A Dra. Maria foi muito profissional e atenciosa. O meu tratamento de implantes foi um sucesso total. Recomendo vivamente a Barnun.',
     rating: 5,
     isActive: true,
     createdAt: '2024-01-15T10:00:00Z',
@@ -28,7 +28,7 @@ export const initialTestimonials: Testimonial[] = [
   {
     id: '4',
     clientName: 'Margarida Lopes',
-    content: 'Fiz branqueamento dentário e estou muito satisfeita com o resultado. O processo foi rápido e indolor. Obrigada Barnum!',
+    content: 'Fiz branqueamento dentário e estou muito satisfeita com o resultado. O processo foi rápido e indolor. Obrigada Barnun!',
     rating: 4,
     isActive: true,
     createdAt: '2024-03-25T16:45:00Z',

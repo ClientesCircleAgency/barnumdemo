@@ -1,6 +1,6 @@
-# FUNCTIONAL ANALYSIS - BARNUM
+﻿# FUNCTIONAL ANALYSIS - BARNUM
 
-**Project:** Barnum - Clínica de Medicina Dentária e Rejuvenescimento Facial  
+**Project:** Barnun - Clínica de Medicina Dentária e Rejuvenescimento Facial  
 **Version:** 1.0  
 **Last Updated:** 2026-01-27  
 **Purpose:** Complete functional analysis for comparison with similar projects
@@ -10,7 +10,7 @@
 ## 1. VISÃO GERAL
 
 ### Propósito
-Barnum is a **dual-purpose clinic management system** combining:
+Barnun is a **dual-purpose clinic management system** combining:
 1. **Public-facing website**: Marketing, service showcase, appointment requests, contact forms
 2. **Admin panel**: Complete clinic operations management (appointments, patients, waitlist, settings)
 

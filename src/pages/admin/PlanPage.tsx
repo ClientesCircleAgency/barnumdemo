@@ -36,7 +36,7 @@ export default function PlanPage() {
           <div className="relative inline-block">
             <img
               src={logo}
-              alt="Barnum"
+              alt="Barnun"
               className="h-16 lg:h-20 object-contain opacity-0"
             />
             <div

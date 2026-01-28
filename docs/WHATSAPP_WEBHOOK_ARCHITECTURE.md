@@ -1,4 +1,4 @@
-# Barnum WhatsApp Webhook Architecture (Updated)
+﻿# Barnun WhatsApp Webhook Architecture (Updated)
 
 ## 🎯 Architecture Overview
 
@@ -134,7 +134,7 @@ HTML page with styled success/error message
 
 ### 2. **Webhooks** - `/api/webhook.ts` (1 function)
 
-**Unified POST endpoint** for n8n to send callbacks to Barnum.
+**Unified POST endpoint** for n8n to send callbacks to Barnun.
 
 #### **Route:**
 ```
@@ -308,13 +308,13 @@ CRON job (every 1-5 minutes) or manual
 **Algorithm:** SHA-256  
 **Header:** `X-Webhook-Signature`
 
-#### Outbound (Barnum → n8n)
+#### Outbound (Barnun → n8n)
 ```typescript
 const signature = generateHmacSignature(eventPayload, WEBHOOK_SECRET);
 // Sent as X-Webhook-Signature header in POST /api/internal
 ```
 
-#### Inbound (n8n → Barnum)
+#### Inbound (n8n → Barnun)
 ```typescript
 const signature = req.headers['x-webhook-signature'];
 const isValid = verifyHmacSignature(
@@ -532,7 +532,7 @@ create_whatsapp_event(
    POST /api/webhook
    Body: { "action": "no_show_reschedule", "appointmentId": "...", "attempt": 1 }
    ↓
-8. Barnum records response
+8. Barnun records response
    Admin team notified
    ↓
 9. Done ✅
@@ -561,7 +561,7 @@ create_whatsapp_event(
 - ✅ WhatsApp message composition
 - ✅ WhatsApp API integration
 - ✅ Patient response capture
-- ✅ Callback to Barnum webhooks
+- ✅ Callback to Barnun webhooks
 - ✅ Workflow orchestration
 
 ---
@@ -587,7 +587,7 @@ INTERNAL_API_SECRET=your-internal-secret
 
 ## 📝 Payload Formats
 
-### Outbound (Barnum → n8n) via `/api/internal`
+### Outbound (Barnun → n8n) via `/api/internal`
 
 ```json
 {
@@ -618,7 +618,7 @@ INTERNAL_API_SECRET=your-internal-secret
 }
 ```
 
-### Inbound (n8n → Barnum) via `/api/webhook`
+### Inbound (n8n → Barnun) via `/api/webhook`
 
 ```json
 {
