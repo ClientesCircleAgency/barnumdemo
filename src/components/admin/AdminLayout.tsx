@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { NotificationsDropdown } from './NotificationsDropdown';
-import logo from '@/assets/logo-barnum-hero.png';
+import logo from '@/assets/logo-final-no-bg.png';
 
 const pageTitles: Record<string, { title: string }> = {
   '/admin/dashboard': { title: 'Dashboard' },
