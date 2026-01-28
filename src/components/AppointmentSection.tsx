@@ -227,20 +227,6 @@ export function AppointmentSection() {
                 )}
               </div>
 
-              {/* Reason (Full Width) */}
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="reason">Motivo da Consulta</Label>
-                <Textarea
-                  id="reason"
-                  placeholder="Descreva brevemente o motivo da sua consulta"
-                  {...register('reason')}
-                  className={cn("rounded-xl min-h-[100px]", errors.reason && 'border-destructive')}
-                />
-                {errors.reason && (
-                  <p className="text-sm text-destructive">{errors.reason.message}</p>
-                )}
-              </div>
-
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
@@ -253,6 +239,20 @@ export function AppointmentSection() {
                 />
                 {errors.phone && (
                   <p className="text-sm text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
+
+              {/* Reason (Full Width) */}
+              <div className="md:col-span-2 space-y-2">
+                <Label htmlFor="reason">Motivo da Consulta</Label>
+                <Textarea
+                  id="reason"
+                  placeholder="Descreva brevemente o motivo da sua consulta"
+                  {...register('reason')}
+                  className={cn("rounded-xl min-h-[100px]", errors.reason && 'border-destructive')}
+                />
+                {errors.reason && (
+                  <p className="text-sm text-destructive">{errors.reason.message}</p>
                 )}
               </div>
 

@@ -67,12 +67,10 @@ export function useUpdateAppointmentRequestStatus() {
           status,
           processed_at: new Date().toISOString(),
         })
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
 
       if (error) throw error;
-      return data;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointment_requests'] });
