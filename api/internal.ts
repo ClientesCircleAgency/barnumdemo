@@ -1,5 +1,5 @@
 /**
- * POST /api/internal/process-events
+ * POST /api/internal
  * Internal endpoint to process pending whatsapp_events and send to n8n
  * This should be called by:
  * 1. A scheduled CRON job (every 1-5 minutes)
@@ -8,8 +8,8 @@
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseAdmin } from '../../lib/supabase';
-import { generateHmacSignature, generateIdempotencyKey } from '../../lib/security';
+import { supabaseAdmin } from './lib/supabase';
+import { generateHmacSignature, generateIdempotencyKey } from './lib/security';
 
 interface ProcessEventsResponse {
     success: boolean;

@@ -1,9 +1,9 @@
-# Barnum WhatsApp Webhook Architecture
+# Barnum WhatsApp Webhook Architecture (Updated)
 
 ## 🎯 Architecture Overview
 
 **Architecture Type:** Webhook-Based Event-Driven System  
-**Platform:** Vercel Serverless Functions  
+**Platform:** Vercel Serverless Functions (3 total)  
 **Database:** PostgreSQL (Supabase) with Triggers  
 **Integration Partner:** n8n Workflow Automation  
 **Security:** HMAC SHA-256 Signatures + Token-Based Authentication
@@ -15,6 +15,7 @@ After complete codebase audit:
 - ✅ **Zero references** to `supabase/functions` in code
 - ✅ **100% Vercel** serverless API routes in `/api`
 - ✅ **Pure webhook** architecture (no polling)
+- ✅ **3 functions** (within Vercel Hobby plan limit of 12)
 
 ---
 
@@ -33,9 +34,9 @@ After complete codebase audit:
 │                                             │ Pull (CRON/Manual)     │
 │                                             ▼                         │
 │                               ┌──────────────────────────┐           │
-│                               │ /api/internal/           │           │
-│                               │ process-events           │           │
+│                               │ POST /api/internal       │           │
 │                               │ (Outbox Worker)          │           │
+│                               │ [1 function]             │           │
 │                               └──────────────────────────┘           │
 │                                             │                         │
 └─────────────────────────────────────────────┼─────────────────────────┘
@@ -57,210 +58,233 @@ After complete codebase audit:
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                       │
 │  ┌────────────────────┐         ┌────────────────────────┐          │
-│  │ Action Links       │         │ Inbound Webhooks       │          │
-│  │ (Public GET)       │         │ (n8n callbacks)        │          │
+│  │ GET /api/action    │         │ POST /api/webhook      │          │
+│  │ [1 function]       │         │ [1 function]           │          │
 │  ├────────────────────┤         ├────────────────────────┤          │
-│  │ /api/action/       │         │ /api/webhooks/         │          │
-│  │  - confirm         │         │  appointments/         │          │
-│  │  - cancel          │         │   - confirm            │          │
-│  │  - reschedule      │         │   - cancel             │          │
-│  └────────────────────┘         │   - reschedule         │          │
-│                                 │   - no-show-reschedule │          │
-│                                 │  reactivation/         │          │
-│                                 │   - record             │          │
-│                                 │  reviews/              │          │
-│                                 │   - record             │          │
+│  │ Query params:      │         │ Body.action:           │          │
+│  │  ?type=confirm     │         │  - confirm             │          │
+│  │  ?type=cancel      │         │  - cancel              │          │
+│  │  ?type=reschedule  │         │  - reschedule          │          │
+│  │  &token=xxx        │         │  - no_show_reschedule  │          │
+│  └────────────────────┘         │  - reactivation        │          │
+│                                 │  - review              │          │
 │                                 └────────────────────────┘          │
+│                                                                       │
+│  Total: 3 Serverless Functions (within 12 limit ✅)                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🗂️ API Routes Inventory
+## 🗂️ API Routes Inventory (Updated)
 
-### 1. **Action Links** (Patient-Facing)
+### **Total: 3 Serverless Functions**
 
-Public GET endpoints embedded in WhatsApp messages for one-click actions.
-
-#### `/api/action/confirm.ts`
-**Method:** GET  
-**Query Params:** `?token=xxx`  
-**Purpose:** Patient confirms appointment via WhatsApp link  
-**Flow:**
-1. Validate token using `validate_action_token()` RPC
-2. Update `appointments.status = 'confirmed'`
-3. Mark token as used
-4. Update `whatsapp_workflows.status = 'completed'`
-5. Return HTML success page
-
-**Response:** HTML page with confirmation message
+All routes consolidated to meet Vercel Hobby plan limit (max 12 functions).
 
 ---
 
-#### `/api/action/cancel.ts`
-**Method:** GET  
-**Query Params:** `?token=xxx`  
-**Purpose:** Patient cancels appointment  
-**Flow:**
+### 1. **Action Links** - `/api/action.ts` (1 function)
+
+**Public GET endpoint** for patient one-click actions via WhatsApp.
+
+#### **Route:**
+```
+GET /api/action?type={action}&token={token}
+```
+
+#### **Query Parameters:**
+- `type`: `confirm` | `cancel` | `reschedule`
+- `token`: Secure token from database
+
+#### **Examples:**
+```
+GET /api/action?type=confirm&token=abc123xyz
+GET /api/action?type=cancel&token=def456uvw
+GET /api/action?type=reschedule&token=ghi789rst
+```
+
+#### **Flow:**
+
+**Confirm:**
+1. Validate token using `validate_action_token()` RPC
+2. Verify `action_type === 'confirm'`
+3. Update `appointments.status = 'confirmed'`
+4. Mark token as used
+5. Update `whatsapp_workflows.status = 'completed'`
+6. Return HTML success page (green checkmark)
+
+**Cancel:**
 1. Validate token
 2. Update `appointments.status = 'cancelled'`
 3. Mark token as used
 4. Update workflow
-5. Return HTML page
+5. Return HTML page (red X)
 
-**Response:** HTML page with cancellation confirmation
-
----
-
-#### `/api/action/reschedule.ts`
-**Method:** GET  
-**Query Params:** `?token=xxx`  
-**Purpose:** Patient requests to reschedule  
-**Flow:**
+**Reschedule:**
 1. Validate token
-2. Create reschedule request record
-3. Mark token as used
-4. Notify admin team
-5. Return HTML page
+2. Mark token as used  
+3. Update workflow with `response = 'reschedule requested via link'`
+4. Return HTML page (calendar icon) with "we'll contact you" message
 
-**Response:** HTML page with instructions
+#### **Response:** 
+HTML page with styled success/error message
 
 ---
 
-### 2. **Inbound Webhooks** (n8n → Barnum)
+### 2. **Webhooks** - `/api/webhook.ts` (1 function)
 
-POST endpoints for n8n to update Barnum database after WhatsApp interactions.
+**Unified POST endpoint** for n8n to send callbacks to Barnum.
 
-#### `/api/webhooks/appointments/confirm.ts`
-**Method:** POST  
-**Headers:**
-- `X-Webhook-Signature`: HMAC SHA-256 signature
+#### **Route:**
+```
+POST /api/webhook
+```
+
+#### **Headers:**
+- `X-Webhook-Signature`: HMAC SHA-256 signature (optional but recommended)
 - `Content-Type`: application/json
 
-**Request Body:**
+#### **Request Body:**
+```typescript
+{
+  action: 'confirm' | 'cancel' | 'reschedule' | 'no_show_reschedule' | 'reactivation' | 'review',
+  appointmentId?: string,
+  patientId?: string,
+  patientResponse?: string,
+  reason?: string,
+  newDate?: string,
+  newTime?: string,
+  attempt?: number,
+  workflowType?: string,
+  reviewSubmitted?: boolean,
+  rating?: number
+}
+```
+
+#### **Actions:**
+
+**`confirm`** - Patient confirmed appointment
 ```json
 {
-  "appointmentId": "uuid",
+  "action": "confirm",
+  "appointmentId": "550e8400-e29b-41d4-a716-446655440000",
   "patientResponse": "confirmed"
 }
 ```
-
-**Purpose:** n8n confirms appointment after patient WhatsApp interaction  
-**Flow:**
-1. Verify HMAC signature
-2. Update `appointments.status = 'confirmed'`
-3. Update `whatsapp_workflows.status = 'completed'`
-4. Return success
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Appointment confirmed successfully",
-  "data": { "appointment": {...} }
-}
-```
+Updates `appointments.status = 'confirmed'` and workflow.
 
 ---
 
-#### `/api/webhooks/appointments/cancel.ts`
-**Method:** POST  
-**Purpose:** n8n cancels appointment  
-**Request Body:**
+**`cancel`** - Patient cancelled appointment
 ```json
 {
-  "appointmentId": "uuid",
-  "reason": "string"
+  "action": "cancel",
+  "appointmentId": "550e8400-e29b-41d4-a716-446655440000",
+  "reason": "Patient request"
 }
 ```
+Updates `appointments.status = 'cancelled'`.
 
 ---
 
-#### `/api/webhooks/appointments/reschedule.ts`
-**Method:** POST  
-**Purpose:** n8n reschedules appointment  
-**Request Body:**
+**`reschedule`** - Reschedule appointment to new date/time
 ```json
 {
-  "appointmentId": "uuid",
-  "newDate": "YYYY-MM-DD",
-  "newTime": "HH:mm"
+  "action": "reschedule",
+  "appointmentId": "550e8400-e29b-41d4-a716-446655440000",
+  "newDate": "2026-02-15",
+  "newTime": "14:30"
 }
 ```
+Updates `appointments.date` and `appointments.time`.
 
 ---
 
-#### `/api/webhooks/appointments/no-show-reschedule.ts`
-**Method:** POST  
-**Purpose:** Track no-show reschedule attempts  
-**Request Body:**
+**`no_show_reschedule`** - Track no-show reschedule attempt
 ```json
 {
-  "appointmentId": "uuid",
+  "action": "no_show_reschedule",
+  "appointmentId": "550e8400-e29b-41d4-a716-446655440000",
   "attempt": 1
 }
 ```
+Records workflow response.
 
 ---
 
-#### `/api/webhooks/reactivation/record.ts`
-**Method:** POST  
-**Purpose:** Record patient reactivation workflow completion  
-**Request Body:**
+**`reactivation`** - Record patient reactivation workflow
 ```json
 {
-  "patientId": "uuid",
-  "workflowType": "reactivation_30d",
-  "status": "completed"
+  "action": "reactivation",
+  "patientId": "550e8400-e29b-41d4-a716-446655440000",
+  "workflowType": "reactivation_30d"
+}
+```
+Creates workflow record.
+
+---
+
+**`review`** - Record review request response
+```json
+{
+  "action": "review",
+  "appointmentId": "550e8400-e29b-41d4-a716-446655440000",
+  "reviewSubmitted": true,
+  "rating": 5
+}
+```
+Updates workflow with review status.
+
+---
+
+#### **Response:**
+```json
+{
+  "success": true,
+  "message": "Action completed successfully",
+  "data": { ... }
 }
 ```
 
 ---
 
-#### `/api/webhooks/reviews/record.ts`
-**Method:** POST  
-**Purpose:** Record review request workflow completion  
-**Request Body:**
-```json
-{
-  "appointmentId": "uuid",
-  "reviewSubmitted": boolean,
-  "rating": number
-}
+### 3. **Internal Processor** - `/api/internal.ts` (1 function)
+
+**Background job** to process pending events from outbox table.
+
+#### **Route:**
+```
+POST /api/internal
 ```
 
----
-
-### 3. **Internal Processor** (Outbox Worker)
-
-Background job to process pending events from outbox table.
-
-#### `/api/internal/process-events.ts`
-**Method:** POST  
-**Headers:**
+#### **Headers:**
 - `Authorization`: Bearer {INTERNAL_API_SECRET}
 
-**Purpose:** Process pending `whatsapp_events` and send to n8n  
-**Trigger:** CRON job (every 1-5 minutes)
+#### **Purpose:** 
+Process pending `whatsapp_events` and send to n8n
 
-**Flow:**
+#### **Trigger:** 
+CRON job (every 1-5 minutes) or manual
+
+#### **Flow:**
 1. Authenticate internal request
 2. Fetch pending events (`status='pending'`, `scheduled_for <= now()`)
-3. For each event:
+3. For each event (batch of 50):
    - Mark as `processing`
    - Generate HMAC signature
    - POST to n8n webhook URL with:
-     - `X-Webhook-Signature`
-     - `X-Idempotency-Key` (eventId-timestamp)
-     - `X-Event-Id`
-     - `X-Event-Type`
-     - Event payload
+     - `X-Webhook-Signature`: HMAC
+     - `X-Idempotency-Key`: {eventId}-{timestamp}
+     - `X-Event-Id`: Event UUID
+     - `X-Event-Type`: Event type string
+     - Event payload (JSON body)
    - If success: Mark `status='sent'`, update workflow
    - If failure: Increment `retry_count`, schedule retry with exponential backoff
    - If max retries exceeded: Move to `dead_letter`
 4. Return summary
 
-**Response:**
+#### **Response:**
 ```json
 {
   "success": true,
@@ -270,8 +294,8 @@ Background job to process pending events from outbox table.
 }
 ```
 
-**Retry Strategy:**
-- Max retries: 3 (configurable)
+#### **Retry Strategy:**
+- Max retries: 3 (configurable per event)
 - Backoff: `retry_count * 60 seconds`
 - Dead letter queue after max retries
 
@@ -287,7 +311,7 @@ Background job to process pending events from outbox table.
 #### Outbound (Barnum → n8n)
 ```typescript
 const signature = generateHmacSignature(eventPayload, WEBHOOK_SECRET);
-// Send as X-Webhook-Signature header
+// Sent as X-Webhook-Signature header in POST /api/internal
 ```
 
 #### Inbound (n8n → Barnum)
@@ -298,6 +322,7 @@ const isValid = verifyHmacSignature(
   signature, 
   WEBHOOK_SECRET
 );
+// Used in POST /api/webhook
 ```
 
 **Security Features:**
@@ -464,7 +489,7 @@ create_whatsapp_event(
 3. INSERT whatsapp_workflows (type='pre_confirmation_sent')
    INSERT whatsapp_events (event_type='appointment.pre_confirmed')
    ↓
-4. CRON job calls /api/internal/process-events
+4. CRON job calls POST /api/internal
    ↓
 5. Processor fetches pending event
    Generates HMAC signature
@@ -472,12 +497,12 @@ create_whatsapp_event(
    ↓
 6. n8n receives event
    Sends WhatsApp message with action links:
-   - Confirm: https://barnum.com/api/action/confirm?token=xxx
-   - Cancel: https://barnum.com/api/action/cancel?token=yyy
+   - Confirm: https://barnum.com/api/action?type=confirm&token=xxx
+   - Cancel: https://barnum.com/api/action?type=cancel&token=yyy
    ↓
 7. Patient clicks "Confirm" link
    ↓
-8. GET /api/action/confirm?token=xxx
+8. GET /api/action?type=confirm&token=xxx
    Validates token
    Updates appointment.status='confirmed'
    Returns HTML success page
@@ -504,7 +529,8 @@ create_whatsapp_event(
 6. Patient replies "yes" via WhatsApp
    ↓
 7. n8n captures response
-   POST /api/webhooks/appointments/no-show-reschedule
+   POST /api/webhook
+   Body: { "action": "no_show_reschedule", "appointmentId": "...", "attempt": 1 }
    ↓
 8. Barnum records response
    Admin team notified
@@ -523,10 +549,10 @@ create_whatsapp_event(
 - ✅ Token generation/validation
 - ✅ RLS (Row Level Security) enforcement
 
-### Vercel API Routes
-- ✅ Outbox worker (process pending events)
-- ✅ Action link handlers (patient interactions)
-- ✅ Inbound webhook endpoints (n8n callbacks)
+### Vercel API Routes (3 functions)
+- ✅ Outbox worker (process pending events) - `/api/internal`
+- ✅ Action link handler (patient interactions) - `/api/action`
+- ✅ Inbound webhook endpoint (n8n callbacks) - `/api/webhook`
 - ✅ HMAC signature generation/verification
 - ✅ Token validation
 - ✅ HTML response generation
@@ -561,7 +587,7 @@ INTERNAL_API_SECRET=your-internal-secret
 
 ## 📝 Payload Formats
 
-### Outbound (Barnum → n8n)
+### Outbound (Barnum → n8n) via `/api/internal`
 
 ```json
 {
@@ -586,16 +612,17 @@ INTERNAL_API_SECRET=your-internal-secret
     }
   },
   "action_links": {
-    "confirm": "https://barnum.com/api/action/confirm?token=xxx",
-    "cancel": "https://barnum.com/api/action/cancel?token=yyy"
+    "confirm": "https://barnum.com/api/action?type=confirm&token=xxx",
+    "cancel": "https://barnum.com/api/action?type=cancel&token=yyy"
   }
 }
 ```
 
-### Inbound (n8n → Barnum)
+### Inbound (n8n → Barnum) via `/api/webhook`
 
 ```json
 {
+  "action": "confirm",
   "appointmentId": "uuid",
   "patientResponse": "confirmed",
   "timestamp": "2026-01-28T10:05:00Z"
@@ -608,12 +635,14 @@ INTERNAL_API_SECRET=your-internal-secret
 
 - [x] No Supabase Edge Functions ✅
 - [x] All routes in `/api` directory ✅
+- [x] **3 serverless functions** (within 12 limit) ✅
 - [x] HMAC security implemented ✅
 - [x] Outbox pattern with retries ✅
 - [x] Token-based action links ✅
 - [x] HTML success pages ✅
 - [x] Dead letter queue ✅
 - [x] Idempotency keys ✅
+- [x] TypeScript build passing ✅
 
 ---
 
@@ -621,21 +650,63 @@ INTERNAL_API_SECRET=your-internal-secret
 
 ### Key Metrics to Track
 
-1. **Outbox Processing**
+1. **Outbox Processing** (`/api/internal`)
    - Events processed/min
    - Retry rate
    - Dead letter rate
    - Average processing time
 
-2. **Action Links**
+2. **Action Links** (`/api/action`)
    - Click-through rate
    - Token validation success rate
-   - Most used action type
+   - Most used action type (confirm/cancel/reschedule)
 
-3. **Webhooks**
-   - Inbound request rate
+3. **Webhooks** (`/api/webhook`)
+   - Inbound request rate per action
    - Signature verification failures
    - Response times
+
+---
+
+## 🆕 Migration from Old Routes
+
+### Old Structure (13 functions - Exceeded limit ❌)
+```
+/api/action/confirm.ts
+/api/action/cancel.ts
+/api/action/reschedule.ts
+/api/webhooks/appointments/confirm.ts
+/api/webhooks/appointments/cancel.ts
+/api/webhooks/appointments/reschedule.ts
+/api/webhooks/appointments/no-show-reschedule.ts
+/api/webhooks/reactivation/record.ts
+/api/webhooks/reviews/record.ts
+/api/internal/process-events.ts
+```
+
+### New Structure (3 functions - Within limit ✅)
+```
+/api/action.ts          (handles all action types via ?type=)
+/api/webhook.ts         (handles all callbacks via body.action)
+/api/internal.ts        (outbox processor)
+```
+
+### n8n Migration Required
+
+**Update webhook URLs in n8n workflows:**
+
+**Old:**
+```
+POST https://barnum.com/api/webhooks/appointments/confirm
+POST https://barnum.com/api/webhooks/appointments/cancel
+```
+
+**New:**
+```
+POST https://barnum.com/api/webhook
+Body: { "action": "confirm", ... }
+Body: { "action": "cancel", ... }
+```
 
 ---
 
@@ -649,5 +720,6 @@ This architecture is **100% webhook-based** with:
 - ✅ Secure HMAC signatures
 - ✅ Scalable serverless infrastructure
 - ✅ Production-grade error handling
+- ✅ **Only 3 functions** (within Vercel Hobby plan limit)
 
 **All systems GO for deployment! 🚀**
