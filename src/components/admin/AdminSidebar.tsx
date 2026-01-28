@@ -11,6 +11,7 @@ import {
   LogOut,
   Inbox,
   TrendingUp,
+  Euro,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,13 +23,13 @@ import {
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
 import { PlanBadge } from './PlanBadge';
-import logo from '@/assets/logo-dashboard-v2.png';
 
 const navItems = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests' },
   { path: '/admin/pacientes', label: 'Pacientes', icon: Users },
+  { path: '/admin/faturacao', label: 'Faturação', icon: Euro },
   { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp },
   { path: '/admin/sala-espera', label: 'Sala de Espera', icon: Armchair },
 ];
@@ -63,37 +64,9 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         !isMobile && (isCollapsed ? 'w-16' : 'w-64')
       )}
     >
-      {/* Logo Removed - Now in Top Header */}
-
-      {/* Plan Badge (moved up) */}
+      {/* Plan Badge */}
       <div className={cn("px-3 border-b border-sidebar-border/50", isCollapsed ? "py-2" : "py-4")}>
         <PlanBadge plan="advanced" collapsed={isCollapsed} />
-      </div>
-
-      {/* Debug Logo */}
-      <div className="relative">
-        <img
-          src={logo}
-          alt="Barnum"
-          className={cn(
-            "object-contain opacity-0",
-            isCollapsed ? "h-20 w-20" : "h-28 max-w-full"
-          )}
-        />
-        <div
-          className="absolute inset-0 bg-primary-gradient"
-          style={{
-            maskImage: `url(${logo})`,
-            maskSize: 'contain',
-            maskRepeat: 'no-repeat',
-            maskPosition: 'center',
-            WebkitMaskImage: `url(${logo})`,
-            WebkitMaskSize: 'contain',
-            WebkitMaskRepeat: 'no-repeat',
-            WebkitMaskPosition: 'center'
-          }}
-        />
-        <span className="absolute bottom-0 right-0 text-xs text-red-500 font-bold bg-white px-1">DEBUG-V2</span>
       </div>
 
       {/* Botão Nova Consulta */}

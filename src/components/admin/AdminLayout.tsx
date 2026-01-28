@@ -95,11 +95,21 @@ export function AdminLayout() {
 
           {/* Center: Brand Logo */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <img
-              src={logo}
-              alt="Barnun"
-              className="h-16 lg:h-24 w-auto object-contain mix-blend-multiply"
-            />
+            <div className="relative h-16 lg:h-20 w-48 max-w-[200px]">
+              <div
+                className="absolute inset-0 bg-primary-gradient"
+                style={{
+                  maskImage: `url(${logo})`,
+                  maskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                  WebkitMaskImage: `url(${logo})`,
+                  WebkitMaskSize: 'contain',
+                  WebkitMaskRepeat: 'no-repeat',
+                  WebkitMaskPosition: 'center'
+                }}
+              />
+            </div>
           </div>
 
           {/* Right: Actions */}
