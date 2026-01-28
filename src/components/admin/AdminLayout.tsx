@@ -95,7 +95,7 @@ export function AdminLayout() {
 
           {/* Center: Brand Logo */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative h-16 lg:h-20 w-48 max-w-[200px]">
+            <div className="relative h-18 lg:h-24 w-64 lg:w-[450px]">
               <div
                 className="absolute inset-0 bg-primary-gradient"
                 style={{
@@ -112,14 +112,8 @@ export function AdminLayout() {
             </div>
           </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center justify-end gap-2 lg:gap-4 z-10 w-20">
-            <NotificationsDropdown />
-            <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20 cursor-pointer">
-              <AvatarFallback className="bg-primary text-primary-foreground font-sans font-semibold text-xs lg:text-sm">
-                DF
-              </AvatarFallback>
-            </Avatar>
+          {/* Right: Actions - Hidden as requested */}
+          <div className="flex items-center justify-end gap-2 lg:gap-4 z-10 w-20 invisible">
           </div>
         </header>
 
