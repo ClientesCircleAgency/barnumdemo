@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import logo from '@/assets/logo-barnum-new.png';
+import logo from '@/assets/logo-barnum-dashboard.png';
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Password deve ter pelo menos 6 caracteres')

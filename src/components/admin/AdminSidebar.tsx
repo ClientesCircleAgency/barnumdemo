@@ -22,7 +22,7 @@ import {
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
 import { PlanBadge } from './PlanBadge';
-import logo from '@/assets/logo-barnum-new.png';
+import logo from '@/assets/logo-barnum-dashboard.png';
 
 const navItems = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
