@@ -95,7 +95,7 @@ export function AdminLayout() {
 
           {/* Center: Brand Logo */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative h-18 lg:h-24 w-64 lg:w-[450px]">
+            <div className="relative h-20 lg:h-26 w-full max-w-[600px] lg:max-w-[800px]">
               <div
                 className="absolute inset-0 bg-primary-gradient"
                 style={{
