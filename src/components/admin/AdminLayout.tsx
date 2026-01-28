@@ -97,7 +97,7 @@ export function AdminLayout() {
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="relative h-20 lg:h-26 w-full max-w-[600px] lg:max-w-[800px]">
               <div
-                className="absolute inset-0 bg-primary-gradient"
+                className="absolute inset-0 bg-primary-gradient scale-[2.5]"
                 style={{
                   maskImage: `url(${logo})`,
                   maskSize: 'contain',
