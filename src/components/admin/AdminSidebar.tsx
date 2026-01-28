@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
-  MessageSquare,
   Armchair,
   Settings,
   ChevronLeft,
@@ -11,7 +10,7 @@ import {
   Plus,
   LogOut,
   Inbox,
-  Euro,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,8 +29,7 @@ const navItems = [
   { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
   { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests' },
   { path: '/admin/pacientes', label: 'Pacientes', icon: Users },
-  { path: '/admin/faturacao', label: 'Faturação', icon: Euro },
-  { path: '/admin/mensagens', label: 'Mensagens', icon: MessageSquare },
+  { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp },
   { path: '/admin/sala-espera', label: 'Sala de Espera', icon: Armchair },
 ];
 

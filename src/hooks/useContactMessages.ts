@@ -7,11 +7,11 @@ export interface ContactMessage {
   email: string;
   phone: string;
   message: string;
-  status: 'new' | 'read' | 'archived';
+  is_read: boolean;
   created_at: string;
 }
 
-export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'status' | 'created_at'>;
+export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'is_read' | 'created_at'>;
 
 export function useContactMessages() {
   return useQuery({
@@ -21,7 +21,7 @@ export function useContactMessages() {
         .from('contact_messages')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return (data || []) as ContactMessage[];
     },
@@ -30,7 +30,7 @@ export function useContactMessages() {
 
 export function useAddContactMessage() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (message: ContactMessageInsert) => {
       // Note: public users can INSERT but cannot SELECT from this table (PII).
@@ -48,18 +48,18 @@ export function useAddContactMessage() {
   });
 }
 
-export function useUpdateContactMessageStatus() {
+export function useMarkContactMessageAsRead() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: ContactMessage['status'] }) => {
+    mutationFn: async (id: string) => {
       const { data, error } = await supabase
         .from('contact_messages')
-        .update({ status })
+        .update({ is_read: true })
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -71,14 +71,14 @@ export function useUpdateContactMessageStatus() {
 
 export function useDeleteContactMessage() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('contact_messages')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {

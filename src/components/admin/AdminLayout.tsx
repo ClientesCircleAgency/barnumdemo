@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AdminSidebar } from './AdminSidebar';
 import { ClinicProvider } from '@/context/ClinicContext';
@@ -10,18 +10,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { NotificationsDropdown } from './NotificationsDropdown';
 
 const pageTitles: Record<string, { title: string }> = {
   '/admin/dashboard': { title: 'Dashboard' },
   '/admin/agenda': { title: 'Agenda do Dia' },
   '/admin/pacientes': { title: 'Gestão de Pacientes' },
-  '/admin/mensagens': { title: 'Inbox WhatsApp' },
   '/admin/sala-espera': { title: 'Fluxo de Atendimento' },
   '/admin/lista-espera': { title: 'Lista de Espera' },
   '/admin/configuracoes': { title: 'Configurações' },
   '/admin/pedidos': { title: 'Pedidos de Marcação' },
   '/admin/plano': { title: 'Plano' },
-  '/admin/faturacao': { title: 'Faturação' },
+  '/admin/estatisticas': { title: 'Estatísticas' },
 };
 
 export function AdminLayout() {
@@ -92,7 +92,7 @@ export function AdminLayout() {
           <SheetContent side="left" className="p-0 w-72 bg-sidebar border-sidebar-border">
             <AdminSidebar
               collapsed={false}
-              onToggle={() => {}}
+              onToggle={() => { }}
               onNewAppointment={handleNewAppointment}
               onLogout={handleLogout}
               isMobile
@@ -126,22 +126,9 @@ export function AdminLayout() {
               </div>
             </div>
             <div className="flex items-center gap-2 lg:gap-4">
-              {/* Bot Status - hidden on small screens */}
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent border border-border">
-                <div className="w-2 h-2 rounded-full bg-chart-1 animate-pulse" />
-                <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                  Bot Ativo
-                </span>
-              </div>
-              
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground font-mono text-[10px] flex items-center justify-center">
-                  2
-                </span>
-              </Button>
-              
+              <NotificationsDropdown />
+
               {/* User Avatar */}
               <Avatar className="h-8 w-8 lg:h-9 lg:w-9 border-2 border-primary/20">
                 <AvatarFallback className="bg-primary text-primary-foreground font-sans font-semibold text-xs lg:text-sm">

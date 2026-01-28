@@ -1,7 +1,8 @@
-import { CalendarDays, Users, TrendingUp, Clock, Inbox, ArrowUpRight, Star, Bot } from 'lucide-react';
+import { CalendarDays, Users, TrendingUp, Clock, Inbox, ArrowUpRight, Star, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
+import { useContactMessages } from '@/hooks/useContactMessages';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -11,19 +12,20 @@ import type { AppointmentStatus } from '@/types/clinic';
 export default function DashboardPage() {
   const { appointments, patients } = useClinic();
   const { data: requests = [] } = useAppointmentRequests();
+  const { data: contactMessages = [] } = useContactMessages();
 
   const todayDate = format(new Date(), 'yyyy-MM-dd');
-  const todayAppointments = appointments.filter((a) => a.date === todayDate);
+  const todayAppointments = appointments.filter(
+    (a) => a.date === todayDate && !['cancelled', 'no_show'].includes(a.status)
+  );
   const pendingRequests = requests.filter(r => r.status === 'pending');
+  const newMessages = contactMessages.filter(m => !m.is_read);
 
   const currentDate = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt });
 
   // Mock data for Google rating (would come from API)
   const googleRating = 4.8;
   const totalReviews = 127;
-
-  // Mock data for chatbot bookings today (resets at 00:00)
-  const chatbotBookingsToday = 3;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -122,18 +124,18 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Chatbot Bookings Today */}
+        {/* Mensagens Novas */}
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Bot className="h-4 w-4 text-primary" />
+              <MessageCircle className="h-4 w-4 text-primary" />
             </div>
           </div>
           <p className="font-mono text-2xl font-bold text-primary leading-none">
-            {chatbotBookingsToday}
+            {newMessages.length}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Marcações chatbot
+            Mensagens novas
           </p>
         </div>
       </div>
