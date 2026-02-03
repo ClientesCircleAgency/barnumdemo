@@ -55,7 +55,9 @@ export function AdminLayout() {
   };
 
   const handleNewAppointment = () => {
+    console.log('[DEBUG] Nova Consulta clicked, opening wizard...');
     setWizardOpen(true);
+    console.log('[DEBUG] wizardOpen state set to true');
     setMobileMenuOpen(false);
   };
 

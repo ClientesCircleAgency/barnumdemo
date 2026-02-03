@@ -322,6 +322,69 @@ type AppointmentStatus =
 
 ---
 
+### UI Flow: Create Professional
+
+**Entry Point:** Settings Page → "Gerir Profissionais" button  
+**Component:** `src/components/admin/ManageProfessionalsModal.tsx`  
+**Context Layer:** `src/context/ClinicContext.tsx` (lines 309-315)
+
+**User Flow:**
+1. Admin clicks "Gerir Profissionais" in Settings
+2. Modal opens with list of existing professionals
+3. Click "Adicionar Profissional" button
+4. Fill form: Name, Specialty (dropdown), Color picker
+5. Click "Adicionar"
+
+**Form Validation** (lines 79-82):
+```typescript
+if (!newForm.name.trim() || !newForm.specialty.trim()) {
+  toast.error('Preencha todos os campos');
+  return;
+}
+```
+
+**Specialty Dropdown** (lines 192-206):
+```typescript
+<Select value={newForm.specialty} onValueChange={(v) => setNewForm({ ...newForm, specialty: v })}>
+  <SelectContent>
+    {specialties.map((s) => (
+      <SelectItem key={s.id} value={s.id}>
+        {s.name}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+**Submit Payload** (lines 84-88 → context line 310-315):
+```typescript
+addProfessional({
+  name: newForm.name.trim(),
+  specialty: newForm.specialty.trim(), // This is specialty.id (UUID)
+  color: newForm.color,
+});
+
+// Mapped to:
+{
+  name: data.name,
+  specialty_id: data.specialty, // UUID from dropdown
+  color: data.color,
+  avatar_url: data.avatar, // undefined
+}
+```
+
+**Success Feedback** (line 89-91):
+- Toast: "Profissional adicionado"
+- Form reset to defaults
+- Modal remains open for adding more (isAdding = false)
+
+**Backend Write:**
+- Direct Supabase client INSERT via `useProfessionals` hook
+- Invalidates React Query cache on success
+- No RLS bypass needed (admin context)
+
+---
+
 ## TABLE: `consultation_types`
 
 ### SELECT - Get All

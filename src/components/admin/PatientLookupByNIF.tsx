@@ -5,6 +5,7 @@ import { Search, User, Plus, Check, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { useClinic } from '@/context/ClinicContext';
 import type { Patient } from '@/types/clinic';
 import { format } from 'date-fns';
@@ -140,7 +141,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
     <div className="space-y-4">
       {/* Input NIF */}
       <div className="space-y-2">
-        <FormLabel htmlFor="nif">NIF do Paciente *</FormLabel>
+        <Label htmlFor="nif">NIF do Paciente *</Label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

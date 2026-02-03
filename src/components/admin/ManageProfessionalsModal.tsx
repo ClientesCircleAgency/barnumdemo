@@ -125,7 +125,7 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
                         </SelectTrigger>
                         <SelectContent>
                           {specialties.map((s) => (
-                            <SelectItem key={s.id} value={s.name}>
+                            <SelectItem key={s.id} value={s.id}>
                               {s.name}
                             </SelectItem>
                           ))}
@@ -136,9 +136,8 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
                           <button
                             key={c}
                             type="button"
-                            className={`w-6 h-6 rounded-full border-2 ${
-                              editForm.color === c ? 'border-foreground' : 'border-transparent'
-                            }`}
+                            className={`w-6 h-6 rounded-full border-2 ${editForm.color === c ? 'border-foreground' : 'border-transparent'
+                              }`}
                             style={{ backgroundColor: c }}
                             onClick={() => setEditForm({ ...editForm, color: c })}
                           />
@@ -161,7 +160,7 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
                       />
                       <div className="flex-1">
                         <p className="font-medium">{prof.name}</p>
-                        <p className="text-sm text-muted-foreground">{prof.specialty}</p>
+                        <p className="text-sm text-muted-foreground">{specialties.find(s => s.id === prof.specialty)?.name || 'N/A'}</p>
                       </div>
                       <Button size="sm" variant="ghost" onClick={() => handleStartEdit(prof)}>
                         <Pencil className="h-4 w-4" />
@@ -198,7 +197,7 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
                     </SelectTrigger>
                     <SelectContent>
                       {specialties.map((s) => (
-                        <SelectItem key={s.id} value={s.name}>
+                        <SelectItem key={s.id} value={s.id}>
                           {s.name}
                         </SelectItem>
                       ))}
@@ -209,9 +208,8 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
                       <button
                         key={c}
                         type="button"
-                        className={`w-6 h-6 rounded-full border-2 ${
-                          newForm.color === c ? 'border-foreground' : 'border-transparent'
-                        }`}
+                        className={`w-6 h-6 rounded-full border-2 ${newForm.color === c ? 'border-foreground' : 'border-transparent'
+                          }`}
                         style={{ backgroundColor: c }}
                         onClick={() => setNewForm({ ...newForm, color: c })}
                       />
