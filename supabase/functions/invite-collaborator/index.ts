@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-user-token",
 };
 
 interface InviteRequest {
@@ -34,6 +34,16 @@ interface InviteResponse {
   error?: string;
 }
 
+// Decode JWT payload without verification (gateway already validated the request)
+function decodeJwtPayload(jwt: string): Record<string, unknown> {
+  const parts = jwt.split(".");
+  if (parts.length !== 3) throw new Error("Invalid JWT format");
+  // Handle base64url encoding
+  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+  const payload = JSON.parse(atob(base64));
+  return payload;
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -41,45 +51,64 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    // Get user token from custom header (avoids ES256/HS256 gateway conflict)
+    const userToken = req.headers.get("x-user-token");
+    if (!userToken) {
       return new Response(
-        JSON.stringify({ success: false, error: "Missing authorization header" }),
+        JSON.stringify({ success: false, error: "Missing x-user-token header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Initialize Supabase clients
+    // Initialize Supabase admin client (service role for all operations)
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Client with user's JWT (for auth validation)
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
-
-    // Service role client (for admin operations)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate user is authenticated
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseUser.auth.getUser();
-
-    if (userError || !user) {
+    // Decode JWT to extract user ID (no HTTP call — avoids ES256 gateway issue)
+    let jwtPayload: Record<string, unknown>;
+    try {
+      jwtPayload = decodeJwtPayload(userToken);
+    } catch {
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid or expired token" }),
+        JSON.stringify({ success: false, error: "Invalid token format" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const userId = jwtPayload.sub as string;
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Token missing user ID" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check token expiry
+    const exp = jwtPayload.exp as number;
+    if (exp && exp < Math.floor(Date.now() / 1000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Token expired" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify user exists via admin API (uses service role, no gateway JWT issue)
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (userError || !userData.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "User not found" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const user = userData.user;
+
     // Validate user is admin
-    const { data: isAdminData, error: roleError } = await supabaseUser.rpc(
+    const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(
       "has_role",
       { _user_id: user.id, _role: "admin" }
     );

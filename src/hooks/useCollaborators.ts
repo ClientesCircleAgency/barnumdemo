@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
 
 export interface Collaborator {
   user_id: string;
@@ -30,14 +30,26 @@ async function fetchCollaborators(): Promise<Collaborator[]> {
     'list-collaborators',
     {
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'x-user-token': session.access_token,
       },
     }
   );
 
   if (error) {
     console.error('Edge function error:', error);
-    throw new Error(error.message || 'Failed to fetch collaborators');
+    let errorMsg = 'Failed to fetch collaborators';
+    try {
+      if (error.context && typeof error.context.json === 'function') {
+        const errBody = await error.context.json();
+        errorMsg = errBody?.error || errorMsg;
+      } else {
+        errorMsg = error.message || errorMsg;
+      }
+    } catch { 
+      errorMsg = error.message || errorMsg;
+    }
+    throw new Error(errorMsg);
   }
 
   if (!data?.success || !data.collaborators) {
