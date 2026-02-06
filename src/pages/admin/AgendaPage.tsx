@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Plus, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useClinic } from '@/context/ClinicContext';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { AppointmentWizard } from '@/components/admin/AppointmentWizard';
 import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
 import { DayView } from '@/components/admin/DayView';
@@ -21,6 +23,7 @@ type ViewMode = 'day' | 'week' | 'month';
 
 export default function AgendaPage() {
   const { appointments, professionals } = useClinic();
+  const { user, userRole, isDoctor } = useAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
@@ -29,19 +32,42 @@ export default function AgendaPage() {
   const [selectedAppointment, setSelectedAppointment] = useState<ClinicAppointment | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [doctorProfessionalId, setDoctorProfessionalId] = useState<string | null>(null);
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
+
+  // Fetch doctor's professional_id if user is a doctor
+  useEffect(() => {
+    if (isDoctor && user?.id) {
+      const fetchDoctorProfessional = async () => {
+        const { data, error } = await supabase
+          .from('professionals')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (data && !error) {
+          setDoctorProfessionalId(data.id);
+          setSelectedProfessional(data.id); // Auto-select doctor's own agenda
+        }
+      };
+      fetchDoctorProfessional();
+    }
+  }, [isDoctor, user]);
 
   // Filter appointments by date and professional
   const dayAppointments = useMemo(() => {
     return appointments
       .filter((apt) => {
         if (apt.date !== dateStr) return false;
-        if (selectedProfessional !== 'all' && apt.professionalId !== selectedProfessional) return false;
+        // If doctor: ONLY show own appointments
+        if (isDoctor && doctorProfessionalId && apt.professionalId !== doctorProfessionalId) return false;
+        // If admin/secretary: respect professional selector
+        if (!isDoctor && selectedProfessional !== 'all' && apt.professionalId !== selectedProfessional) return false;
         return true;
       })
       .sort((a, b) => a.time.localeCompare(b.time));
-  }, [appointments, dateStr, selectedProfessional]);
+  }, [appointments, dateStr, selectedProfessional, isDoctor, doctorProfessionalId]);
 
   // Get professionals to show in selector
   const activeProfessionals = useMemo(() => {
@@ -167,25 +193,27 @@ export default function AgendaPage() {
             </TabsList>
           </Tabs>
 
-          <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="w-auto min-w-[100px] max-w-[200px] h-8 text-xs">
-              <SelectValue placeholder="Médico" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {activeProfessionals.map((prof) => (
-                <SelectItem key={prof.id} value={prof.id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: prof.color }}
-                    />
-                    <span>{prof.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isDoctor && (
+            <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+              <SelectTrigger className="w-auto min-w-[100px] max-w-[200px] h-8 text-xs">
+                <SelectValue placeholder="Médico" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {activeProfessionals.map((prof) => (
+                  <SelectItem key={prof.id} value={prof.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: prof.color }}
+                      />
+                      <span>{prof.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 

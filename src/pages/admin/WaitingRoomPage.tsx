@@ -1,4 +1,4 @@
-import { useState, forwardRef } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
 import { CheckCircle, Clock, Stethoscope, UserCheck, Wifi } from 'lucide-react';
@@ -11,6 +11,8 @@ import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointm
 import { usePatients } from '@/hooks/usePatients';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -172,9 +174,13 @@ export default function WaitingRoomPage() {
   );
 
   // Filtrar apenas consultas de hoje com estados relevantes
-  const todayAppointments = allAppointments.filter(
-    (apt) => apt.date === today && ['confirmed', 'waiting', 'in_progress', 'completed'].includes(apt.status)
-  );
+  const todayAppointments = allAppointments.filter((apt) => {
+    if (apt.date !== today) return false;
+    if (!['confirmed', 'waiting', 'in_progress', 'completed'].includes(apt.status)) return false;
+    // If doctor: ONLY show own appointments
+    if (isDoctor && doctorProfessionalId && apt.professional_id !== doctorProfessionalId) return false;
+    return true;
+  });
 
   const getPatient = (id: string) => patients.find((p) => p.id === id);
   const getProfessional = (id: string) => professionals.find((p) => p.id === id);

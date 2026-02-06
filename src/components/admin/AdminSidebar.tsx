@@ -21,15 +21,26 @@ import {
 } from '@/components/ui/tooltip';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
+import { useAuth } from '@/hooks/useAuth';
 import { PlanBadge } from './PlanBadge';
 
-const navItems = [
-  { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays },
-  { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests' },
-  { path: '/admin/pacientes', label: 'Pacientes', icon: Users },
-  { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp },
-  { path: '/admin/sala-espera', label: 'Sala de Espera', icon: Armchair },
+type UserRole = 'admin' | 'secretary' | 'doctor';
+
+interface NavItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badgeKey?: string;
+  allowedRoles: UserRole[];
+}
+
+const navItems: NavItem[] = [
+  { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'secretary', 'doctor'] },
+  { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays, allowedRoles: ['admin', 'secretary', 'doctor'] },
+  { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests', allowedRoles: ['admin', 'secretary'] },
+  { path: '/admin/pacientes', label: 'Pacientes', icon: Users, allowedRoles: ['admin', 'secretary', 'doctor'] },
+  { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp, allowedRoles: ['admin'] },
+  { path: '/admin/sala-espera', label: 'Sala de Espera', icon: Armchair, allowedRoles: ['admin', 'secretary', 'doctor'] },
 ];
 
 interface AdminSidebarProps {
@@ -44,6 +55,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
   const location = useLocation();
   const { appointments } = useClinic();
   const { data: requests = [] } = useAppointmentRequests();
+  const { userRole } = useAuth();
 
   const todayDate = new Date().toISOString().split('T')[0];
   const pendingToday = appointments.filter(
@@ -52,6 +64,11 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
   const pendingRequests = requests.filter(r => r.status === 'pending').length;
 
   const isCollapsed = collapsed && !isMobile;
+
+  // Filter nav items by user role
+  const visibleNavItems = navItems.filter(item => 
+    userRole && item.allowedRoles.includes(userRole)
+  );
 
   return (
     <aside
@@ -95,7 +112,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
 
       {/* Navegação */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           const Icon = item.icon;
           const badge =
@@ -161,15 +178,16 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
 
       {/* Configurações e Footer */}
       <div className="p-3 space-y-0.5">
-        {isCollapsed ? (
-          <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <NavLink
-                  to="/admin/configuracoes"
-                  className={cn(
-                    'flex items-center justify-center h-10 w-full rounded-lg transition-all',
-                    location.pathname === '/admin/configuracoes'
+        {(userRole === 'admin' || userRole === 'secretary') && (
+          isCollapsed ? (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to="/admin/configuracoes"
+                    className={cn(
+                      'flex items-center justify-center h-10 w-full rounded-lg transition-all',
+                      location.pathname === '/admin/configuracoes'
                       ? 'bg-sidebar-accent text-sidebar-primary'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
                   )}
@@ -192,29 +210,47 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
               </TooltipTrigger>
               <TooltipContent side="right" className="font-sans text-xs">Sair</TooltipContent>
             </Tooltip>
-          </>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/admin/configuracoes"
+                className={cn(
+                  'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
+                  location.pathname === '/admin/configuracoes'
+                    ? 'bg-sidebar-accent text-sidebar-primary font-medium'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                )}
+              >
+                <Settings className="h-4 w-4" />
+                <span>Configurações</span>
+              </NavLink>
+            </>
+          )
+        )}
+        {/* Logout button (always visible) */}
+        {isCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onLogout}
+                className="w-full h-10 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-sans text-xs">Sair</TooltipContent>
+          </Tooltip>
         ) : (
-          <>
-            <NavLink
-              to="/admin/configuracoes"
-              className={cn(
-                'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
-                location.pathname === '/admin/configuracoes'
-                  ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
-              )}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Configurações</span>
-            </NavLink>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-3 h-10 px-3 w-full rounded-lg transition-all font-sans text-sm text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>Sair</span>
-            </button>
-          </>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-3 h-10 px-3 w-full rounded-lg transition-all font-sans text-sm text-destructive hover:bg-destructive/10"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sair</span>
+          </button>
         )}
       </div>
 

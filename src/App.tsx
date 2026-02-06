@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
 import NotFound from "./pages/NotFound";
 import { AdminLayout } from "./components/admin/AdminLayout";
+import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import DashboardPage from "./pages/admin/DashboardPage";
 import AgendaPage from "./pages/admin/AgendaPage";
 import PatientsPage from "./pages/admin/PatientsPage";
@@ -38,9 +39,23 @@ const App = () => (
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
             <Route path="lista-espera" element={<WaitlistPage />} />
             <Route path="sala-espera" element={<WaitingRoomPage />} />
-            <Route path="configuracoes" element={<SettingsPage />} />
+            <Route 
+              path="configuracoes" 
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'secretary']}>
+                  <SettingsPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="plano" element={<PlanPage />} />
-            <Route path="estatisticas" element={<StatisticsPage />} />
+            <Route 
+              path="estatisticas" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <StatisticsPage />
+                </ProtectedRoute>
+              } 
+            />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

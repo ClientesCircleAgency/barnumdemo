@@ -321,20 +321,12 @@ export default function SettingsPage() {
                   <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
                     <Tag className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
-                    {!isAdmin && (
-                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                        <ShieldAlert className="h-3 w-3" />
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
+                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
                 </div>
-                {isAdmin && (
+                {(isAdmin || userRole === 'secretary') && (
                   <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setTypesModalOpen(true)}>
                     <Plus className="h-3 w-3" />
-                    <span className="hidden sm:inline">Novo</span>
+                    <span>Novo</span>
                   </Button>
                 )}
               </div>
