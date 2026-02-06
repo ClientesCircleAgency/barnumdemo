@@ -25,6 +25,7 @@ export interface Professional {
   specialty: string;  // This is specialty_id in DB
   color: string;
   avatar?: string;
+  userId?: string | null; // Link to auth.users.id
 }
 
 // Especialidade

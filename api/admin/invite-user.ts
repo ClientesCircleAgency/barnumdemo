@@ -1,3 +1,13 @@
+/**
+ * @deprecated Since 2026-02-06
+ * 
+ * This Vercel endpoint is deprecated. Use Supabase Edge Function instead:
+ * - Function: supabase/functions/invite-collaborator/index.ts
+ * - Invoke via: supabase.functions.invoke('invite-collaborator', { body })
+ * 
+ * Kept for backward compatibility only.
+ */
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '../lib/supabase';

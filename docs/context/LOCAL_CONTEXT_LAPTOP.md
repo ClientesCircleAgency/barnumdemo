@@ -979,3 +979,167 @@ avItems.filter(item => userRole && item.allowedRoles.includes(userRole)) (Line 6
 - Ready for multi-role production deployment after QA validation
 
 ---
+
+## Context Update — 2026-02-06 10:00 UTC
+
+### Phase: Move Invites to Edge Functions + Unify UI
+
+**Trigger**: User requested moving collaborator invites to Supabase Edge Functions (not Vercel) and unifying duplicated UI.
+
+**Problem Identified**:
+- **Duplication**: 2 separate sections in Settings:
+  1. "Equipa Médica" (lines 216-255) - managed professionals but didn't create user accounts
+  2. "Gestão de Utilizadores" (lines 257-313) - created user accounts but didn't link professionals
+- **Security Risk**: Vercel endpoint required exposing service role operations
+- **UX Fragmentation**: Users confused by split workflow
+
+**Solution Implemented**:
+
+**1. Supabase Edge Function** (`supabase/functions/invite-collaborator/index.ts` - NEW, 295 lines):
+- **Auth**: Validates JWT + checks admin via `has_role()` RPC (lines 70-98)
+- **Input Validation**: Email, role, professional config (lines 100-165)
+- **User Invite**: `supabaseAdmin.auth.admin.inviteUserByEmail()` (lines 167-181)
+- **Role Assignment**: Insert into `user_roles` (lines 183-207)
+- **Professional Handling** (doctor only, lines 209-301):
+  - **Link mode**: Update `professionals.user_id` (validates not already linked)
+  - **Create mode**: Insert new professional with `user_id`
+- **Atomic Cleanup**: Deletes user + role on any failure (lines 198-206, 223-253, 269-288)
+- **CORS**: Proper headers for frontend invocation (line 7-10)
+
+**2. Unified UI Component** (`src/components/admin/ManageCollaboratorsModal.tsx` - NEW, 310 lines):
+- **Email input** (line 168): Required field
+- **Role selector** (lines 176-198): Secretary | Doctor
+- **Professional configuration** (doctor only, lines 200-300):
+  - Radio group: "Link existing" | "Create new"
+  - Link mode: Dropdown of professionals without `user_id` (lines 218-248)
+  - Create mode: Name, specialty, color inputs (lines 250-295)
+- **Edge Function call** (lines 123-131): `supabase.functions.invoke('invite-collaborator')`
+- **Error handling**: Toasts + form reset + page reload (lines 133-151)
+
+**3. Settings Page Unified** (`src/pages/admin/SettingsPage.tsx` - Lines 1-318):
+- **Removed** (deleted):
+  - "Equipa Médica" section (old lines 216-255)
+  - "Gestão de Utilizadores" section (old lines 257-313)
+  - `handleInviteSubmit` function (old lines 53-107)
+  - State: `inviteEmail`, `inviteRole`, `inviteLoading`, `professionalsModalOpen`
+- **Added** (lines 162-214):
+  - Single "Colaboradores" section (admin only)
+  - "Convidar" button opens `ManageCollaboratorsModal` (line 172)
+  - List shows professionals with "Conta" | "Sem conta" badge (lines 186-211)
+- **Imports cleaned**: Removed `Input`, `Label`, `Alert`, `useToast`, `supabase`, `ManageProfessionalsModal`
+
+**4. Type Updates** (`src/types/clinic.ts` - Line 28):
+- Added `userId?: string | null` to `Professional` interface
+
+**5. Vercel Endpoint Deprecated** (`api/admin/invite-user.ts` - Lines 1-9):
+- Added `@deprecated` JSDoc header
+- Kept for backward compatibility (not deleted)
+- Marked with clear migration path
+
+**6. Documentation** (`docs/EDGE_FUNCTION_INVITE_COLLABORATOR.md` - NEW, 250+ lines):
+- Full Edge Function contract (request/response)
+- Business logic flow + error handling
+- Security model (JWT validation, admin check, service role usage)
+- Local dev setup (supabase functions serve)
+- Production deployment steps
+- cURL test examples
+- Troubleshooting guide
+
+**Security Improvements**:
+- ✅ Service role key NEVER sent to frontend
+- ✅ Admin validation server-side via `has_role()`
+- ✅ JWT passed from frontend to Edge Function
+- ✅ Atomic operations with cleanup on failure
+- ✅ Professional linking prevents double-assignment
+
+**Files Changed** (6 total):
+1. `supabase/functions/invite-collaborator/index.ts` (NEW, +295 lines)
+2. `src/components/admin/ManageCollaboratorsModal.tsx` (NEW, +310 lines)
+3. `src/pages/admin/SettingsPage.tsx` (-134 lines, +63 lines) - net -71 lines
+4. `src/types/clinic.ts` (+1 line)
+5. `api/admin/invite-user.ts` (+8 lines deprecation warning)
+6. `docs/EDGE_FUNCTION_INVITE_COLLABORATOR.md` (NEW, +250 lines)
+
+**Total Impact**: +927 insertions, -126 deletions
+
+**How to Test Locally**:
+
+1. Start Supabase:
+   ```bash
+   supabase start
+   ```
+
+2. Serve Edge Function:
+   ```bash
+   supabase functions serve invite-collaborator
+   ```
+
+3. Start frontend:
+   ```bash
+   npm run dev
+   ```
+
+4. Login as admin → Settings → Colaboradores → Click "Convidar"
+
+5. Test scenarios:
+   - Secretary invite (no professional config)
+   - Doctor invite + create new professional
+   - Doctor invite + link existing professional
+   - Validate error handling (invalid email, duplicate user, already-linked professional)
+
+**SQL Validation**:
+```sql
+-- Verify user created
+SELECT u.id, u.email, ur.role 
+FROM auth.users u 
+JOIN user_roles ur ON u.id = ur.user_id 
+WHERE u.email = 'invited-user@test.com';
+
+-- Verify professional linked (doctor only)
+SELECT p.id, p.name, p.user_id 
+FROM professionals p 
+WHERE p.user_id = (SELECT id FROM auth.users WHERE email = 'doctor@test.com');
+```
+
+**Environment Variables Required**:
+
+Local (`.env.local` for Edge Functions):
+```env
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=<from-supabase-start>
+SUPABASE_SERVICE_ROLE_KEY=<from-supabase-start>
+SITE_URL=http://localhost:5173
+```
+
+Production (Supabase Dashboard → Edge Functions → Configuration):
+```env
+SITE_URL=https://your-domain.com
+```
+
+**Known Limitations**:
+- ✅ No duplication (unified workflow)
+- ✅ Service role secure (server-side only)
+- ⚠️ Professional listing in UI shows ALL professionals (not filtered by user_id) - intentional for visibility
+- ⚠️ No "Edit" or "Unlink" functionality yet (future P2 work)
+
+**Migration from Vercel**:
+- Old: `fetch('/api/admin/invite-user')` (deprecated)
+- New: `supabase.functions.invoke('invite-collaborator')`
+- Breaking change: None (different function signature but frontend updated)
+
+**Production Deployment Next Steps**:
+1. Deploy Edge Function: `supabase functions deploy invite-collaborator`
+2. Set `SITE_URL` env var in Supabase Dashboard
+3. Verify function accessible at `https://<project-ref>.supabase.co/functions/v1/invite-collaborator`
+4. Test invite flow in production admin UI
+
+**Summary**:
+- ✅ Collaborator invites moved to Supabase Edge Functions
+- ✅ UI unified into single "Colaboradores" section
+- ✅ Duplicated sections removed ("Equipa" + "Utilizadores" merged)
+- ✅ Professional linking/creation integrated into invite flow
+- ✅ Service role security enforced (no frontend exposure)
+- ✅ Atomic operations with proper error cleanup
+- ✅ Comprehensive documentation created
+
+---
