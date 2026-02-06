@@ -66,21 +66,44 @@ export default function SettingsPage() {
   console.error('[DBG-H5] SettingsPage generalSettings:', JSON.stringify(generalSettings));
   // #endregion
 
-  // Load settings from DB on mount
+  // Load settings from DB on mount — with shape validation
   useEffect(() => {
     if (dbSettings.working_hours) {
       try {
-        setWorkingHours(dbSettings.working_hours as typeof DEFAULT_HOURS);
+        const wh = dbSettings.working_hours;
+        // DB may have saved as object {Monday:{...}} instead of array [{day:'Segunda',...}]
+        // Only use if it's actually an array with the expected shape
+        if (Array.isArray(wh) && wh.length > 0 && typeof wh[0]?.day === 'string') {
+          setWorkingHours(wh as typeof DEFAULT_HOURS);
+        } else {
+          // #region agent log
+          console.error('[DBG-FIX] working_hours from DB is NOT a valid array, keeping defaults. Got:', typeof wh, Array.isArray(wh));
+          // #endregion
+        }
       } catch { /* keep defaults */ }
     }
     if (dbSettings.general_settings) {
       try {
-        setGeneralSettings(dbSettings.general_settings as typeof DEFAULT_SETTINGS);
+        const gs = dbSettings.general_settings;
+        if (gs && typeof gs === 'object' && !Array.isArray(gs) && 'bufferTime' in (gs as any)) {
+          setGeneralSettings(gs as typeof DEFAULT_SETTINGS);
+        } else {
+          // #region agent log
+          console.error('[DBG-FIX] general_settings from DB has unexpected shape, keeping defaults');
+          // #endregion
+        }
       } catch { /* keep defaults */ }
     }
     if (dbSettings.rules) {
       try {
-        setRules(dbSettings.rules as typeof DEFAULT_RULES);
+        const r = dbSettings.rules;
+        if (r && typeof r === 'object' && !Array.isArray(r) && 'preventOverlap' in (r as any)) {
+          setRules(r as typeof DEFAULT_RULES);
+        } else {
+          // #region agent log
+          console.error('[DBG-FIX] rules from DB has unexpected shape, keeping defaults');
+          // #endregion
+        }
       } catch { /* keep defaults */ }
     }
   }, [dbSettings]);
