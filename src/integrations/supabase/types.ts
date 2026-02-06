@@ -541,7 +541,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "secretary" | "doctor"
       appointment_status:
       | "scheduled"
       | "confirmed"

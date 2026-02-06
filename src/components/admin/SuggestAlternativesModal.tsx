@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
+import { useAddAppointmentSuggestion } from '@/hooks/useAppointmentSuggestions';
+import { toast } from 'sonner';
 import type { AppointmentRequest } from '@/hooks/useAppointmentRequests';
 
 interface SuggestAlternativesModalProps {
@@ -44,8 +46,10 @@ export function SuggestAlternativesModal({
 }: SuggestAlternativesModalProps) {
   const { data: appointments = [] } = useAppointments();
   const { data: professionals = [] } = useProfessionals();
+  const addSuggestion = useAddAppointmentSuggestion();
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'same-time' | 'same-day'>('same-time');
+  const [isSending, setIsSending] = useState(false);
 
   // Find available slots at the same time on different days
   const sameTimeSlots = useMemo(() => {
@@ -126,12 +130,42 @@ Para confirmar, responda com o número da opção pretendida ou contacte-nos.
 Clínica Barnun`;
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!request) return;
-    const message = generateWhatsAppMessage();
-    onSendWhatsApp(message, request.phone);
-    onOpenChange(false);
-    setSelectedSlots([]);
+    setIsSending(true);
+    
+    try {
+      // Build slots array with date/time objects
+      const slots = selectedSlots.map(slotKey => {
+        const [dateStr, time] = slotKey.split('|');
+        return {
+          date: dateStr,
+          time: time,
+        };
+      });
+
+      // Persist to appointment_suggestions table
+      // This will trigger the WhatsApp workflow via DB trigger (trigger_send_appointment_suggestion)
+      await addSuggestion.mutateAsync({
+        appointment_request_id: request.id,
+        patient_id: request.id, // TODO: This should be actual patient_id when request is linked to patient
+        suggested_slots: slots, // JSONB array of {date, time} objects
+        status: 'pending',
+      });
+
+      // Also send WhatsApp message via the external handler
+      const message = generateWhatsAppMessage();
+      onSendWhatsApp(message, request.phone);
+      
+      toast.success('Sugestões enviadas com sucesso');
+      onOpenChange(false);
+      setSelectedSlots([]);
+    } catch (error) {
+      console.error('Error saving appointment suggestions:', error);
+      toast.error('Erro ao enviar sugestões');
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const currentSlots = activeTab === 'same-time' ? sameTimeSlots : sameDaySlots;
@@ -251,11 +285,11 @@ Clínica Barnun`;
           </Button>
           <Button
             onClick={handleSend}
-            disabled={selectedSlots.length === 0}
+            disabled={selectedSlots.length === 0 || isSending}
             className="gap-2 bg-green-600 hover:bg-green-700"
           >
             <Send className="h-4 w-4" />
-            Enviar WhatsApp
+            {isSending ? 'A enviar...' : 'Enviar WhatsApp'}
           </Button>
         </DialogFooter>
       </DialogContent>

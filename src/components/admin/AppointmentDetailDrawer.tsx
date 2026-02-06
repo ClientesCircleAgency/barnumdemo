@@ -16,6 +16,7 @@ import {
   CheckCircle,
   PlayCircle,
   Pause,
+  CalendarClock,
 } from 'lucide-react';
 import {
   Sheet,
@@ -23,7 +24,17 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -37,6 +48,7 @@ import { StatusBadge } from './StatusBadge';
 import { useToast } from '@/hooks/use-toast';
 import type { ClinicAppointment, AppointmentStatus } from '@/types/clinic';
 import { appointmentStatusLabels } from '@/types/clinic';
+import { useState } from 'react';
 
 interface AppointmentDetailDrawerProps {
   appointment: ClinicAppointment | null;
@@ -62,6 +74,10 @@ export function AppointmentDetailDrawer({
     rooms,
   } = useClinic();
 
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+
   if (!appointment) return null;
 
   const patient = getPatientById(appointment.patientId);
@@ -78,15 +94,46 @@ export function AppointmentDetailDrawer({
     });
   };
 
-  const handleQuickAction = (action: 'cancel' | 'no_show' | 'complete' | 'start' | 'waiting') => {
+  const handleQuickAction = (action: 'cancel' | 'no_show' | 'complete' | 'start' | 'waiting' | 'reschedule') => {
+    if (action === 'cancel') {
+      setShowCancelDialog(true);
+      return;
+    }
+    if (action === 'reschedule') {
+      setShowRescheduleDialog(true);
+      return;
+    }
+    
     const statusMap: Record<string, AppointmentStatus> = {
-      cancel: 'cancelled',
       no_show: 'no_show',
       complete: 'completed',
       start: 'in_progress',
       waiting: 'waiting',
     };
     handleStatusChange(statusMap[action]);
+  };
+
+  const handleCancelWithReason = () => {
+    if (!cancellationReason.trim()) {
+      toast({
+        title: 'Motivo obrigatório',
+        description: 'Por favor indique o motivo do cancelamento',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // TODO: Save cancellation_reason when migration 20260131121545 is applied to production
+    // For now, only update status (cancellation_reason column doesn't exist in production)
+    updateAppointmentStatus(appointment.id, 'cancelled');
+    
+    toast({
+      title: 'Consulta cancelada',
+      description: `Motivo: ${cancellationReason}`,
+    });
+    
+    setShowCancelDialog(false);
+    setCancellationReason('');
   };
 
   const handleDelete = () => {
@@ -256,6 +303,10 @@ export function AppointmentDetailDrawer({
                 <Bell className="h-3 w-3" />
                 Lembrete
               </Button>
+              <Button variant="outline" size="sm" onClick={() => handleQuickAction('reschedule')} className="gap-1">
+                <CalendarClock className="h-3 w-3" />
+                Reagendar
+              </Button>
               {onEdit && (
                 <Button variant="outline" size="sm" onClick={() => onEdit(appointment)} className="gap-1">
                   <Edit className="h-3 w-3" />
@@ -296,6 +347,78 @@ export function AppointmentDetailDrawer({
           </div>
         </div>
       </SheetContent>
+
+      {/* Cancellation Reason Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar Consulta</DialogTitle>
+            <DialogDescription>
+              Por favor indique o motivo do cancelamento (obrigatório)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="cancellation-reason">Motivo do Cancelamento <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="cancellation-reason"
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Ex: Paciente solicitou cancelamento, conflito de agenda, etc."
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelWithReason}
+              disabled={!cancellationReason.trim()}
+            >
+              Confirmar Cancelamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reagendar Consulta</DialogTitle>
+            <DialogDescription>
+              Oferecer novas opções de horário ao paciente via WhatsApp
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Esta ação irá:
+              <br />• Marcar a consulta atual como "cancelada"
+              <br />• Enviar sugestões de horários alternativos ao paciente
+              <br />• Aguardar resposta do paciente para confirmar novo horário
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>
+              Voltar
+            </Button>
+            <Button onClick={() => {
+              handleQuickAction('cancel');
+              setShowRescheduleDialog(false);
+              toast({
+                title: 'Reagendamento iniciado',
+                description: 'Consulta cancelada. Use "Sugerir Alternativas" para enviar horários ao paciente.',
+              });
+            }}>
+              Continuar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

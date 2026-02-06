@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Clock, Users, Settings2, Tag, Plus, MoreHorizontal, Save, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
@@ -9,14 +11,20 @@ import { EditSettingsModal } from '@/components/admin/EditSettingsModal';
 import { ManageProfessionalsModal } from '@/components/admin/ManageProfessionalsModal';
 import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultationTypesModal';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SettingsPage() {
   const { professionals, consultationTypes } = useClinic();
+  const { toast } = useToast();
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [professionalsModalOpen, setProfessionalsModalOpen] = useState(false);
   const [typesModalOpen, setTypesModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'doctor' | 'secretary'>('doctor');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const [workingHours, setWorkingHours] = useState([
     { day: 'Segunda', start: '09:00', end: '19:00', enabled: true },
@@ -40,6 +48,62 @@ export default function SettingsPage() {
     smsReminders: true,
     suggestNextSlot: false,
   });
+
+  const handleInviteSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!inviteEmail) {
+      toast({
+        title: 'Email obrigatório',
+        description: 'Insira um email válido para convidar.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setInviteLoading(true);
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error('Sessão inválida. Faça login novamente.');
+      }
+
+      const response = await fetch('/api/admin/invite-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`
+        },
+        body: JSON.stringify({
+          email: inviteEmail,
+          role: inviteRole
+        })
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Falha ao convidar utilizador.');
+      }
+
+      toast({
+        title: 'Convite enviado',
+        description: `Convite criado para ${inviteEmail} (${inviteRole}).`
+      });
+
+      setInviteEmail('');
+    } catch (error) {
+      toast({
+        title: 'Erro ao convidar',
+        description: error instanceof Error ? error.message : 'Erro desconhecido.',
+        variant: 'destructive'
+      });
+    } finally {
+      setInviteLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -186,14 +250,63 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Gestão de Utilizadores */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="p-4 lg:p-5">
+              <div className="flex items-center gap-2 lg:gap-3 mb-3">
+                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Users className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600" />
+                </div>
+                <h3 className="font-semibold text-sm lg:text-base text-foreground">Utilizadores</h3>
+              </div>
+              <form onSubmit={handleInviteSubmit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    placeholder="utilizador@clinica.pt"
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    disabled={inviteLoading}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-role">Role</Label>
+                  <Select
+                    value={inviteRole}
+                    onValueChange={(value) => setInviteRole(value as 'doctor' | 'secretary')}
+                  >
+                    <SelectTrigger id="invite-role" className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="doctor">Médico</SelectItem>
+                      <SelectItem value="secretary">Secretária</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button type="submit" className="w-full" disabled={inviteLoading || !inviteEmail}>
+                  {inviteLoading ? 'A enviar convite...' : 'Convidar utilizador'}
+                </Button>
+              </form>
+            </div>
+          </div>
+
           {/* Tipos de Consulta */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-4 lg:p-5">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                  <Tag className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                    <Tag className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
                 </div>
-                <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Tipos</h3>
+                <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setTypesModalOpen(true)}>
+                  <Plus className="h-3 w-3" />
+                  <span className="hidden sm:inline">Novo</span>
+                </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {consultationTypes.map((type) => (

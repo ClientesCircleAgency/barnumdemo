@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { WaitingRoomCard } from '@/components/admin/WaitingRoomCard';
+import { FinalizationModal } from '@/components/admin/FinalizationModal';
 import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
 import { useProfessionals } from '@/hooks/useProfessionals';
@@ -161,6 +162,8 @@ export default function WaitingRoomPage() {
 
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [showFinalizationModal, setShowFinalizationModal] = useState(false);
+  const [appointmentToFinalize, setAppointmentToFinalize] = useState<AppointmentRow | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -199,6 +202,13 @@ export default function WaitingRoomPage() {
     const newStatus = over.id as AppointmentStatus;
     if (appointment.status === newStatus) return;
 
+    // If dragging to 'completed', show finalization modal instead
+    if (newStatus === 'completed') {
+      setAppointmentToFinalize(appointment);
+      setShowFinalizationModal(true);
+      return;
+    }
+
     // Validar transições (permite avançar e recuar)
     const validTransitions: Record<AppointmentStatus, AppointmentStatus[]> = {
       scheduled: ['pre_confirmed', 'confirmed'],
@@ -225,6 +235,27 @@ export default function WaitingRoomPage() {
         },
         onError: () => {
           toast.error('Erro ao atualizar estado');
+        },
+      }
+    );
+  };
+
+  const handleFinalize = (finalNotes: string, reviewOptOut: boolean) => {
+    if (!appointmentToFinalize) return;
+
+    // TODO: Save final_notes, finalized_at, review_opt_out when migration 20260131121545 is applied
+    // For now, only update status to 'completed'
+    updateAppointmentStatus.mutate(
+      { id: appointmentToFinalize.id, status: 'completed' },
+      {
+        onSuccess: () => {
+          const patient = getPatient(appointmentToFinalize.patient_id);
+          toast.success(`Consulta de ${patient?.name || 'Paciente'} finalizada`);
+          setShowFinalizationModal(false);
+          setAppointmentToFinalize(null);
+        },
+        onError: () => {
+          toast.error('Erro ao finalizar consulta');
         },
       }
     );
@@ -316,6 +347,15 @@ export default function WaitingRoomPage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      {/* Finalization Modal */}
+      <FinalizationModal
+        appointment={appointmentToFinalize}
+        patientName={appointmentToFinalize ? getPatient(appointmentToFinalize.patient_id)?.name || null : null}
+        open={showFinalizationModal}
+        onOpenChange={setShowFinalizationModal}
+        onFinalize={handleFinalize}
+      />
     </div>
   );
 }
