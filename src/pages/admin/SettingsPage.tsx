@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Clock, Users, Settings2, Tag, Plus, MoreHorizontal, Save, SlidersHorizontal } from 'lucide-react';
+import { Clock, Users, Settings2, Tag, Plus, MoreHorizontal, Save, SlidersHorizontal, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
+import { useAuth } from '@/hooks/useAuth';
 import { EditHoursModal } from '@/components/admin/EditHoursModal';
 import { EditSettingsModal } from '@/components/admin/EditSettingsModal';
 import { ManageProfessionalsModal } from '@/components/admin/ManageProfessionalsModal';
@@ -17,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function SettingsPage() {
   const { professionals, consultationTypes } = useClinic();
   const { toast } = useToast();
+  const { isAdmin, userRole } = useAuth();
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -250,15 +254,30 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Gestão de Utilizadores */}
+          {/* Gestão de Utilizadores - Admin Only */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-4 lg:p-5">
-              <div className="flex items-center gap-2 lg:gap-3 mb-3">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                  <Users className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600" />
+                  </div>
+                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Utilizadores</h3>
                 </div>
-                <h3 className="font-semibold text-sm lg:text-base text-foreground">Utilizadores</h3>
+                {!isAdmin && (
+                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                    <ShieldAlert className="h-3 w-3" />
+                    Admin
+                  </Badge>
+                )}
               </div>
+              {!isAdmin ? (
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    Apenas administradores podem convidar novos utilizadores.
+                  </AlertDescription>
+                </Alert>
+              ) : (
               <form onSubmit={handleInviteSubmit} className="space-y-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="invite-email">Email</Label>
@@ -290,10 +309,11 @@ export default function SettingsPage() {
                   {inviteLoading ? 'A enviar convite...' : 'Convidar utilizador'}
                 </Button>
               </form>
+              )}
             </div>
           </div>
 
-          {/* Tipos de Consulta */}
+          {/* Tipos de Consulta - Admin Only */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-4 lg:p-5">
               <div className="flex items-center justify-between mb-3">
@@ -301,12 +321,22 @@ export default function SettingsPage() {
                   <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
                     <Tag className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
                   </div>
-                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
+                    {!isAdmin && (
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <ShieldAlert className="h-3 w-3" />
+                        Admin
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setTypesModalOpen(true)}>
-                  <Plus className="h-3 w-3" />
-                  <span className="hidden sm:inline">Novo</span>
-                </Button>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setTypesModalOpen(true)}>
+                    <Plus className="h-3 w-3" />
+                    <span className="hidden sm:inline">Novo</span>
+                  </Button>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {consultationTypes.map((type) => (

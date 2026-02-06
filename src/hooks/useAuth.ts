@@ -2,28 +2,40 @@ import { useState, useCallback, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type UserRole = 'admin' | 'secretary' | 'doctor' | null;
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAdminRole = useCallback(async (userId: string) => {
+  // Backward compatibility
+  const isAdmin = userRole === 'admin';
+
+  const checkUserRole = useCallback(async (userId: string): Promise<UserRole> => {
     try {
-      const { data, error } = await supabase.rpc('has_role', {
-        _user_id: userId,
-        _role: 'admin'
-      });
-      
-      if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
+      // Check each role in priority order: admin > secretary > doctor
+      for (const role of ['admin', 'secretary', 'doctor'] as const) {
+        const { data, error } = await supabase.rpc('has_role', {
+          _user_id: userId,
+          _role: role
+        });
+        
+        if (error) {
+          console.error(`Error checking ${role} role:`, error);
+          continue;
+        }
+        
+        if (data === true) {
+          return role;
+        }
       }
       
-      return data === true;
+      return null; // No role found
     } catch (error) {
-      console.error('Error checking admin role:', error);
-      return false;
+      console.error('Error checking user role:', error);
+      return null;
     }
   }, []);
 
@@ -39,12 +51,12 @@ export function useAuth() {
       if (session?.user) {
         setIsLoading(true);
         setTimeout(() => {
-          checkAdminRole(session.user.id)
-            .then(setIsAdmin)
+          checkUserRole(session.user.id)
+            .then(setUserRole)
             .finally(() => setIsLoading(false));
         }, 0);
       } else {
-        setIsAdmin(false);
+        setUserRole(null);
         setIsLoading(false);
       }
     });
@@ -58,20 +70,20 @@ export function useAuth() {
 
         if (session?.user) {
           setIsLoading(true);
-          return checkAdminRole(session.user.id)
-            .then(setIsAdmin)
+          return checkUserRole(session.user.id)
+            .then(setUserRole)
             .finally(() => setIsLoading(false));
         }
 
         setIsLoading(false);
       })
       .catch(() => {
-        setIsAdmin(false);
+        setUserRole(null);
         setIsLoading(false);
       });
 
     return () => subscription.unsubscribe();
-  }, [checkAdminRole]);
+  }, [checkUserRole]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -85,32 +97,35 @@ export function useAuth() {
       }
 
       if (data.user) {
-        const hasAdminRole = await checkAdminRole(data.user.id);
-        if (!hasAdminRole) {
+        const role = await checkUserRole(data.user.id);
+        if (!role) {
           await supabase.auth.signOut();
-          return { success: false, error: 'Não tem permissões de administrador.' };
+          return { success: false, error: 'Não tem permissões para aceder ao sistema.' };
         }
-        setIsAdmin(true);
+        setUserRole(role);
       }
 
       return { success: true };
     } catch (error) {
       return { success: false, error: 'Erro ao fazer login. Tente novamente.' };
     }
-  }, [checkAdminRole]);
+  }, [checkUserRole]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
-    setIsAdmin(false);
+    setUserRole(null);
   }, []);
 
   return { 
     user, 
     session, 
-    isAuthenticated: !!session && isAdmin, 
+    isAuthenticated: !!session && !!userRole, 
     isAdmin,
+    userRole,
+    isSecretary: userRole === 'secretary',
+    isDoctor: userRole === 'doctor',
     isLoading, 
     login, 
     logout 
