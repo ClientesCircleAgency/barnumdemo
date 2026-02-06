@@ -330,9 +330,12 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {consultationTypes.map((type) => (
-                  <div key={type.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border">
+                  <div key={type.id} className="flex items-center gap-2 p-2.5 rounded-lg border border-border">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: type.color || '#6366f1' }}
+                    />
                     <span className="text-xs lg:text-sm font-medium text-foreground truncate">{type.name}</span>
-                    <span className="text-xs text-primary font-medium shrink-0 ml-2">{type.defaultDuration}m</span>
                   </div>
                 ))}
               </div>
@@ -348,24 +351,7 @@ export default function SettingsPage() {
                 </div>
                 <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Parâmetros</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs lg:text-sm text-muted-foreground">Duração</label>
-                  <Select 
-                    value={String(generalSettings.defaultDuration)} 
-                    onValueChange={(v) => setGeneralSettings(prev => ({ ...prev, defaultDuration: Number(v) }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 min</SelectItem>
-                      <SelectItem value="30">30 min</SelectItem>
-                      <SelectItem value="45">45 min</SelectItem>
-                      <SelectItem value="60">60 min</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs lg:text-sm text-muted-foreground">Buffer</label>
                   <Select 

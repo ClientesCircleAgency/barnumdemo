@@ -140,9 +140,8 @@ export function AppointmentWizard({
   };
 
   const handleConsultationTypeChange = (typeId: string) => {
-    const type = getConsultationTypeById(typeId);
     form.setValue('consultationTypeId', typeId);
-    form.setValue('duration', type?.defaultDuration || 30);
+    // Duration is NOT auto-filled from consultation type — secretary decides per appointment
   };
 
   const handleCreateAppointment = (data: AppointmentFormData, createAnother: boolean = false) => {
@@ -272,7 +271,7 @@ export function AppointmentWizard({
                       <SelectContent className="bg-popover z-50">
                         {consultationTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
-                            {type.name} ({type.defaultDuration} min)
+                            {type.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

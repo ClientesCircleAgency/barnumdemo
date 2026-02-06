@@ -8,14 +8,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +23,7 @@ import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useClinic } from '@/context/ClinicContext';
 import { toast } from 'sonner';
 import type { ConsultationType } from '@/types/clinic';
+import { Label } from '@/components/ui/label';
 
 interface ManageConsultationTypesModalProps {
   open: boolean;
@@ -44,14 +37,14 @@ export function ManageConsultationTypesModal({
   const { consultationTypes, addConsultationType, updateConsultationType, removeConsultationType } = useClinic();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', defaultDuration: 30, color: '' });
+  const [editForm, setEditForm] = useState({ name: '', color: '#6366f1' });
   const [isAdding, setIsAdding] = useState(false);
-  const [newForm, setNewForm] = useState({ name: '', defaultDuration: 30, color: '#6366f1' });
+  const [newForm, setNewForm] = useState({ name: '', color: '#6366f1' });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const handleStartEdit = (type: ConsultationType) => {
     setEditingId(type.id);
-    setEditForm({ name: type.name, defaultDuration: type.defaultDuration, color: type.color || '#6366f1' });
+    setEditForm({ name: type.name, color: type.color || '#6366f1' });
   };
 
   const handleSaveEdit = () => {
@@ -61,7 +54,6 @@ export function ManageConsultationTypesModal({
     }
     updateConsultationType(editingId, {
       name: editForm.name.trim(),
-      defaultDuration: editForm.defaultDuration,
       color: editForm.color || undefined,
     });
     toast.success('Tipo de consulta atualizado');
@@ -75,11 +67,11 @@ export function ManageConsultationTypesModal({
     }
     addConsultationType({
       name: newForm.name.trim(),
-      defaultDuration: newForm.defaultDuration,
+      defaultDuration: 30, // kept for DB compatibility, not shown in UI
       color: newForm.color || undefined,
     });
     toast.success('Tipo de consulta adicionado');
-    setNewForm({ name: '', defaultDuration: 30, color: '#6366f1' });
+    setNewForm({ name: '', color: '#6366f1' });
     setIsAdding(false);
   };
 
@@ -97,43 +89,35 @@ export function ManageConsultationTypesModal({
             <DialogTitle>Gerir Tipos de Consulta</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
+          <p className="text-xs text-muted-foreground -mt-2">
+            A duração é definida pela secretária em cada pedido, não pelo tipo de consulta.
+          </p>
+
+          <div className="space-y-3 py-2 max-h-[60vh] overflow-y-auto">
             {consultationTypes.map((type) => (
               <Card key={type.id}>
                 <CardContent className="p-3">
                   {editingId === type.id ? (
                     <div className="space-y-3">
-                      <Input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                        placeholder="Nome do tipo"
-                      />
-                      <div className="flex gap-2">
-                        <Select
-                          value={editForm.defaultDuration.toString()}
-                          onValueChange={(v) =>
-                            setEditForm({ ...editForm, defaultDuration: parseInt(v) })
-                          }
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="15">15 minutos</SelectItem>
-                            <SelectItem value="20">20 minutos</SelectItem>
-                            <SelectItem value="30">30 minutos</SelectItem>
-                            <SelectItem value="45">45 minutos</SelectItem>
-                            <SelectItem value="60">60 minutos</SelectItem>
-                            <SelectItem value="90">90 minutos</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Nome</Label>
                         <Input
-                          type="color"
-                          value={editForm.color}
-                          onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                          className="w-12 h-9 p-1 cursor-pointer"
-                          title="Cor"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          placeholder="Nome do tipo"
                         />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Cor</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="color"
+                            value={editForm.color}
+                            onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                            className="w-12 h-9 p-1 cursor-pointer"
+                          />
+                          <span className="text-xs text-muted-foreground">{editForm.color}</span>
+                        </div>
                       </div>
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
@@ -146,16 +130,13 @@ export function ManageConsultationTypesModal({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      {type.color && (
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0"
-                          style={{ backgroundColor: type.color }}
-                        />
-                      )}
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: type.color || '#6366f1' }}
+                      />
                       <div className="flex-1">
-                        <p className="font-medium">{type.name}</p>
+                        <p className="font-medium text-sm">{type.name}</p>
                       </div>
-                      <Badge variant="secondary">{type.defaultDuration} min</Badge>
                       <Button size="sm" variant="ghost" onClick={() => handleStartEdit(type)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -177,37 +158,25 @@ export function ManageConsultationTypesModal({
             {isAdding ? (
               <Card className="border-dashed">
                 <CardContent className="p-3 space-y-3">
-                  <Input
-                    value={newForm.name}
-                    onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
-                    placeholder="Nome do tipo de consulta"
-                  />
-                  <div className="flex gap-2">
-                    <Select
-                      value={newForm.defaultDuration.toString()}
-                      onValueChange={(v) =>
-                        setNewForm({ ...newForm, defaultDuration: parseInt(v) })
-                      }
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="15">15 minutos</SelectItem>
-                        <SelectItem value="20">20 minutos</SelectItem>
-                        <SelectItem value="30">30 minutos</SelectItem>
-                        <SelectItem value="45">45 minutos</SelectItem>
-                        <SelectItem value="60">60 minutos</SelectItem>
-                        <SelectItem value="90">90 minutos</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Nome</Label>
                     <Input
-                      type="color"
-                      value={newForm.color}
-                      onChange={(e) => setNewForm({ ...newForm, color: e.target.value })}
-                      className="w-12 h-9 p-1 cursor-pointer"
-                      title="Cor"
+                      value={newForm.name}
+                      onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
+                      placeholder="Ex: Consulta Geral, Pediatria, Check-up..."
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Cor</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="color"
+                        value={newForm.color}
+                        onChange={(e) => setNewForm({ ...newForm, color: e.target.value })}
+                        className="w-12 h-9 p-1 cursor-pointer"
+                      />
+                      <span className="text-xs text-muted-foreground">{newForm.color}</span>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setIsAdding(false)}>
