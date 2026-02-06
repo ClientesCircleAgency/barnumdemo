@@ -235,8 +235,10 @@ Events created by backend, sent to n8n via `/api/n8n/process-events`:
 | `appointment.cancelled` | Staff cancels appointment | `{ appointment_id, patient_id, cancellation_reason }` |
 | `appointment.suggestion_sent` | Staff suggests alternative slots | `{ appointment_request_id, patient_id, suggested_slots: [{date, time, professional_id}] }` |
 | `appointment.no_show_reschedule` | Appointment marked as no-show | `{ appointment_id, patient_id }` |
-| `appointment.review_reminder` | Appointment finalized (2h later) | `{ appointment_id, patient_id, final_notes }` |
+| `appointment.review_reminder` | Appointment finalized (`finalized_at` set) | `{ appointment_id, patient_id, final_notes }` |
 | `appointment.post_consultation` | Same as review_reminder | `{ appointment_id, patient_id, final_notes }` |
+
+**Note on Timing**: Event is created immediately when `finalized_at` is set. **n8n must implement 2-hour delay** before sending WhatsApp message (backend does NOT delay).
 
 **Full payload structure**:
 ```json
