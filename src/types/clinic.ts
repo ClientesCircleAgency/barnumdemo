@@ -66,8 +66,13 @@ export interface ClinicAppointment {
   time: string;
   duration: number;
   status: AppointmentStatus;
+  reason?: string;
   notes?: string;
+  finalNotes?: string;
   roomId?: string;
+  cancellationReason?: string;
+  reviewOptOut?: boolean;
+  finalizedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

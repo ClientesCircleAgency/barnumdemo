@@ -43,8 +43,13 @@ function mapAppointment(row: any): ClinicAppointment {
     time: row.time,
     duration: row.duration,
     status: row.status,
+    reason: row.reason || undefined,
     notes: row.notes || undefined,
+    finalNotes: row.final_notes || undefined,
     roomId: row.room_id || undefined,
+    cancellationReason: row.cancellation_reason || undefined,
+    reviewOptOut: row.review_opt_out ?? false,
+    finalizedAt: row.finalized_at || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -259,8 +264,13 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
           time: data.time,
           duration: data.duration,
           status: data.status,
+          reason: data.reason,
           notes: data.notes,
+          final_notes: data.finalNotes,
           room_id: data.roomId,
+          cancellation_reason: data.cancellationReason,
+          review_opt_out: data.reviewOptOut,
+          finalized_at: data.finalizedAt,
         }
       });
     },

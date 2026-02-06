@@ -44,14 +44,14 @@ export function ManageConsultationTypesModal({
   const { consultationTypes, addConsultationType, updateConsultationType, removeConsultationType } = useClinic();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', defaultDuration: 30 });
+  const [editForm, setEditForm] = useState({ name: '', defaultDuration: 30, color: '' });
   const [isAdding, setIsAdding] = useState(false);
-  const [newForm, setNewForm] = useState({ name: '', defaultDuration: 30 });
+  const [newForm, setNewForm] = useState({ name: '', defaultDuration: 30, color: '#6366f1' });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const handleStartEdit = (type: ConsultationType) => {
     setEditingId(type.id);
-    setEditForm({ name: type.name, defaultDuration: type.defaultDuration });
+    setEditForm({ name: type.name, defaultDuration: type.defaultDuration, color: type.color || '#6366f1' });
   };
 
   const handleSaveEdit = () => {
@@ -62,6 +62,7 @@ export function ManageConsultationTypesModal({
     updateConsultationType(editingId, {
       name: editForm.name.trim(),
       defaultDuration: editForm.defaultDuration,
+      color: editForm.color || undefined,
     });
     toast.success('Tipo de consulta atualizado');
     setEditingId(null);
@@ -75,9 +76,10 @@ export function ManageConsultationTypesModal({
     addConsultationType({
       name: newForm.name.trim(),
       defaultDuration: newForm.defaultDuration,
+      color: newForm.color || undefined,
     });
     toast.success('Tipo de consulta adicionado');
-    setNewForm({ name: '', defaultDuration: 30 });
+    setNewForm({ name: '', defaultDuration: 30, color: '#6366f1' });
     setIsAdding(false);
   };
 
@@ -106,24 +108,33 @@ export function ManageConsultationTypesModal({
                         onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                         placeholder="Nome do tipo"
                       />
-                      <Select
-                        value={editForm.defaultDuration.toString()}
-                        onValueChange={(v) =>
-                          setEditForm({ ...editForm, defaultDuration: parseInt(v) })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 minutos</SelectItem>
-                          <SelectItem value="20">20 minutos</SelectItem>
-                          <SelectItem value="30">30 minutos</SelectItem>
-                          <SelectItem value="45">45 minutos</SelectItem>
-                          <SelectItem value="60">60 minutos</SelectItem>
-                          <SelectItem value="90">90 minutos</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex gap-2">
+                        <Select
+                          value={editForm.defaultDuration.toString()}
+                          onValueChange={(v) =>
+                            setEditForm({ ...editForm, defaultDuration: parseInt(v) })
+                          }
+                        >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 minutos</SelectItem>
+                            <SelectItem value="20">20 minutos</SelectItem>
+                            <SelectItem value="30">30 minutos</SelectItem>
+                            <SelectItem value="45">45 minutos</SelectItem>
+                            <SelectItem value="60">60 minutos</SelectItem>
+                            <SelectItem value="90">90 minutos</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="color"
+                          value={editForm.color}
+                          onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                          className="w-12 h-9 p-1 cursor-pointer"
+                          title="Cor"
+                        />
+                      </div>
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
                           <X className="h-4 w-4" />
@@ -135,6 +146,12 @@ export function ManageConsultationTypesModal({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
+                      {type.color && (
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: type.color }}
+                        />
+                      )}
                       <div className="flex-1">
                         <p className="font-medium">{type.name}</p>
                       </div>
@@ -165,24 +182,33 @@ export function ManageConsultationTypesModal({
                     onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
                     placeholder="Nome do tipo de consulta"
                   />
-                  <Select
-                    value={newForm.defaultDuration.toString()}
-                    onValueChange={(v) =>
-                      setNewForm({ ...newForm, defaultDuration: parseInt(v) })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="20">20 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">60 minutos</SelectItem>
-                      <SelectItem value="90">90 minutos</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={newForm.defaultDuration.toString()}
+                      onValueChange={(v) =>
+                        setNewForm({ ...newForm, defaultDuration: parseInt(v) })
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutos</SelectItem>
+                        <SelectItem value="20">20 minutos</SelectItem>
+                        <SelectItem value="30">30 minutos</SelectItem>
+                        <SelectItem value="45">45 minutos</SelectItem>
+                        <SelectItem value="60">60 minutos</SelectItem>
+                        <SelectItem value="90">90 minutos</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="color"
+                      value={newForm.color}
+                      onChange={(e) => setNewForm({ ...newForm, color: e.target.value })}
+                      className="w-12 h-9 p-1 cursor-pointer"
+                      title="Cor"
+                    />
+                  </div>
                   <div className="flex justify-end gap-2">
                     <Button size="sm" variant="ghost" onClick={() => setIsAdding(false)}>
                       Cancelar

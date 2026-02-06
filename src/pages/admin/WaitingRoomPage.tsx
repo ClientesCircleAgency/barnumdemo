@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { WaitingRoomCard } from '@/components/admin/WaitingRoomCard';
 import { FinalizationModal } from '@/components/admin/FinalizationModal';
-import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
+import { useAppointments, useUpdateAppointmentStatus, useUpdateAppointment } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
@@ -160,7 +160,28 @@ export default function WaitingRoomPage() {
   const { data: patients = [] } = usePatients();
   const { data: professionals = [] } = useProfessionals();
   const { data: consultationTypes = [] } = useConsultationTypes();
+  const { isDoctor, userRole } = useAuth();
   const updateAppointmentStatus = useUpdateAppointmentStatus();
+  const updateAppointment = useUpdateAppointment();
+
+  // Doctor professional ID lookup
+  const [doctorProfessionalId, setDoctorProfessionalId] = useState<string | null>(null);
+  useEffect(() => {
+    if (isDoctor) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.id) {
+          supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) setDoctorProfessionalId(data.id);
+            });
+        }
+      });
+    }
+  }, [isDoctor]);
 
 
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -249,10 +270,16 @@ export default function WaitingRoomPage() {
   const handleFinalize = (finalNotes: string, reviewOptOut: boolean) => {
     if (!appointmentToFinalize) return;
 
-    // TODO: Save final_notes, finalized_at, review_opt_out when migration 20260131121545 is applied
-    // For now, only update status to 'completed'
-    updateAppointmentStatus.mutate(
-      { id: appointmentToFinalize.id, status: 'completed' },
+    updateAppointment.mutate(
+      {
+        id: appointmentToFinalize.id,
+        data: {
+          status: 'completed',
+          final_notes: finalNotes || null,
+          review_opt_out: reviewOptOut,
+          finalized_at: new Date().toISOString(),
+        },
+      },
       {
         onSuccess: () => {
           const patient = getPatient(appointmentToFinalize.patient_id);

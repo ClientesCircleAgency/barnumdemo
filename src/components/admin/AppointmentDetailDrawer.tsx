@@ -69,6 +69,7 @@ export function AppointmentDetailDrawer({
     getProfessionalById,
     getConsultationTypeById,
     getSpecialtyById,
+    updateAppointment,
     updateAppointmentStatus,
     deleteAppointment,
     rooms,
@@ -123,9 +124,11 @@ export function AppointmentDetailDrawer({
       return;
     }
 
-    // TODO: Save cancellation_reason when migration 20260131121545 is applied to production
-    // For now, only update status (cancellation_reason column doesn't exist in production)
-    updateAppointmentStatus(appointment.id, 'cancelled');
+    // Save cancellation reason + update status
+    updateAppointment(appointment.id, {
+      status: 'cancelled',
+      cancellationReason: cancellationReason.trim(),
+    });
     
     toast({
       title: 'Consulta cancelada',

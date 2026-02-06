@@ -16,68 +16,76 @@ export type Database = {
     Tables: {
       appointment_requests: {
         Row: {
+          assigned_professional_id: string | null
+          cancel_reason: string | null
           created_at: string
           email: string
+          estimated_duration: number | null
           id: string
           name: string
           nif: string
-          notes: string | null
           phone: string
           preferred_date: string
           preferred_time: string
-          processed_at: string | null
-          processed_by: string | null
           reason: string
+          rejection_reason: string | null
           specialty_id: string
-          status: string
+          status: Database["public"]["Enums"]["request_status"]
           updated_at: string
         }
         Insert: {
+          assigned_professional_id?: string | null
+          cancel_reason?: string | null
           created_at?: string
           email: string
+          estimated_duration?: number | null
           id?: string
           name: string
           nif: string
-          notes?: string | null
           phone: string
           preferred_date: string
           preferred_time: string
-          processed_at?: string | null
-          processed_by?: string | null
           reason: string
+          rejection_reason?: string | null
           specialty_id: string
-          status?: string
+          status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
         }
         Update: {
+          assigned_professional_id?: string | null
+          cancel_reason?: string | null
           created_at?: string
           email?: string
+          estimated_duration?: number | null
           id?: string
           name?: string
           nif?: string
-          notes?: string | null
           phone?: string
           preferred_date?: string
           preferred_time?: string
-          processed_at?: string | null
-          processed_by?: string | null
           reason?: string
+          rejection_reason?: string | null
           specialty_id?: string
-          status?: string
+          status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string
         }
         Relationships: []
       }
       appointments: {
         Row: {
+          cancellation_reason: string | null
           consultation_type_id: string
           created_at: string
           date: string
           duration: number
+          final_notes: string | null
+          finalized_at: string | null
           id: string
           notes: string | null
           patient_id: string
           professional_id: string
+          reason: string | null
+          review_opt_out: boolean
           room_id: string | null
           specialty_id: string
           status: Database["public"]["Enums"]["appointment_status"]
@@ -85,14 +93,19 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
           consultation_type_id: string
           created_at?: string
           date: string
           duration?: number
+          final_notes?: string | null
+          finalized_at?: string | null
           id?: string
           notes?: string | null
           patient_id: string
           professional_id: string
+          reason?: string | null
+          review_opt_out?: boolean
           room_id?: string | null
           specialty_id: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -100,14 +113,19 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
           consultation_type_id?: string
           created_at?: string
           date?: string
           duration?: number
+          final_notes?: string | null
+          finalized_at?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
           professional_id?: string
+          reason?: string | null
+          review_opt_out?: boolean
           room_id?: string | null
           specialty_id?: string
           status?: Database["public"]["Enums"]["appointment_status"]
@@ -551,8 +569,30 @@ export type Database = {
       | "cancelled"
       | "no_show"
       | "pre_confirmed"
+      request_status:
+      | "pending"
+      | "pre_confirmed"
+      | "suggested"
+      | "converted"
+      | "cancelled"
+      | "expired"
+      | "rejected"
       time_preference: "morning" | "afternoon" | "any"
       waitlist_priority: "low" | "medium" | "high"
+      whatsapp_workflow_status:
+      | "pending"
+      | "sent"
+      | "delivered"
+      | "responded"
+      | "expired"
+      | "failed"
+      | "cancelled"
+      whatsapp_workflow_type:
+      | "pre_confirmation_sent"
+      | "confirmation_24h"
+      | "reschedule_prompt"
+      | "slot_suggestion"
+      | "request_cancelled"
     }
     CompositeTypes: {
       [_ in never]: never

@@ -1,50 +1,95 @@
-import { useState } from 'react';
-import { Clock, Users, Settings2, Tag, Plus, Save, SlidersHorizontal, ShieldAlert, UserCircle, Stethoscope } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Clock, Users, Settings2, Tag, Plus, Save, SlidersHorizontal, ShieldAlert, UserCircle, Stethoscope, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useCollaborators } from '@/hooks/useCollaborators';
+import { useCollaborators, Collaborator } from '@/hooks/useCollaborators';
+import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
 import { EditHoursModal } from '@/components/admin/EditHoursModal';
 import { EditSettingsModal } from '@/components/admin/EditSettingsModal';
 import { ManageCollaboratorsModal } from '@/components/admin/ManageCollaboratorsModal';
 import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultationTypesModal';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { toast } from 'sonner';
+
+const DEFAULT_HOURS = [
+  { day: 'Segunda', start: '09:00', end: '19:00', enabled: true },
+  { day: 'Terça', start: '09:00', end: '19:00', enabled: true },
+  { day: 'Quarta', start: '09:00', end: '19:00', enabled: true },
+  { day: 'Quinta', start: '09:00', end: '19:00', enabled: true },
+  { day: 'Sexta', start: '09:00', end: '18:00', enabled: true },
+  { day: 'Sábado', start: '09:00', end: '13:00', enabled: true },
+  { day: 'Domingo', start: '', end: '', enabled: false },
+];
+
+const DEFAULT_SETTINGS = {
+  defaultDuration: 30,
+  bufferTime: 5,
+  minAdvanceTime: 2,
+  averageConsultationValue: 50,
+};
+
+const DEFAULT_RULES = {
+  preventOverlap: true,
+  smsReminders: true,
+  suggestNextSlot: false,
+};
 
 export default function SettingsPage() {
   const { consultationTypes } = useClinic();
   const { isAdmin, userRole } = useAuth();
   const { data: collaborators = [], isLoading: loadingCollaborators, refetch: refetchCollaborators } = useCollaborators();
+  const { data: dbSettings = {} } = useSettings();
+  const updateSetting = useUpdateSetting();
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
+  const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
   const [typesModalOpen, setTypesModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [workingHours, setWorkingHours] = useState([
-    { day: 'Segunda', start: '09:00', end: '19:00', enabled: true },
-    { day: 'Terça', start: '09:00', end: '19:00', enabled: true },
-    { day: 'Quarta', start: '09:00', end: '19:00', enabled: true },
-    { day: 'Quinta', start: '09:00', end: '19:00', enabled: true },
-    { day: 'Sexta', start: '09:00', end: '18:00', enabled: true },
-    { day: 'Sábado', start: '09:00', end: '13:00', enabled: true },
-    { day: 'Domingo', start: '', end: '', enabled: false },
-  ]);
+  const [workingHours, setWorkingHours] = useState(DEFAULT_HOURS);
+  const [generalSettings, setGeneralSettings] = useState(DEFAULT_SETTINGS);
+  const [rules, setRules] = useState(DEFAULT_RULES);
 
-  const [generalSettings, setGeneralSettings] = useState({
-    defaultDuration: 30,
-    bufferTime: 5,
-    minAdvanceTime: 2,
-    averageConsultationValue: 50,
-  });
+  // Load settings from DB on mount
+  useEffect(() => {
+    if (dbSettings.working_hours) {
+      try {
+        setWorkingHours(dbSettings.working_hours as typeof DEFAULT_HOURS);
+      } catch { /* keep defaults */ }
+    }
+    if (dbSettings.general_settings) {
+      try {
+        setGeneralSettings(dbSettings.general_settings as typeof DEFAULT_SETTINGS);
+      } catch { /* keep defaults */ }
+    }
+    if (dbSettings.rules) {
+      try {
+        setRules(dbSettings.rules as typeof DEFAULT_RULES);
+      } catch { /* keep defaults */ }
+    }
+  }, [dbSettings]);
 
-  const [rules, setRules] = useState({
-    preventOverlap: true,
-    smsReminders: true,
-    suggestNextSlot: false,
-  });
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      await Promise.all([
+        updateSetting.mutateAsync({ key: 'working_hours', value: workingHours as any }),
+        updateSetting.mutateAsync({ key: 'general_settings', value: generalSettings as any }),
+        updateSetting.mutateAsync({ key: 'rules', value: rules as any }),
+      ]);
+      toast.success('Definições guardadas com sucesso');
+    } catch {
+      toast.error('Erro ao guardar definições');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
 
   return (
@@ -53,9 +98,14 @@ export default function SettingsPage() {
         title="Definições"
         subtitle="Gerencie horários e equipa"
         actions={
-          <Button size="sm" className="gap-2 bg-primary-gradient hover:opacity-90">
+          <Button 
+            size="sm" 
+            className="gap-2 bg-primary-gradient hover:opacity-90"
+            onClick={handleSaveAll}
+            disabled={isSaving}
+          >
             <Save className="h-4 w-4" />
-            <span className="hidden sm:inline">Guardar</span>
+            <span className="hidden sm:inline">{isSaving ? 'A guardar...' : 'Guardar'}</span>
           </Button>
         }
       />
@@ -223,7 +273,7 @@ export default function SettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {isAdminUser && (
                             <Badge variant="default" className="text-xs">Admin</Badge>
                           )}
@@ -238,6 +288,19 @@ export default function SettingsPage() {
                               <Stethoscope className="h-3 w-3" />
                               Médico
                             </Badge>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                setEditingCollaborator(collab);
+                                setCollaboratorsModalOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -347,8 +410,12 @@ export default function SettingsPage() {
       <EditSettingsModal open={settingsModalOpen} onOpenChange={setSettingsModalOpen} initialSettings={generalSettings} onSave={setGeneralSettings} />
       <ManageCollaboratorsModal 
         open={collaboratorsModalOpen} 
-        onOpenChange={setCollaboratorsModalOpen}
+        onOpenChange={(val) => {
+          setCollaboratorsModalOpen(val);
+          if (!val) setEditingCollaborator(null);
+        }}
         onSuccess={() => refetchCollaborators()}
+        editTarget={editingCollaborator}
       />
       <ManageConsultationTypesModal open={typesModalOpen} onOpenChange={setTypesModalOpen} />
     </div>
