@@ -39,11 +39,6 @@ const DEFAULT_RULES = {
 };
 
 export default function SettingsPage() {
-  // #region agent log
-  console.error('[DBG-H3] SettingsPage MOUNT — component started rendering');
-  fetch('http://127.0.0.1:7242/ingest/db4a717c-c15f-476b-beb5-b5461f60195e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SettingsPage.tsx:mount',message:'SettingsPage MOUNT',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
-
   const { consultationTypes } = useClinic();
   const { isAdmin, userRole } = useAuth();
   const { data: collaborators = [], isLoading: loadingCollaborators, refetch: refetchCollaborators } = useCollaborators();
@@ -61,11 +56,6 @@ export default function SettingsPage() {
   const [generalSettings, setGeneralSettings] = useState(DEFAULT_SETTINGS);
   const [rules, setRules] = useState(DEFAULT_RULES);
 
-  // #region agent log
-  console.error('[DBG-H5] SettingsPage dbSettings shape:', JSON.stringify(dbSettings).slice(0, 200));
-  console.error('[DBG-H5] SettingsPage generalSettings:', JSON.stringify(generalSettings));
-  // #endregion
-
   // Load settings from DB on mount — with shape validation
   useEffect(() => {
     if (dbSettings.working_hours) {
@@ -75,10 +65,6 @@ export default function SettingsPage() {
         // Only use if it's actually an array with the expected shape
         if (Array.isArray(wh) && wh.length > 0 && typeof wh[0]?.day === 'string') {
           setWorkingHours(wh as typeof DEFAULT_HOURS);
-        } else {
-          // #region agent log
-          console.error('[DBG-FIX] working_hours from DB is NOT a valid array, keeping defaults. Got:', typeof wh, Array.isArray(wh));
-          // #endregion
         }
       } catch { /* keep defaults */ }
     }
@@ -87,10 +73,6 @@ export default function SettingsPage() {
         const gs = dbSettings.general_settings;
         if (gs && typeof gs === 'object' && !Array.isArray(gs) && 'bufferTime' in (gs as any)) {
           setGeneralSettings(gs as typeof DEFAULT_SETTINGS);
-        } else {
-          // #region agent log
-          console.error('[DBG-FIX] general_settings from DB has unexpected shape, keeping defaults');
-          // #endregion
         }
       } catch { /* keep defaults */ }
     }
@@ -99,10 +81,6 @@ export default function SettingsPage() {
         const r = dbSettings.rules;
         if (r && typeof r === 'object' && !Array.isArray(r) && 'preventOverlap' in (r as any)) {
           setRules(r as typeof DEFAULT_RULES);
-        } else {
-          // #region agent log
-          console.error('[DBG-FIX] rules from DB has unexpected shape, keeping defaults');
-          // #endregion
         }
       } catch { /* keep defaults */ }
     }
@@ -124,11 +102,6 @@ export default function SettingsPage() {
     }
   };
 
-
-  // #region agent log
-  console.error('[DBG-H3] SettingsPage RENDER — reached return statement successfully');
-  fetch('http://127.0.0.1:7242/ingest/db4a717c-c15f-476b-beb5-b5461f60195e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'SettingsPage.tsx:render',message:'SettingsPage RENDER reached return',data:{consultationTypesCount:consultationTypes?.length,collaboratorsCount:collaborators?.length,isAdmin,userRole},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
 
   return (
     <div className="space-y-4 lg:space-y-6">

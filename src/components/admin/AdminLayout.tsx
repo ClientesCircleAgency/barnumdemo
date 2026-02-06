@@ -61,11 +61,6 @@ export function AdminLayout() {
     setMobileMenuOpen(false);
   };
 
-  // #region agent log
-  console.error('[DBG-H1] AdminLayout auth state:', { isLoading, isAuthenticated, userRole: (isLoading ? 'loading...' : 'checked') });
-  fetch('http://127.0.0.1:7242/ingest/db4a717c-c15f-476b-beb5-b5461f60195e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminLayout.tsx:auth-check',message:'AdminLayout auth state',data:{isLoading,isAuthenticated},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -75,10 +70,6 @@ export function AdminLayout() {
   }
 
   if (!isAuthenticated) {
-    // #region agent log
-    console.error('[DBG-H1] AdminLayout NOT AUTHENTICATED — returning null, will redirect to login');
-    fetch('http://127.0.0.1:7242/ingest/db4a717c-c15f-476b-beb5-b5461f60195e',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminLayout.tsx:not-auth',message:'NOT AUTHENTICATED returning null',data:{},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     return null;
   }
 
