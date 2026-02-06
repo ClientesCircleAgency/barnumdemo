@@ -1,61 +1,64 @@
-# Documentation Structure
+# Barnum — Documentation
 
-This directory contains all project documentation organized by purpose and lifecycle stage.
-
-## Structure Overview
-
-```
-docs/
-├── README.md           # This file - documentation structure guide
-├── contracts/          # Active contracts for frontend-backend alignment
-├── context/            # Audits, analysis, and historical reasoning
-└── archive/            # Archived, exploratory, and future-phase material
-    └── n8n/           # n8n integration guides (not finalized)
-```
-
-## Directory Purposes
-
-### contracts/
-**Purpose**: Active source of truth for frontend-backend alignment
-
-Contains the definitive contracts that define interfaces between:
-- Frontend and database (`FRONTEND_DB_CONTRACT.md`)
-- Frontend type system (`FRONTEND_ENUMS_AND_TYPES.md`)
-- Vercel API routes (`VERCEL_API_CONTRACT.md`)
-- Backend schema snapshot (`supabase_backend_snapshot.md`)
-
-**These are the ONLY files to use for development during the alignment phase.**
-
-### context/
-**Purpose**: Historical audits, analysis, and technical reasoning
-
-Contains documentation that explains:
-- Why decisions were made
-- How the project evolved
-- Technical audits and analysis
-- Setup guides and procedures
-
-These files provide important context but are NOT active contracts.
-
-### archive/
-**Purpose**: Archived material not currently in use
-
-Contains:
-- Exploratory documentation
-- Duplicate files superseded by newer versions
-- Future-phase material (e.g., n8n guides)
-
-**archive/n8n/** specifically contains WhatsApp and n8n integration guides that are NOT finalized and represent future-phase work.
-
-## Current Phase
-
-**Frontend-Backend Alignment Phase**
-
-During this phase:
-- ✅ Use `contracts/` as the sole source of truth
-- ℹ️ Reference `context/` for understanding and reasoning
-- ⛔ Ignore `archive/` (future work)
+> **Last updated:** 2026-02-06
 
 ---
 
-Last updated: 2026-01-30
+## Structure
+
+```
+docs/
+├── context/                  # Project state & AI agent context
+│   ├── PROJECT_CANONICAL_CONTEXT.md   ← Single source of truth
+│   ├── AGENT_CONTEXT.md               ← Auto-updated for AI agents (Cursor)
+│   └── GLOSSARY.md                    ← Technical terms glossary
+│
+├── contracts/                # Technical specifications & contracts
+│   ├── N8N_PARTNER_COMPLETE_GUIDE.md  ← Complete guide for n8n partner ⭐
+│   ├── WHATSAPP_AUTOMATIONS_SPEC.md   ← WhatsApp automations specification
+│   ├── DATABASE_SCHEMA.md             ← Full database schema reference
+│   └── FRONTEND_DB_CONTRACT.md        ← Frontend ↔ DB query contract
+│
+├── operations/               # Deployment, QA, development guides
+│   ├── PRODUCTION_MIGRATION_PLAN.md   ← Migration order for production
+│   ├── LOCAL_DEV_RUNBOOK.md           ← How to run locally
+│   └── QA_CHECKLIST.md               ← Manual testing checklist
+│
+└── README.md                 ← This file
+```
+
+---
+
+## Reading Order
+
+### For a new developer
+1. `context/PROJECT_CANONICAL_CONTEXT.md` — Understand the project
+2. `operations/LOCAL_DEV_RUNBOOK.md` — Get it running
+3. `contracts/DATABASE_SCHEMA.md` — Understand the data model
+4. `operations/QA_CHECKLIST.md` — Know what to test
+
+### For the n8n partner
+1. `contracts/N8N_PARTNER_COMPLETE_GUIDE.md` — **Start and end here** (complete guide)
+2. `contracts/WHATSAPP_AUTOMATIONS_SPEC.md` — Deep dive on each automation if needed
+
+### For AI agents (Cursor/ChatGPT)
+1. `context/AGENT_CONTEXT.md` — Quick reference (always up to date)
+2. `context/PROJECT_CANONICAL_CONTEXT.md` — Full detail when needed
+
+---
+
+## Trust Hierarchy
+
+1. **Code + Migrations** — Always the truth
+2. **context/PROJECT_CANONICAL_CONTEXT.md** — Verified against code
+3. **contracts/** — Technical specs, may lag slightly behind code
+4. **operations/** — Guides, updated as needed
+
+If docs conflict with code, **code wins**.
+
+---
+
+## Also in the repo root
+
+- `ChatGPT_5.2_context.md` — Context file to paste into ChatGPT conversations
+- `README.md` — Project overview and quick start

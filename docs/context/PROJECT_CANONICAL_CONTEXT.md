@@ -1,355 +1,215 @@
-# Project Canonical Context
+# Barnum — Project Canonical Context
 
-**Last Updated**: 2026-02-06  
-**Project**: Barnum Clinic Management Platform  
-**Status**: Active Development - Phase 5 (Frontend Stabilization)
-
----
-
-## Project Overview
-
-**Barnum** is a clinic management platform for scheduling appointments, managing patients and professionals, and automating patient communication via WhatsApp.
+> **Last updated:** 2026-02-06
+> **Role:** Single source of truth. Only updated after verified changes.
+> **Rule:** Every claim here is backed by code/migrations. No speculation.
 
 ---
 
-## Tech Stack (Verified)
+## 1. Project Overview
 
-### Frontend
-- **Framework**: React 18.3.1
-- **Build Tool**: Vite 5.4.19
-- **Routing**: React Router v6.30.1
-- **UI Library**: Radix UI components with Tailwind CSS
-- **Form Handling**: react-hook-form 7.61.1 with Zod validation
-- **State Management**: React Query (@tanstack/react-query 5.83.0)
+**Name:** Barnum (dental clinic management SaaS)
+**Goal:** Full-featured clinic management platform for dental clinics, with WhatsApp automations via n8n. Designed to be sold and customized per clinic.
 
-**Evidence**: `package.json` lines 13-67
-
-### Backend
-- **Database**: Supabase PostgreSQL
-  - Project ID: `oziejxqmghwmtjufstfp`
-  - Remote URL: `https://oziejxqmghwmtjufstfp.supabase.co`
-- **API Layer**: Vercel Serverless Functions (Node.js runtime, `@vercel/node`)
-  - 3 endpoints: `/api/action`, `/api/webhook`, `/api/internal`
-- **Auth**: Supabase Auth (email/password)
-- **Storage**: Supabase Storage
-
-**Evidence**: 
-- `ChatGPT_5.2_context.md` lines 20-21
-- `api/action.ts` line 6, `api/webhook.ts` line 7, `api/internal.ts` line 10
-- `ANALISE_BACKEND_EVIDENCIAS.md` lines 15-52
-
-### External Services (Planned)
-- **WhatsApp Automation**: n8n (external, not in repo)
-- **Deployment**: Vercel (framework detected in `vercel.json`)
+**Business model:** Sell to dental clinics → customize branding, specialties, professionals per client.
 
 ---
 
-## Core Architectural Rules
+## 2. Tech Stack
 
-### Rule 1: n8n Owns All Time-Based Scheduling
-
-**Canonical Decision** (2026-02-06):
-- **n8n is the ONLY scheduler** for business logic automations
-- Backend does NOT own cron jobs or time-based triggers
-- Backend exposes reactive webhook endpoints that n8n calls
-- n8n decides WHEN to trigger flows (24h confirmations, event processing, etc.)
-
-**Why**:
-- Centralized automation logic in n8n (single source of truth)
-- Backend remains stateless and reactive
-- Easier debugging (all timing decisions visible in n8n workflows)
-- Simpler deployment (no Vercel Cron configuration)
-
-**Implementation**:
-- Backend endpoints: `/api/n8n/process-events`, `/api/n8n/create-24h-confirmations`
-- n8n schedules: Daily 08:00 for confirmations, every 5 min for event processing
-- Auth: `x-n8n-secret` header (shared secret `N8N_WEBHOOK_SECRET`)
-
-**Evidence**:
-- `docs/contracts/N8N_INTEGRATION_CONTRACT.md` (full specification)
-- `api/n8n/process-events.ts` lines 1-13
-- `api/n8n/create-24h-confirmations.ts` lines 1-22
-- `vercel.json` has NO `crons` array (removed 2026-02-06)
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Frontend | React + TypeScript | 18.3.1 |
+| Build | Vite (SWC) | 5.4.19 |
+| UI | Radix UI + Tailwind CSS + shadcn/ui | 3.4.17 |
+| Forms | React Hook Form + Zod | 7.61.1 / 3.25.76 |
+| State | TanStack React Query | 5.83.0 |
+| Database | Supabase (PostgreSQL) | supabase-js 2.89.0 |
+| Auth | Supabase Auth (email/password) | Built-in |
+| Edge Functions | Supabase Edge Functions (Deno) | 4 functions |
+| API | Vercel Serverless (Node.js) | @vercel/node 5.5.28 |
+| Hosting | Vercel | SPA with rewrites |
+| Automations | n8n (external) | Partner-managed |
+| WhatsApp | Via n8n → WhatsApp Business API | External |
 
 ---
 
-## Architecture
+## 3. Core Architectural Rules
 
-### Database Layer (Supabase)
+### Rule 1: n8n is the ONLY scheduler
+- Backend owns ZERO time-based logic (no cron, no setInterval)
+- Backend is purely reactive: webhook endpoints + DB writes
+- n8n decides WHEN to trigger automations
+- Reference: `docs/contracts/N8N_PARTNER_COMPLETE_GUIDE.md`
 
-**Core Tables** (verified in migrations):
-- `patients` - Patient records
-- `professionals` - Doctors/staff (links to `specialties`)
-- `appointments` - Scheduled consultations
-- `appointment_requests` - Public booking requests
-- `specialties` - Medical specialties
-- `consultation_types` - Service types
-- `rooms` - Consultation rooms
-- `waitlist` - Patient waitlist
-- `user_roles` - Role assignments (admin, secretary, doctor)
-- `clinic_settings` - Clinic configuration
+### Rule 2: Edge Functions for admin operations
+- Collaborator management (invite/list/update/delete) runs via Supabase Edge Functions
+- `SUPABASE_SERVICE_ROLE_KEY` is NEVER exposed to the frontend
+- Frontend calls Edge Functions via `supabase.functions.invoke()`
+- Auth: `x-user-token` header with user JWT, decoded locally in Edge Function
 
-**WhatsApp Infrastructure Tables** (verified in migrations):
-- `whatsapp_workflows` - Workflow state tracking
-- `whatsapp_events` - Outbox pattern for webhook delivery
-- `whatsapp_action_tokens` - Secure patient action links
-- `appointment_suggestions` - Slot suggestions for rescheduling
-- `desistências` - Patients who abandon scheduling (local only, not in production)
+### Rule 3: Duration is per-request, not per-type
+- Consultation types = name + color only (no fixed duration)
+- The secretary sets duration manually for each appointment request during triage
+- `consultation_types.default_duration` column exists in DB but is NOT used in UI
 
-**Evidence**: 
-- `supabase/migrations/20260128020127_whatsapp_webhook_infrastructure.sql` lines 10-142
-- `supabase/migrations/20260131121545_support_whatsapp_automations_option1.sql` lines 29-48
-
-**Authentication & Authorization**:
-- Function: `has_role(_user_id UUID, _role app_role) RETURNS BOOLEAN`
-  - Location: `supabase/migrations/20251231023352_0aabc462-babb-4742-873f-492150c993ae.sql` lines 17-28
-  - Attributes: `SECURITY DEFINER`, `STABLE`, `SET search_path = public`
-- Enum: `app_role` = `'admin' | 'secretary' | 'doctor'`
-- Table: `user_roles` - Maps auth users to roles
-- Row Level Security (RLS): Enabled on all tables
-  - Pattern: Admin-only access via `has_role(auth.uid(), 'admin')`
-  - Evidence: `supabase/migrations/20260103122558_1f871a85-e401-4d15-a3aa-293bf4e2e2f2.sql` lines 5-57
-
-**Status Enums** (verified):
-- `appointment_status`: `'scheduled' | 'confirmed' | 'pre_confirmed' | 'waiting' | 'in_progress' | 'completed' | 'cancelled' | 'no_show'`
-- `waitlist_priority`: `'low' | 'medium' | 'high'`
-- `time_preference`: `'morning' | 'afternoon' | 'any'`
-
-### API Layer (Vercel Functions)
-
-**Endpoint: `/api/action`** (GET)
-- **Purpose**: Patient-facing action links (confirm/cancel/reschedule)
-- **Auth**: Token validation via `validate_action_token()` DB function
-- **Client**: `supabaseAdmin` (service role, bypasses RLS)
-- **Evidence**: `api/action.ts` lines 39-66
-
-**Endpoint: `/api/webhook`** (POST)
-- **Purpose**: n8n callback handler (6 action types)
-- **Auth**: Optional HMAC signature verification (`WEBHOOK_SECRET`)
-- **Actions**: confirm, cancel, reschedule, no_show_reschedule, reactivation, review
-- **Evidence**: `api/webhook.ts` lines 47-91
-
-**Endpoint: `/api/internal`** (POST)
-- **Purpose**: Manual testing endpoint for event processing
-- **Auth**: Required Bearer token (`INTERNAL_API_SECRET`)
-- **Note**: n8n should call `/api/n8n/process-events` instead (in production)
-- **Evidence**: `api/internal.ts` lines 1-8
-
-**Endpoint: `/api/n8n/process-events`** (POST)
-- **Purpose**: Process pending whatsapp_events (called by n8n on schedule)
-- **Auth**: Required `x-n8n-secret` header (`N8N_WEBHOOK_SECRET`)
-- **Behavior**: 
-  - Queries `whatsapp_events` with `status='pending'` and `scheduled_for <= now()`
-  - Sends to `N8N_WEBHOOK_BASE_URL`
-  - Retry logic: max 3 attempts, exponential backoff, dead letter queue
-- **Evidence**: `api/n8n/process-events.ts` lines 1-70
-- **n8n Schedule**: Every 5 minutes (configured in n8n, not backend)
-
-**Endpoint: `/api/n8n/create-24h-confirmations`** (POST)
-- **Purpose**: Create pre-confirmation workflows for appointments in ~24h (called by n8n daily)
-- **Auth**: Required `x-n8n-secret` header (`N8N_WEBHOOK_SECRET`)
-- **Behavior**:
-  - Finds appointments 23-25 hours from now with `status IN ('scheduled', 'pre_confirmed')`
-  - Creates `whatsapp_workflows` + `whatsapp_events` (idempotent)
-  - Events picked up by next `/api/n8n/process-events` call
-- **Evidence**: `api/n8n/create-24h-confirmations.ts` lines 1-220
-- **n8n Schedule**: Daily at 08:00 (configured in n8n, not backend)
-
-**Security Helpers**:
-- HMAC signature generation/verification (SHA-256)
-- Idempotency key generation
-- Location: `api/lib/security.ts` lines 14-61
-
-### Frontend Layer (React SPA)
-
-**Routing** (verified in `src/App.tsx`):
-- Public routes: `/`, `/admin/login`
-- Admin routes (14 total): `/admin/dashboard`, `/admin/agenda`, `/admin/pedidos`, `/admin/pacientes`, `/admin/settings`, etc.
-- Layout: `AdminLayout` wrapper with sidebar navigation
-- Auth Guard: `useAuth()` hook checks `has_role('admin')` before allowing access
-
-**Key Components** (verified):
-- `AppointmentWizard` - Two-step appointment creation (NIF lookup → details form)
-  - Fixed crash: `PatientLookupByNIF.tsx` line 143 (FormLabel → Label)
-  - Evidence: `ChatGPT_5.2_context.md` lines 1029-1043
-- `ManageProfessionalsModal` - Professional CRUD
-  - Fixed specialty mismatch: now stores UUID instead of name
-  - Evidence: `ChatGPT_5.2_context.md` lines 942-961
-- `ClinicContext` - Centralized React Query data layer
-
-**Auth Flow**:
-- `useAuth()` hook calls `supabase.rpc('has_role')` after login
-- Non-admin users immediately logged out
-- Evidence: `src/hooks/useAuth.ts` lines 76-100
+### Rule 4: Self-signup disabled
+- Only admins can invite new users via the "Colaboradores" section
+- Login page has no signup option
+- Supabase Auth configured for invite-only
 
 ---
 
-## Database Migration State
+## 4. Roles & Permissions (RBAC)
 
-### Local Environment (Docker + Supabase CLI)
-**Migrations Applied**: 13 total
+| Area | Admin | Secretary | Doctor |
+|------|-------|-----------|--------|
+| Dashboard | Full | Full | Generic (P2) |
+| Agenda | All doctors | All doctors | Own only |
+| Pedidos (Requests) | Full CRUD | Full CRUD | Hidden |
+| Pacientes | All | All | All |
+| Sala de Espera | All | All | Own only |
+| Mensagens | Full | Full | Hidden |
+| Lista de Espera | Full | Full | Hidden |
+| Estatísticas | Full | Hidden | Hidden |
+| Configurações | Full | Full (no user mgmt) | Hidden |
+| Colaboradores | Full CRUD | View only | Hidden |
 
-Last migration: `20260131160012_add_final_notes_to_appointments.sql`
-
-**Schema Additions (Local Only, NOT in Production)**:
-1. `desistências` table - Abandoned appointment tracking
-2. `appointment_requests.rejection_reason` (text)
-3. `appointments.cancellation_reason` (text)
-4. `appointments.review_opt_out` (boolean, default false)
-5. `appointments.finalized_at` (timestamptz)
-6. `appointments.final_notes` (text)
-
-**Evidence**: `ChatGPT_5.2_context.md` lines 760-838
-
-### Production Environment (Supabase Remote)
-**Migrations Applied**: 11 total (verified 2026-01-30)
-
-**Last production migration**: `20260130002738_remote_schema.sql`
-
-**CRITICAL**: Local has 2 unapplied migrations (`20260131121545`, `20260131160012`)
+**Implementation:**
+- `src/hooks/useAuth.ts`: Role detection via `has_role()` RPC
+- `src/components/admin/ProtectedRoute.tsx`: Route guards with `allowedRoles`
+- `src/components/admin/AdminSidebar.tsx`: Menu visibility per role
+- `src/App.tsx`: Route-level guards
 
 ---
 
-## WhatsApp Automations (Designed, Not Implemented)
+## 5. Database Schema (Key Tables)
 
-**Specification**: `docs/contracts/WHATSAPP_AUTOMATIONS_SPEC.md`
+### Auth & Roles
+- **`user_roles`**: `user_id` → `role` (app_role: admin/secretary/doctor)
+- **`user_profiles`**: `user_id` → `full_name`, `photo_url`
+- **`has_role(user_id, role)`**: PostgreSQL function for role checking
 
-**6 Automations**:
-1. Incoming Request & Secretary Triage
-2. 24h Confirmation with Default Confirmation
-3. Rescheduling via Chat
-4. Slot Suggestion Resolution
-5. Staff-Initiated Cancellation
-6. Waiting Room & Finalization + Post-Consultation Review
+### Clinic Configuration
+- **`clinic_settings`**: Key-value store (`key` TEXT, `value` JSONB)
+- **`consultation_types`**: `name`, `color`, `default_duration` (unused in UI)
+- **`specialties`**: `name`
+- **`rooms`**: `name`, `specialty_id`
+- **`professionals`**: `name`, `specialty_id`, `color`, `user_id` (links to auth.users)
 
-**Backend Support Status**:
-- ✅ Database triggers create events automatically
-  - Pre-confirmation: `trigger_pre_confirmation_event()` on appointment INSERT
-  - No-show: `trigger_no_show_reschedule_event()` on status→'no_show'
-  - Review: `trigger_review_reminder_event()` on status→'completed'
-  - Evidence: `supabase/migrations/20260128020128_whatsapp_event_triggers.sql` lines 59-210
-- ✅ Event outbox (`whatsapp_events`) with retry/dead-letter
-- ✅ Action token system (`whatsapp_action_tokens`, `validate_action_token()` function)
-- ❌ CRON job NOT configured (Gap 1)
-- ❌ n8n integration NOT in repo (external service)
-- ⚠️ Review trigger uses `status='completed'` instead of `finalized_at IS NOT NULL` (Gap 2)
+### Patients & Appointments
+- **`patients`**: `name`, `phone`, `email`, `nif` (unique), `birth_date`, `notes`, `tags`
+- **`appointments`**: `patient_id`, `professional_id`, `date`, `time`, `duration`, `status`, `reason`, `cancellation_reason`, `final_notes`, `finalized_at`, `review_opt_out`
+- **`appointment_requests`**: `name`, `email`, `phone`, `reason`, `preferred_date`, `preferred_time`, `status`, `rejection_reason`, `estimated_duration`
+- **`appointment_suggestions`**: `appointment_request_id`, `patient_id`, `suggested_slots` (JSONB)
 
-**Evidence**: `ANALISE_BACKEND_EVIDENCIAS.md` lines 241-421, 568-627
+### WhatsApp Automations
+- **`whatsapp_events`**: Outbox table. `event_type`, `entity_id`, `payload`, `status`, `scheduled_for`
+- **`whatsapp_workflows`**: Tracks workflow lifecycle. `workflow_type`, `status`, `appointment_id`
+- **`whatsapp_action_tokens`**: Secure tokens for patient action links
+- **`notification_log`** / **`notifications`**: Staff notifications
 
----
-
-## Known Issues & Resolutions
-
-### P0 Issues (RESOLVED)
-- **P0-001**: AppointmentWizard crash on NIF field
-  - **Fixed**: `PatientLookupByNIF.tsx` line 143 (FormLabel → Label)
-  - **Date**: 2026-02-01
-  - **Evidence**: `ChatGPT_5.2_context.md` lines 994-1074
-
-### P1 Issues (RESOLVED)
-- **P1-001**: Professional creation specialty mismatch
-  - **Fixed**: `ManageProfessionalsModal.tsx` lines 128, 199 (value={s.name} → value={s.id})
-  - **Date**: 2026-01-31
-  - **Evidence**: `ChatGPT_5.2_context.md` lines 922-991
-
-### P2 Issues (OPEN)
-- **P2-001**: PlanPage "Fazer Upgrade" button has no handler (non-blocking, marketing placeholder)
-- **P2-002**: MessagesPage exists but not routed (future feature)
-- **P2-003**: No `type-check` script in `package.json`
-
-**Tracking**: `docs/contracts/FRONTEND_STABILIZATION_BACKLOG.md`
+### Other
+- **`waitlist`**: Patient waitlist entries
+- **`contact_messages`**: Public contact form submissions
+- **`appointment_notes`**: Per-appointment notes by staff
+- **`desistências`**: Cancellation/dropout records
 
 ---
 
-## Critical Gaps (Production Blockers)
+## 6. Supabase Edge Functions
 
-### Gap 1: Review Trigger Inconsistency
-**Current**: Trigger fires on `status = 'completed'`  
-**Spec**: Should fire on `finalized_at IS NOT NULL` (2 hours after finalization)
+| Function | Purpose | Auth |
+|----------|---------|------|
+| `invite-collaborator` | Create user + assign role + link professional | Admin only (x-user-token) |
+| `list-collaborators` | List all users with roles and professional data | Admin only |
+| `update-collaborator` | Change role, link/unlink professional | Admin only |
+| `delete-collaborator` | Remove user account and all associations | Admin only |
 
-**Evidence**:
-- `supabase/migrations/20260128020128_whatsapp_event_triggers.sql` line 174
-- `ANALISE_BACKEND_EVIDENCIAS.md` lines 568-585
-
-**Fix Required**: Apply migration `20260204120100_fix_review_trigger_condition.sql` to production
-
-### Gap 2: RLS Policy Exposes PHI in whatsapp_events (RESOLVED - Migration Created)
-**Status**: Migration `20260204120000_restrict_whatsapp_events_rls.sql` created  
-**Remaining**: Apply migration to production
-
-**Original Issue**:
-- `whatsapp_events` allowed SELECT by authenticated users
-- Payloads contain PHI (patient names, phones, appointment data)
-
-**Evidence**: 
-- Fix: `supabase/migrations/20260204120000_restrict_whatsapp_events_rls.sql`
-- Original: `supabase/migrations/20260128020127_whatsapp_webhook_infrastructure.sql` lines 55-63
-
-### Gap 3: Local Migrations Not in Production
-**Blocker**: WhatsApp automations require new schema fields
-
-**Missing in Production**:
-- `desistências` table
-- `rejection_reason`, `cancellation_reason`, `review_opt_out`, `finalized_at`, `final_notes`
-
-**Fix Required**: Apply migrations `20260131121545` and `20260131160012` to production (after approval)
+**JWT handling:** Edge Functions decode `x-user-token` locally (atob), verify user via `auth.admin.getUserById()`, check admin role via `has_role()` RPC. This bypasses the Supabase API Gateway ES256/HS256 conflict.
 
 ---
 
-## Out of Scope / Not Yet Implemented
+## 7. Vercel API Endpoints
 
-### Not in Repository
-- ❌ n8n workflow definitions (external service)
-- ❌ WhatsApp API integration code (handled by n8n)
-- ❌ Production environment variables configuration (managed in Vercel dashboard)
-- ❌ Automated tests (unit, integration, E2E)
-- ❌ CI/CD pipeline configuration
-
-### Not Verified
-- Production database state (schema drift, active users, live data)
-- Production deployment status (URL, environment variables, CRON jobs)
-- RLS policy details beyond admin-only pattern
-- Performance metrics or monitoring setup
-- Backup/disaster recovery procedures
-
-### Deferred Features
-- Multi-clinic tenancy (system is single-clinic per database)
-- Role-based UI for secretary/doctor (admin-only currently)
-- Automated slot generation algorithm (documented but not implemented)
-- Real-time notifications (infrastructure exists, UI integration incomplete)
-- Message templating system (handled by n8n)
+| Endpoint | Method | Purpose | Auth |
+|----------|--------|---------|------|
+| `/api/action` | GET | Patient action links (confirm/cancel) | Token-based |
+| `/api/webhook` | POST | n8n callbacks (confirm/cancel/reschedule) | HMAC signature |
+| `/api/n8n/process-events` | POST | Process pending whatsapp_events | x-n8n-secret |
+| `/api/n8n/create-24h-confirmations` | POST | Create 24h confirmation events | x-n8n-secret |
+| `/api/internal` | POST | Manual testing only (deprecated) | Bearer INTERNAL_API_SECRET |
 
 ---
 
-## Documentation Hierarchy
+## 8. WhatsApp Automations (DB Triggers)
 
-### Tier 1: Canonical (This File)
-- **This file**: `docs/context/PROJECT_CANONICAL_CONTEXT.md`
-- **Purpose**: Single source of truth, stable, evidence-based
-
-### Tier 2: Active Contracts
-- `docs/contracts/FRONTEND_DB_CONTRACT.md` - Frontend-database interface
-- `docs/contracts/FRONTEND_ENUMS_AND_TYPES.md` - Frontend type system
-- `docs/contracts/VERCEL_API_CONTRACT.md` - API route interfaces
-- `docs/contracts/WHATSAPP_AUTOMATIONS_SPEC.md` - WhatsApp automation behaviors
-- `docs/contracts/supabase_backend_snapshot.md` - Backend schema reference
-
-### Tier 3: Historical Context
-- `docs/context/` - Audits, analysis, planning documents (14 files)
-- `ChatGPT_5.2_context.md` - Living context file (superseded by canonical + local architecture)
-
-### Tier 4: Archive
-- `docs/archive/` - Exploratory docs, duplicates
-- `docs/archive/n8n/` - n8n integration guides (not final, future-phase)
-
-### Tier 5: Handoff Pack
-- `docs/handoff_pack/` - Agent-to-agent transfer documentation (6 files)
+| # | Automation | Trigger | DB Event |
+|---|-----------|---------|----------|
+| 1 | Pre-confirmation | New appointment created | `trigger_appointment_pre_confirmation` |
+| 2 | 24h Confirmation | n8n calls `/api/n8n/create-24h-confirmations` | No DB trigger (n8n-driven) |
+| 3 | No-show Reschedule | Status → 'no_show' | `trigger_appointment_no_show_reschedule` |
+| 4 | Slot Suggestions | `suggested_slots` populated | `trigger_send_appointment_suggestion` |
+| 5 | Cancellation | Status → 'cancelled' (manual via UI) | No specific trigger (event created by cron processor) |
+| 6 | Review Reminder | `finalized_at` set + `review_opt_out = false` | `trigger_appointment_review_reminder` |
 
 ---
 
-## Version History
+## 9. Frontend Pages
 
-**2026-02-04**: Initial canonical context creation
-- Extracted verified state from `ChatGPT_5.2_context.md` and `ANALISE_BACKEND_EVIDENCIAS.md`
-- Documented tech stack, architecture, migration state, critical gaps
-- Established documentation hierarchy
+| Route | Page | Access |
+|-------|------|--------|
+| `/` | Public landing + appointment request form | Public |
+| `/admin/login` | Admin login | Public |
+| `/admin/dashboard` | Dashboard with KPIs | Admin, Secretary |
+| `/admin/agenda` | Calendar view | All roles (doctor: own) |
+| `/admin/pedidos` | Appointment requests triage | Admin, Secretary |
+| `/admin/pacientes` | Patient management | All roles |
+| `/admin/pacientes/:id` | Patient detail | All roles |
+| `/admin/sala-de-espera` | Waiting room | All roles (doctor: own) |
+| `/admin/lista-de-espera` | Waitlist | Admin, Secretary |
+| `/admin/mensagens` | Contact messages | Admin, Secretary |
+| `/admin/configuracoes` | Settings + Collaborators | Admin, Secretary |
+| `/admin/estatisticas` | Statistics | Admin only |
+| `/admin/plano` | Subscription plan | Admin, Secretary |
+
+---
+
+## 10. Pending Migrations (Not Yet in Production)
+
+| Order | Migration | What it adds |
+|-------|-----------|-------------|
+| 1 | `20260131121545_support_whatsapp_automations_option1.sql` | `cancellation_reason`, `review_opt_out`, `finalized_at`, `rejection_reason`, `desistências` table |
+| 2 | `20260131160012_add_final_notes_to_appointments.sql` | `final_notes` column |
+| 3 | `20260204120000_fix_whatsapp_events_rls.sql` | Restrict whatsapp_events to service role only |
+| 4 | `20260204120100_fix_review_trigger_condition.sql` | Fix review trigger to use finalized_at |
+
+**Apply order is strict.** See `docs/operations/PRODUCTION_MIGRATION_PLAN.md`.
+
+---
+
+## 11. Environment Variables
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `VITE_SUPABASE_URL` | Frontend (.env) | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Frontend (.env) | Supabase anonymous key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Vercel + Edge Functions | Service role (server-only) |
+| `WEBHOOK_SECRET` | Vercel | HMAC validation for webhooks |
+| `N8N_WEBHOOK_SECRET` | Vercel + n8n | Auth for n8n endpoints |
+| `N8N_WEBHOOK_BASE_URL` | Vercel | n8n webhook URL |
+| `INTERNAL_API_SECRET` | Vercel | Manual testing endpoint |
+| `SITE_URL` | Edge Functions | For invite email links |
+
+---
+
+## 12. Known Limitations / Future Work
+
+- **P2-001:** Professional working hours table (for enhanced availability)
+- **P2-003:** Pre-fill AppointmentWizard from request data
+- **P2-004:** Structured logging (replace console.error with Sentry or similar)
+- **P2-005:** Test suite (unit + integration)
+- **P2-R7:** Doctor-specific dashboard
+- **P2-E3:** Resend invite email functionality
+- **Future:** Full conversational rescheduling via WhatsApp (Automation 3 enhanced)
+- **Future:** 6-slot generation logic for suggestions (3 same hour/different days + 3 same day/different hours)

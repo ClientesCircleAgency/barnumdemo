@@ -10,7 +10,7 @@ This document is the **single source of truth** for WhatsApp automation behavior
 - **n8n is the ONLY scheduler** for time-based automation triggers
 - Backend provides reactive webhook endpoints called by n8n
 - Backend does NOT own cron jobs, timers, or scheduling logic
-- See `docs/contracts/N8N_INTEGRATION_CONTRACT.md` for implementation details
+- See `docs/contracts/N8N_PARTNER_COMPLETE_GUIDE.md` for the complete n8n partner handoff
 
 ---
 
@@ -22,7 +22,7 @@ Creation of an appointment request with status **`pending`**
 ### Secretary Popup Behavior
 When a new appointment request arrives, the secretary sees a popup containing:
 - Patient's reason for consultation (free text provided by patient)
-- Dropdown to select consultation duration
+- Manual numeric input for consultation duration (minutes) — set per request, NOT from consultation type
 - List of doctors available **ONLY** at the requested time slot
 
 ### Decision Rules
