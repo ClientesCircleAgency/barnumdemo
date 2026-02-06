@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Clock, Users, Settings2, Tag, Plus, Save, SlidersHorizontal, ShieldAlert } from 'lucide-react';
+import { Clock, Users, Settings2, Tag, Plus, Save, SlidersHorizontal, ShieldAlert, UserCircle, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useCollaborators } from '@/hooks/useCollaborators';
 import { EditHoursModal } from '@/components/admin/EditHoursModal';
 import { EditSettingsModal } from '@/components/admin/EditSettingsModal';
 import { ManageCollaboratorsModal } from '@/components/admin/ManageCollaboratorsModal';
@@ -13,8 +14,9 @@ import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultat
 import { PageHeader } from '@/components/admin/PageHeader';
 
 export default function SettingsPage() {
-  const { professionals, consultationTypes } = useClinic();
+  const { consultationTypes } = useClinic();
   const { isAdmin, userRole } = useAuth();
+  const { data: collaborators = [], isLoading: loadingCollaborators, refetch: refetchCollaborators } = useCollaborators();
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -177,37 +179,70 @@ export default function SettingsPage() {
                 )}
               </div>
               
-              {professionals.length === 0 ? (
+              {loadingCollaborators ? (
+                <div className="flex items-center justify-center py-6">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                </div>
+              ) : collaborators.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhum colaborador criado ainda.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {professionals.map((prof) => (
-                    <div key={prof.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
-                          style={{ backgroundColor: prof.color }}
-                        >
-                          {prof.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                  {collaborators.map((collab) => {
+                    const isSecretary = collab.role === 'secretary';
+                    const isDoctor = collab.role === 'doctor';
+                    const isAdminUser = collab.role === 'admin';
+
+                    const initials = collab.professional_name
+                      ? collab.professional_name.split(' ').map((n) => n[0]).join('').slice(0, 2)
+                      : collab.email.substring(0, 2).toUpperCase();
+
+                    const displayName = collab.professional_name || collab.email.split('@')[0];
+                    const displaySubtitle = isSecretary 
+                      ? 'Secretária' 
+                      : isAdminUser
+                      ? 'Administrador'
+                      : collab.professional_specialty || 'Médico';
+
+                    const bgColor = collab.professional_color || (isSecretary ? '#10b981' : isAdminUser ? '#8b5cf6' : '#6366f1');
+
+                    return (
+                      <div key={collab.user_id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
+                            style={{ backgroundColor: bgColor }}
+                          >
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-foreground text-sm truncate">{displayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {displaySubtitle}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground text-sm truncate">{prof.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {prof.specialty || 'Sem especialidade'}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          {isAdminUser && (
+                            <Badge variant="default" className="text-xs">Admin</Badge>
+                          )}
+                          {isSecretary && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <UserCircle className="h-3 w-3" />
+                              Secretária
+                            </Badge>
+                          )}
+                          {isDoctor && (
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <Stethoscope className="h-3 w-3" />
+                              Médico
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {prof.userId ? (
-                          <Badge variant="secondary" className="text-xs">Conta</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs text-muted-foreground">Sem conta</Badge>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -310,7 +345,11 @@ export default function SettingsPage() {
 
       <EditHoursModal open={hoursModalOpen} onOpenChange={setHoursModalOpen} initialHours={workingHours} onSave={setWorkingHours} />
       <EditSettingsModal open={settingsModalOpen} onOpenChange={setSettingsModalOpen} initialSettings={generalSettings} onSave={setGeneralSettings} />
-      <ManageCollaboratorsModal open={collaboratorsModalOpen} onOpenChange={setCollaboratorsModalOpen} />
+      <ManageCollaboratorsModal 
+        open={collaboratorsModalOpen} 
+        onOpenChange={setCollaboratorsModalOpen}
+        onSuccess={() => refetchCollaborators()}
+      />
       <ManageConsultationTypesModal open={typesModalOpen} onOpenChange={setTypesModalOpen} />
     </div>
   );

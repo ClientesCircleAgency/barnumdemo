@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 interface ManageCollaboratorsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 type Role = 'secretary' | 'doctor';
@@ -32,6 +33,7 @@ type ProfessionalMode = 'create' | 'link';
 export function ManageCollaboratorsModal({
   open,
   onOpenChange,
+  onSuccess,
 }: ManageCollaboratorsModalProps) {
   const { professionals, specialties } = useClinic();
 
@@ -137,10 +139,10 @@ export function ManageCollaboratorsModal({
       resetForm();
       onOpenChange(false);
 
-      // Refresh page to update professionals list
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Trigger refetch of collaborators list
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error inviting collaborator:', error);
       toast.error(
