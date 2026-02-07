@@ -198,6 +198,7 @@ export type Database = {
           default_duration: number
           id: string
           name: string
+          specialty_id: string | null
         }
         Insert: {
           color?: string | null
@@ -205,6 +206,7 @@ export type Database = {
           default_duration?: number
           id?: string
           name: string
+          specialty_id?: string | null
         }
         Update: {
           color?: string | null
@@ -212,6 +214,7 @@ export type Database = {
           default_duration?: number
           id?: string
           name?: string
+          specialty_id?: string | null
         }
         Relationships: []
       }
