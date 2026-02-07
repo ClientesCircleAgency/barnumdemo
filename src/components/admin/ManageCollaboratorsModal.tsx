@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
+import { useClinic } from '@/context/ClinicContext';
 import { toast } from 'sonner';
 import {
   Collaborator,
@@ -43,6 +44,7 @@ export function ManageCollaboratorsModal({
   onSuccess,
   editTarget,
 }: ManageCollaboratorsModalProps) {
+  const { specialties } = useClinic();
   const updateMutation = useUpdateCollaborator();
   const deleteMutation = useDeleteCollaborator();
 
@@ -53,6 +55,7 @@ export function ManageCollaboratorsModal({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('secretary');
   const [color, setColor] = useState('#6366f1');
+  const [specialtyId, setSpecialtyId] = useState('');
 
   const isEditMode = !!editTarget;
 
@@ -63,6 +66,7 @@ export function ManageCollaboratorsModal({
     setEmail('');
     setRole('secretary');
     setColor('#6366f1');
+    setSpecialtyId('');
     setShowDeleteConfirm(false);
   };
 
@@ -72,16 +76,25 @@ export function ManageCollaboratorsModal({
       toast.error('Email obrigatório');
       return;
     }
+    if (role === 'doctor' && !specialtyId) {
+      toast.error('Selecione a especialidade do médico');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sessão inválida.');
 
+      const body: any = { email, role, color };
+      if (role === 'doctor') {
+        body.specialty_id = specialtyId;
+      }
+
       const { data, error } = await supabase.functions.invoke(
         'invite-collaborator',
         {
-          body: { email, role, color },
+          body,
           headers: {
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             'x-user-token': session.access_token,
@@ -263,6 +276,27 @@ export function ManageCollaboratorsModal({
                 </Select>
               )}
             </div>
+
+            {/* Specialty — only for doctors, only on create */}
+            {role === 'doctor' && !isEditMode && (
+              <div className="space-y-2">
+                <Label>Especialidade *</Label>
+                <Select
+                  value={specialtyId}
+                  onValueChange={setSpecialtyId}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a especialidade..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {specialties.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Color */}
             <div className="space-y-2">

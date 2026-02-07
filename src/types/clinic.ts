@@ -40,6 +40,7 @@ export interface ConsultationType {
   name: string;
   defaultDuration: number;
   color?: string;
+  specialtyId?: string;
 }
 
 // Paciente (camelCase)

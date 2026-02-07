@@ -13,6 +13,7 @@ interface InviteRequest {
   email: string;
   role: "secretary" | "doctor";
   color?: string | null;
+  specialty_id?: string | null; // required for doctors
 }
 
 interface InviteResponse {
@@ -134,6 +135,17 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Validate specialty_id for doctors
+    if (body.role === "doctor" && !body.specialty_id) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "specialty_id is required for doctor role",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Step 1: Invite user via Supabase Auth
     const { data: inviteData, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(body.email, {
@@ -171,7 +183,34 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Step 3: Create user_profiles entry with color
+    // Step 3: Create professional entry for doctors
+    if (body.role === "doctor") {
+      const professionalName = body.email.split("@")[0]; // default name from email
+      const { error: profError } = await supabaseAdmin
+        .from("professionals")
+        .insert({
+          name: professionalName,
+          specialty_id: body.specialty_id,
+          color: body.color || "#6366f1",
+          user_id: invitedUserId,
+        });
+
+      if (profError) {
+        console.error("Professional creation error:", profError);
+        // Cleanup on failure
+        await supabaseAdmin.auth.admin.deleteUser(invitedUserId);
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", invitedUserId);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Failed to create professional: ${profError.message}`,
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // Step 4: Create user_profiles entry with color
     const profileColor = body.color || "#6366f1";
     await supabaseAdmin
       .from("user_profiles")

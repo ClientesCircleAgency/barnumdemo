@@ -19,6 +19,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 import { useClinic } from '@/context/ClinicContext';
 import { toast } from 'sonner';
@@ -34,17 +41,17 @@ export function ManageConsultationTypesModal({
   open,
   onOpenChange,
 }: ManageConsultationTypesModalProps) {
-  const { consultationTypes, addConsultationType, updateConsultationType, removeConsultationType } = useClinic();
+  const { consultationTypes, specialties, addConsultationType, updateConsultationType, removeConsultationType } = useClinic();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: '', color: '#6366f1' });
+  const [editForm, setEditForm] = useState({ name: '', color: '#6366f1', specialtyId: '' });
   const [isAdding, setIsAdding] = useState(false);
-  const [newForm, setNewForm] = useState({ name: '', color: '#6366f1' });
+  const [newForm, setNewForm] = useState({ name: '', color: '#6366f1', specialtyId: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const handleStartEdit = (type: ConsultationType) => {
     setEditingId(type.id);
-    setEditForm({ name: type.name, color: type.color || '#6366f1' });
+    setEditForm({ name: type.name, color: type.color || '#6366f1', specialtyId: type.specialtyId || '' });
   };
 
   const handleSaveEdit = () => {
@@ -52,9 +59,14 @@ export function ManageConsultationTypesModal({
       toast.error('Preencha o nome');
       return;
     }
+    if (!editForm.specialtyId) {
+      toast.error('Selecione a especialidade');
+      return;
+    }
     updateConsultationType(editingId, {
       name: editForm.name.trim(),
       color: editForm.color || undefined,
+      specialtyId: editForm.specialtyId,
     });
     toast.success('Tipo de consulta atualizado');
     setEditingId(null);
@@ -65,13 +77,18 @@ export function ManageConsultationTypesModal({
       toast.error('Preencha o nome');
       return;
     }
+    if (!newForm.specialtyId) {
+      toast.error('Selecione a especialidade');
+      return;
+    }
     addConsultationType({
       name: newForm.name.trim(),
       defaultDuration: 30, // kept for DB compatibility, not shown in UI
       color: newForm.color || undefined,
+      specialtyId: newForm.specialtyId,
     });
     toast.success('Tipo de consulta adicionado');
-    setNewForm({ name: '', color: '#6366f1' });
+    setNewForm({ name: '', color: '#6366f1', specialtyId: '' });
     setIsAdding(false);
   };
 
@@ -108,6 +125,22 @@ export function ManageConsultationTypesModal({
                         />
                       </div>
                       <div className="space-y-1.5">
+                        <Label className="text-xs">Especialidade *</Label>
+                        <Select
+                          value={editForm.specialtyId}
+                          onValueChange={(v) => setEditForm({ ...editForm, specialtyId: v })}
+                        >
+                          <SelectTrigger className="h-9 text-sm">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {specialties.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
                         <Label className="text-xs">Cor</Label>
                         <div className="flex items-center gap-2">
                           <Input
@@ -134,8 +167,11 @@ export function ManageConsultationTypesModal({
                         className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: type.color || '#6366f1' }}
                       />
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{type.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {specialties.find(s => s.id === type.specialtyId)?.name || 'Sem especialidade'}
+                        </p>
                       </div>
                       <Button size="sm" variant="ghost" onClick={() => handleStartEdit(type)}>
                         <Pencil className="h-4 w-4" />
@@ -163,8 +199,24 @@ export function ManageConsultationTypesModal({
                     <Input
                       value={newForm.name}
                       onChange={(e) => setNewForm({ ...newForm, name: e.target.value })}
-                      placeholder="Ex: Consulta Geral, Pediatria, Check-up..."
+                      placeholder="Ex: Consulta Geral, Check-up..."
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Especialidade *</Label>
+                    <Select
+                      value={newForm.specialtyId}
+                      onValueChange={(v) => setNewForm({ ...newForm, specialtyId: v })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="Selecione a especialidade..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {specialties.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs">Cor</Label>

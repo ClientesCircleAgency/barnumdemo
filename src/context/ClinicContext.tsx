@@ -71,6 +71,7 @@ function mapConsultationType(row: any): ConsultationType {
     name: row.name,
     defaultDuration: row.default_duration,
     color: row.color || undefined,
+    specialtyId: row.specialty_id || undefined,
   };
 }
 
@@ -345,6 +346,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         name: data.name,
         default_duration: data.defaultDuration,
         color: data.color,
+        specialty_id: data.specialtyId || null,
       });
     },
     updateConsultationType: (id: string, data: Partial<ConsultationType>) => {
@@ -354,6 +356,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
           name: data.name,
           default_duration: data.defaultDuration,
           color: data.color,
+          specialty_id: data.specialtyId,
         }
       });
     },
