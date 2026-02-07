@@ -18,6 +18,7 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import RequestsPage from "./pages/admin/RequestsPage";
 import PlanPage from "./pages/admin/PlanPage";
 import StatisticsPage from "./pages/admin/StatisticsPage";
+import AccountPage from "./pages/admin/AccountPage";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="conta" element={<AccountPage />} />
             <Route path="plano" element={<PlanPage />} />
             <Route 
               path="estatisticas" 

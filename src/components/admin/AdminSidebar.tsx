@@ -11,6 +11,7 @@ import {
   LogOut,
   Inbox,
   TrendingUp,
+  UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -228,6 +229,39 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
             </>
           )
         )}
+        {/* Minha Conta — all roles */}
+        {isCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <NavLink
+                to="/admin/conta"
+                className={cn(
+                  'flex items-center justify-center h-10 w-full rounded-lg transition-all',
+                  location.pathname === '/admin/conta'
+                    ? 'bg-sidebar-accent text-sidebar-primary'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                )}
+              >
+                <UserCircle className="h-4 w-4" />
+              </NavLink>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="font-sans text-xs">Minha Conta</TooltipContent>
+          </Tooltip>
+        ) : (
+          <NavLink
+            to="/admin/conta"
+            className={cn(
+              'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
+              location.pathname === '/admin/conta'
+                ? 'bg-sidebar-accent text-sidebar-primary font-medium'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+            )}
+          >
+            <UserCircle className="h-4 w-4" />
+            <span>Minha Conta</span>
+          </NavLink>
+        )}
+
         {/* Logout button (always visible) */}
         {isCollapsed ? (
           <Tooltip>
