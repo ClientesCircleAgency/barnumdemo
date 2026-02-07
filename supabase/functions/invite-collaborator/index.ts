@@ -12,13 +12,6 @@ const corsHeaders = {
 interface InviteRequest {
   email: string;
   role: "secretary" | "doctor";
-  professional?: {
-    mode: "create" | "link";
-    id?: string; // when mode="link"
-    name?: string; // when mode="create"
-    specialty_id?: string | null;
-    color?: string | null;
-  } | null;
 }
 
 interface InviteResponse {
@@ -28,9 +21,6 @@ interface InviteResponse {
     email: string;
   };
   role?: string;
-  professional?: {
-    id: string;
-  };
   error?: string;
 }
 
@@ -38,7 +28,6 @@ interface InviteResponse {
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const parts = jwt.split(".");
   if (parts.length !== 3) throw new Error("Invalid JWT format");
-  // Handle base64url encoding
   const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
   const payload = JSON.parse(atob(base64));
   return payload;
@@ -66,7 +55,7 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Decode JWT to extract user ID (no HTTP call — avoids ES256 gateway issue)
+    // Decode JWT to extract user ID
     let jwtPayload: Record<string, unknown>;
     try {
       jwtPayload = decodeJwtPayload(userToken);
@@ -144,50 +133,6 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // If role is doctor, professional config must be provided
-    if (body.role === "doctor" && !body.professional) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Professional configuration required for doctor role",
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate professional mode
-    if (body.professional) {
-      if (!["create", "link"].includes(body.professional.mode)) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Invalid professional mode. Must be 'create' or 'link'",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (body.professional.mode === "link" && !body.professional.id) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "professional.id required when mode='link'",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (body.professional.mode === "create" && !body.professional.name) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "professional.name required when mode='create'",
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
     // Step 1: Invite user via Supabase Auth
     const { data: inviteData, error: inviteError } =
       await supabaseAdmin.auth.admin.inviteUserByEmail(body.email, {
@@ -225,112 +170,6 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    let professionalId: string | undefined;
-
-    // Step 3: Handle professional linking/creation (only for doctors)
-    if (body.role === "doctor" && body.professional) {
-      if (body.professional.mode === "link") {
-        // Link to existing professional
-        const targetProfessionalId = body.professional.id!;
-
-        // Validate professional exists and user_id is null
-        const { data: existingProf, error: profCheckError } =
-          await supabaseAdmin
-            .from("professionals")
-            .select("id, user_id")
-            .eq("id", targetProfessionalId)
-            .maybeSingle();
-
-        if (profCheckError || !existingProf) {
-          // Cleanup
-          await supabaseAdmin.auth.admin.deleteUser(invitedUserId);
-          await supabaseAdmin
-            .from("user_roles")
-            .delete()
-            .eq("user_id", invitedUserId);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: "Professional not found",
-            }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        if (existingProf.user_id !== null) {
-          // Cleanup
-          await supabaseAdmin.auth.admin.deleteUser(invitedUserId);
-          await supabaseAdmin
-            .from("user_roles")
-            .delete()
-            .eq("user_id", invitedUserId);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: "Professional already linked to another user",
-            }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        // Update professional.user_id
-        const { error: linkError } = await supabaseAdmin
-          .from("professionals")
-          .update({ user_id: invitedUserId })
-          .eq("id", targetProfessionalId);
-
-        if (linkError) {
-          console.error("Professional link error:", linkError);
-          // Cleanup
-          await supabaseAdmin.auth.admin.deleteUser(invitedUserId);
-          await supabaseAdmin
-            .from("user_roles")
-            .delete()
-            .eq("user_id", invitedUserId);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: `Failed to link professional: ${linkError.message}`,
-            }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        professionalId = targetProfessionalId;
-      } else if (body.professional.mode === "create") {
-        // Create new professional
-        const { data: newProf, error: createProfError } = await supabaseAdmin
-          .from("professionals")
-          .insert({
-            name: body.professional.name!,
-            specialty_id: body.professional.specialty_id || null,
-            color: body.professional.color || "#6366f1",
-            user_id: invitedUserId,
-          })
-          .select("id")
-          .single();
-
-        if (createProfError || !newProf) {
-          console.error("Professional creation error:", createProfError);
-          // Cleanup
-          await supabaseAdmin.auth.admin.deleteUser(invitedUserId);
-          await supabaseAdmin
-            .from("user_roles")
-            .delete()
-            .eq("user_id", invitedUserId);
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: `Failed to create professional: ${createProfError?.message}`,
-            }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        professionalId = newProf.id;
-      }
-    }
-
     // Success response
     const response: InviteResponse = {
       success: true,
@@ -340,10 +179,6 @@ serve(async (req: Request): Promise<Response> => {
       },
       role: body.role,
     };
-
-    if (professionalId) {
-      response.professional = { id: professionalId };
-    }
 
     return new Response(JSON.stringify(response), {
       status: 200,
