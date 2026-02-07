@@ -52,12 +52,17 @@ export function ManageCollaboratorsModal({
   // Form state
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('secretary');
+  const [color, setColor] = useState('#6366f1');
 
   const isEditMode = !!editTarget;
+
+  // Populate color from editTarget when opening in edit mode
+  const effectiveColor = isEditMode ? (color !== '#6366f1' ? color : (editTarget?.color || '#6366f1')) : color;
 
   const resetForm = () => {
     setEmail('');
     setRole('secretary');
+    setColor('#6366f1');
     setShowDeleteConfirm(false);
   };
 
@@ -76,7 +81,7 @@ export function ManageCollaboratorsModal({
       const { data, error } = await supabase.functions.invoke(
         'invite-collaborator',
         {
-          body: { email, role },
+          body: { email, role, color },
           headers: {
             Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
             'x-user-token': session.access_token,
@@ -126,6 +131,9 @@ export function ManageCollaboratorsModal({
       if (role !== editTarget.role && editTarget.role !== 'admin') {
         params.role = role;
       }
+
+      // Always send color
+      params.color = effectiveColor;
 
       await updateMutation.mutateAsync(params);
       toast.success('Colaborador atualizado com sucesso.');
@@ -254,6 +262,27 @@ export function ManageCollaboratorsModal({
                   </SelectContent>
                 </Select>
               )}
+            </div>
+
+            {/* Color */}
+            <div className="space-y-2">
+              <Label>Cor na Agenda</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={isEditMode ? effectiveColor : color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-12 h-9 p-1 cursor-pointer"
+                  disabled={isSubmitting}
+                />
+                <div
+                  className="h-9 flex-1 rounded-lg border border-border"
+                  style={{ backgroundColor: isEditMode ? effectiveColor : color }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Esta cor identifica o colaborador na agenda e no sistema.
+              </p>
             </div>
 
             {/* Actions */}

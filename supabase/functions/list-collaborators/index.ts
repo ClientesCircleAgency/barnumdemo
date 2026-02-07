@@ -13,6 +13,7 @@ interface Collaborator {
   user_id: string;
   email: string;
   role: "admin" | "secretary" | "doctor";
+  color?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
   professional_specialty?: string | null;
@@ -143,6 +144,13 @@ serve(async (req: Request): Promise<Response> => {
 
       if (!authUser.user) continue;
 
+      // Fetch user profile (color)
+      const { data: profile } = await supabaseAdmin
+        .from("user_profiles")
+        .select("color")
+        .eq("user_id", userRole.user_id)
+        .maybeSingle();
+
       // Fetch professional data if exists
       const { data: professional } = await supabaseAdmin
         .from("professionals")
@@ -165,6 +173,7 @@ serve(async (req: Request): Promise<Response> => {
         user_id: userRole.user_id,
         email: authUser.user.email || "",
         role: userRole.role,
+        color: profile?.color || null,
         professional_id: professional?.id || null,
         professional_name: professional?.name || null,
         professional_specialty: specialtyName,

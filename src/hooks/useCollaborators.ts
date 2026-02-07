@@ -5,6 +5,7 @@ export interface Collaborator {
   user_id: string;
   email: string;
   role: 'admin' | 'secretary' | 'doctor';
+  color?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
   professional_specialty?: string | null;
@@ -76,6 +77,7 @@ export function useCollaborators() {
 export interface UpdateCollaboratorParams {
   user_id: string;
   role?: 'admin' | 'secretary' | 'doctor';
+  color?: string | null;
   professional?: {
     action: 'link' | 'unlink' | 'update';
     id?: string;

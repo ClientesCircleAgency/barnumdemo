@@ -12,6 +12,7 @@ const corsHeaders = {
 interface InviteRequest {
   email: string;
   role: "secretary" | "doctor";
+  color?: string | null;
 }
 
 interface InviteResponse {
@@ -169,6 +170,15 @@ serve(async (req: Request): Promise<Response> => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Step 3: Create user_profiles entry with color
+    const profileColor = body.color || "#6366f1";
+    await supabaseAdmin
+      .from("user_profiles")
+      .upsert(
+        { user_id: invitedUserId, full_name: body.email.split("@")[0], color: profileColor },
+        { onConflict: "user_id" }
+      );
 
     // Success response
     const response: InviteResponse = {

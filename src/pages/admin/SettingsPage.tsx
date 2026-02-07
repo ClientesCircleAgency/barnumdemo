@@ -190,7 +190,7 @@ export default function SettingsPage() {
                       ? 'Administrador'
                       : collab.professional_specialty || 'Médico';
 
-                    const bgColor = collab.professional_color || (isSecretary ? '#10b981' : isAdminUser ? '#8b5cf6' : '#6366f1');
+                    const bgColor = collab.color || collab.professional_color || (isSecretary ? '#10b981' : isAdminUser ? '#8b5cf6' : '#6366f1');
 
                     return (
                       <div key={collab.user_id} className="flex items-center justify-between p-2 rounded-lg border border-border">

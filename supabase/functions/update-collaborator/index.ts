@@ -12,6 +12,7 @@ const corsHeaders = {
 interface UpdateRequest {
   user_id: string;
   role?: "secretary" | "doctor" | "admin";
+  color?: string | null;
   professional?: {
     action: "link" | "unlink" | "update";
     id?: string; // professional to link
@@ -139,6 +140,16 @@ serve(async (req: Request): Promise<Response> => {
           .update({ user_id: null })
           .eq("user_id", body.user_id);
       }
+    }
+
+    // Update color in user_profiles if provided
+    if (body.color !== undefined) {
+      await supabaseAdmin
+        .from("user_profiles")
+        .upsert(
+          { user_id: body.user_id, full_name: targetUser.user.email?.split("@")[0] || "", color: body.color },
+          { onConflict: "user_id" }
+        );
     }
 
     // Handle professional operations
