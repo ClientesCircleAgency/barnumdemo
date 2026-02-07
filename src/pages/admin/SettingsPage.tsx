@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Clock, Users, Settings2, Tag, Plus, Save, SlidersHorizontal, ShieldAlert, UserCircle, Stethoscope, Pencil } from 'lucide-react';
+import { Clock, Users, Tag, Plus, Save, ShieldAlert, UserCircle, Stethoscope, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useCollaborators, Collaborator } from '@/hooks/useCollaborators';
 import { useSettings, useUpdateSetting } from '@/hooks/useSettings';
 import { EditHoursModal } from '@/components/admin/EditHoursModal';
-import { EditSettingsModal } from '@/components/admin/EditSettingsModal';
 import { ManageCollaboratorsModal } from '@/components/admin/ManageCollaboratorsModal';
 import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultationTypesModal';
 import { PageHeader } from '@/components/admin/PageHeader';
@@ -25,18 +23,6 @@ const DEFAULT_HOURS = [
   { day: 'Domingo', start: '', end: '', enabled: false },
 ];
 
-const DEFAULT_SETTINGS = {
-  defaultDuration: 30,
-  bufferTime: 5,
-  minAdvanceTime: 2,
-  averageConsultationValue: 50,
-};
-
-const DEFAULT_RULES = {
-  preventOverlap: true,
-  smsReminders: true,
-  suggestNextSlot: false,
-};
 
 export default function SettingsPage() {
   const { consultationTypes } = useClinic();
@@ -46,41 +32,20 @@ export default function SettingsPage() {
   const updateSetting = useUpdateSetting();
 
   const [hoursModalOpen, setHoursModalOpen] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [collaboratorsModalOpen, setCollaboratorsModalOpen] = useState(false);
   const [editingCollaborator, setEditingCollaborator] = useState<Collaborator | null>(null);
   const [typesModalOpen, setTypesModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const [workingHours, setWorkingHours] = useState(DEFAULT_HOURS);
-  const [generalSettings, setGeneralSettings] = useState(DEFAULT_SETTINGS);
-  const [rules, setRules] = useState(DEFAULT_RULES);
 
   // Load settings from DB on mount — with shape validation
   useEffect(() => {
     if (dbSettings.working_hours) {
       try {
         const wh = dbSettings.working_hours;
-        // DB may have saved as object {Monday:{...}} instead of array [{day:'Segunda',...}]
-        // Only use if it's actually an array with the expected shape
         if (Array.isArray(wh) && wh.length > 0 && typeof wh[0]?.day === 'string') {
           setWorkingHours(wh as typeof DEFAULT_HOURS);
-        }
-      } catch { /* keep defaults */ }
-    }
-    if (dbSettings.general_settings) {
-      try {
-        const gs = dbSettings.general_settings;
-        if (gs && typeof gs === 'object' && !Array.isArray(gs) && 'bufferTime' in (gs as any)) {
-          setGeneralSettings(gs as typeof DEFAULT_SETTINGS);
-        }
-      } catch { /* keep defaults */ }
-    }
-    if (dbSettings.rules) {
-      try {
-        const r = dbSettings.rules;
-        if (r && typeof r === 'object' && !Array.isArray(r) && 'preventOverlap' in (r as any)) {
-          setRules(r as typeof DEFAULT_RULES);
         }
       } catch { /* keep defaults */ }
     }
@@ -89,11 +54,7 @@ export default function SettingsPage() {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      await Promise.all([
-        updateSetting.mutateAsync({ key: 'working_hours', value: workingHours as any }),
-        updateSetting.mutateAsync({ key: 'general_settings', value: generalSettings as any }),
-        updateSetting.mutateAsync({ key: 'rules', value: rules as any }),
-      ]);
+      await updateSetting.mutateAsync({ key: 'working_hours', value: workingHours as any });
       toast.success('Definições guardadas com sucesso');
     } catch {
       toast.error('Erro ao guardar definições');
@@ -171,43 +132,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Regras Automáticas */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 lg:p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <SlidersHorizontal className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
-                </div>
-                <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Regras</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs lg:text-sm text-foreground">Evitar sobreposição</span>
-                  <Switch 
-                    checked={rules.preventOverlap} 
-                    onCheckedChange={(checked) => setRules(prev => ({ ...prev, preventOverlap: checked }))}
-                    className="data-[state=checked]:bg-primary scale-90"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs lg:text-sm text-foreground">Lembretes SMS</span>
-                  <Switch 
-                    checked={rules.smsReminders} 
-                    onCheckedChange={(checked) => setRules(prev => ({ ...prev, smsReminders: checked }))}
-                    className="data-[state=checked]:bg-primary scale-90"
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs lg:text-sm text-foreground">Sugerir vaga</span>
-                  <Switch 
-                    checked={rules.suggestNextSlot} 
-                    onCheckedChange={(checked) => setRules(prev => ({ ...prev, suggestNextSlot: checked }))}
-                    className="data-[state=checked]:bg-primary scale-90"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Coluna direita */}
@@ -353,58 +277,10 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Parâmetros Gerais */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
-            <div className="p-4 lg:p-5">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                  <Settings2 className="h-4 w-4 lg:h-5 lg:w-5 text-muted-foreground" />
-                </div>
-                <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Parâmetros</h3>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs lg:text-sm text-muted-foreground">Buffer</label>
-                  <Select 
-                    value={String(generalSettings.bufferTime)} 
-                    onValueChange={(v) => setGeneralSettings(prev => ({ ...prev, bufferTime: Number(v) }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">0 min</SelectItem>
-                      <SelectItem value="5">5 min</SelectItem>
-                      <SelectItem value="10">10 min</SelectItem>
-                      <SelectItem value="15">15 min</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs lg:text-sm text-muted-foreground">Antecedência</label>
-                  <Select 
-                    value={String(generalSettings.minAdvanceTime)} 
-                    onValueChange={(v) => setGeneralSettings(prev => ({ ...prev, minAdvanceTime: Number(v) }))}
-                  >
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1h</SelectItem>
-                      <SelectItem value="2">2h</SelectItem>
-                      <SelectItem value="4">4h</SelectItem>
-                      <SelectItem value="24">24h</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
       <EditHoursModal open={hoursModalOpen} onOpenChange={setHoursModalOpen} initialHours={workingHours} onSave={setWorkingHours} />
-      <EditSettingsModal open={settingsModalOpen} onOpenChange={setSettingsModalOpen} initialSettings={generalSettings} onSave={setGeneralSettings} />
       <ManageCollaboratorsModal 
         open={collaboratorsModalOpen} 
         onOpenChange={(val) => {
