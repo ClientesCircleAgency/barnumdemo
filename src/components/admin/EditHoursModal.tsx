@@ -61,16 +61,16 @@ export function EditHoursModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Editar Horários de Funcionamento</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 py-4">
+        <div className="space-y-2 py-2 overflow-y-auto flex-1 pr-1">
           {hours.map((schedule, index) => (
             <div
               key={schedule.day}
-              className={`flex items-center gap-4 p-3 rounded-lg border ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
                 schedule.enabled ? 'border-border' : 'border-border/50 bg-muted/30'
               }`}
             >
@@ -78,23 +78,23 @@ export function EditHoursModal({
                 checked={schedule.enabled}
                 onCheckedChange={() => handleToggle(index)}
               />
-              <span className={`w-20 font-medium ${!schedule.enabled && 'text-muted-foreground'}`}>
+              <span className={`w-20 text-sm font-medium shrink-0 ${!schedule.enabled && 'text-muted-foreground'}`}>
                 {schedule.day}
               </span>
               {schedule.enabled ? (
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <Input
                     type="time"
                     value={schedule.start}
                     onChange={(e) => handleTimeChange(index, 'start', e.target.value)}
-                    className="w-28"
+                    className="w-[110px] text-sm"
                   />
-                  <span className="text-muted-foreground">-</span>
+                  <span className="text-muted-foreground shrink-0">-</span>
                   <Input
                     type="time"
                     value={schedule.end}
                     onChange={(e) => handleTimeChange(index, 'end', e.target.value)}
-                    className="w-28"
+                    className="w-[110px] text-sm"
                   />
                 </div>
               ) : (
