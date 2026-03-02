@@ -134,12 +134,24 @@ export default function RequestsPage() {
       }
 
       // 2. Determine consultation type and professional
-      const consultationType = consultationTypes[0]; // Use first available as fallback
-
       const professional = professionals.find(p => p.id === selectedProfessionalId);
+      if (!professional) {
+        toast.error('Profissional não encontrado.');
+        return;
+      }
 
-      if (!consultationType || !professional) {
-        toast.error('Configuração incompleta. Verifique profissionais e tipos de consulta.');
+      // Match consultation type by specialty, fallback to first available
+      const specialtyId = selectedRequest.specialty_id || professional.specialty_id;
+      const consultationType = consultationTypes.find(ct => ct.specialty_id === specialtyId)
+        || consultationTypes[0];
+
+      if (!consultationType) {
+        toast.error('Nenhum tipo de consulta disponível. Crie um tipo de consulta primeiro.');
+        return;
+      }
+
+      if (!specialtyId) {
+        toast.error('Especialidade não encontrada. Verifique a configuração do pedido.');
         return;
       }
 
@@ -147,11 +159,11 @@ export default function RequestsPage() {
       await addAppointment.mutateAsync({
         patient_id: patient.id,
         professional_id: professional.id,
-        specialty_id: selectedRequest.specialty_id,
+        specialty_id: specialtyId,
         consultation_type_id: consultationType.id,
         date: selectedRequest.preferred_date,
         time: selectedRequest.preferred_time,
-        duration: duration, // Use manual duration, not consultation type default
+        duration: duration,
         status: 'confirmed',
         notes: `Convertido de pedido online. NIF: ${selectedRequest.nif} | Motivo: ${selectedRequest.reason}`,
       });
@@ -163,7 +175,8 @@ export default function RequestsPage() {
       setSelectedRequest(null);
     } catch (error) {
       console.error('Error converting request:', error);
-      toast.error('Erro ao converter pedido');
+      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);
     }
