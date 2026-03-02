@@ -72,7 +72,7 @@ export default function RequestsPage() {
   // Reset state when modal opens/closes
   useEffect(() => {
     if (selectedRequest) {
-      const relevantProf = professionals.find(p => p.specialty_id === selectedRequest.specialty_id);
+      const relevantProf = professionals.find(p => p.specialty === selectedRequest.specialty_id);
       setSelectedProfessionalId(relevantProf?.id || '');
       setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
@@ -99,6 +99,11 @@ export default function RequestsPage() {
   const duration = parseInt(manualDurationMinutes, 10);
   const isDurationValid = !isNaN(duration) && duration >= 5 && duration <= 1440;
   
+  // Filter professionals by the request's specialty first
+  const specialtyProfessionals = selectedRequest
+    ? professionals.filter(p => p.specialty === selectedRequest.specialty_id)
+    : [];
+
   const availableProfessionalIds = isDurationValid && selectedRequest
     ? getAvailableProfessionalIds(
         {
@@ -106,7 +111,7 @@ export default function RequestsPage() {
           startTime: selectedRequest.preferred_time,
           durationMinutes: duration,
         },
-        professionals,
+        specialtyProfessionals,
         allAppointments
       )
     : [];
