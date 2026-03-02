@@ -175,9 +175,9 @@ export default function RequestsPage() {
 
       toast.success('Consulta confirmada criada com sucesso.');
       setSelectedRequest(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error converting request:', error);
-      const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+      const msg = error?.message || error?.error_description || JSON.stringify(error) || 'Erro desconhecido';
       toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);
