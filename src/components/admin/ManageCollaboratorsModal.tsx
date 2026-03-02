@@ -59,8 +59,22 @@ export function ManageCollaboratorsModal({
 
   const isEditMode = !!editTarget;
 
+  // Derive effective role: in edit mode use editTarget's role unless user changed it
+  const effectiveRole = isEditMode ? (editTarget?.role === 'admin' ? 'admin' : role) : role;
+
   // Populate color from editTarget when opening in edit mode
   const effectiveColor = isEditMode ? (color !== '#6366f1' ? color : (editTarget?.color || '#6366f1')) : color;
+
+  // Sync form state when editTarget changes
+  const prevEditRef = useState<string | null>(null);
+  if (isEditMode && editTarget && prevEditRef[0] !== editTarget.user_id) {
+    prevEditRef[1](editTarget.user_id);
+    if (editTarget.role !== 'admin') {
+      setRole(editTarget.role as Role);
+    }
+  } else if (!isEditMode && prevEditRef[0] !== null) {
+    prevEditRef[1](null);
+  }
 
   const resetForm = () => {
     setEmail('');
@@ -277,8 +291,8 @@ export function ManageCollaboratorsModal({
               )}
             </div>
 
-            {/* Specialty — only for doctors, only on create */}
-            {role === 'doctor' && !isEditMode && (
+            {/* Specialty — for doctors */}
+            {effectiveRole === 'doctor' && !isEditMode && (
               <div className="space-y-2">
                 <Label>Especialidade *</Label>
                 <Select
@@ -295,6 +309,14 @@ export function ManageCollaboratorsModal({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+            {effectiveRole === 'doctor' && isEditMode && editTarget?.professional_specialty && (
+              <div className="space-y-2">
+                <Label>Especialidade</Label>
+                <p className="text-sm p-2 bg-muted rounded text-foreground">
+                  {editTarget.professional_specialty}
+                </p>
               </div>
             )}
 
