@@ -59,20 +59,27 @@ export default function RequestsPage() {
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+  const [selectedConsultationTypeId, setSelectedConsultationTypeId] = useState<string>('');
   const [manualDurationMinutes, setManualDurationMinutes] = useState<string>('');
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [showRejectionDialog, setShowRejectionDialog] = useState(false);
 
+  // Consultation types filtered by the request's specialty
+  const filteredConsultationTypes = selectedRequest
+    ? consultationTypes.filter(ct => ct.specialty_id === selectedRequest.specialty_id)
+    : [];
+
   // Reset state when modal opens/closes
   useEffect(() => {
     if (selectedRequest) {
-      // Try to pre-select a professional if one matches the specialty
       const relevantProf = professionals.find(p => p.specialty_id === selectedRequest.specialty_id);
       setSelectedProfessionalId(relevantProf?.id || '');
+      setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
       setRejectionReason('');
     } else {
       setSelectedProfessionalId('');
+      setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
       setRejectionReason('');
     }
@@ -109,6 +116,10 @@ export default function RequestsPage() {
   // Convert request to confirmed appointment
   const handleConvertToAppointment = async () => {
     if (!selectedRequest) return;
+    if (!selectedConsultationTypeId) {
+      toast.error('Por favor selecione o tipo de consulta');
+      return;
+    }
     if (!selectedProfessionalId) {
       toast.error('Por favor selecione um profissional');
       return;
@@ -133,23 +144,14 @@ export default function RequestsPage() {
         patient = newPatient;
       }
 
-      // 2. Determine consultation type and professional
+      // 2. Validate professional and consultation type
       const professional = professionals.find(p => p.id === selectedProfessionalId);
       if (!professional) {
         toast.error('Profissional não encontrado.');
         return;
       }
 
-      // Match consultation type by specialty, fallback to first available
       const specialtyId = selectedRequest.specialty_id || professional.specialty_id;
-      const consultationType = consultationTypes.find(ct => ct.specialty_id === specialtyId)
-        || consultationTypes[0];
-
-      if (!consultationType) {
-        toast.error('Nenhum tipo de consulta disponível. Crie um tipo de consulta primeiro.');
-        return;
-      }
-
       if (!specialtyId) {
         toast.error('Especialidade não encontrada. Verifique a configuração do pedido.');
         return;
@@ -160,7 +162,7 @@ export default function RequestsPage() {
         patient_id: patient.id,
         professional_id: professional.id,
         specialty_id: specialtyId,
-        consultation_type_id: consultationType.id,
+        consultation_type_id: selectedConsultationTypeId,
         date: selectedRequest.preferred_date,
         time: selectedRequest.preferred_time,
         duration: duration,
@@ -477,6 +479,37 @@ export default function RequestsPage() {
                 </p>
               </div>
 
+              {/* CONSULTATION TYPE SELECTION (REQUIRED) */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Tipo de Consulta <span className="text-destructive">*</span>
+                </Label>
+                {filteredConsultationTypes.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                    Nenhum tipo de consulta para esta especialidade. Crie um nas Configurações.
+                  </p>
+                ) : (
+                  <Select
+                    value={selectedConsultationTypeId}
+                    onValueChange={setSelectedConsultationTypeId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo de consulta..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredConsultationTypes.map((ct) => (
+                        <SelectItem key={ct.id} value={ct.id}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ct.color || '#6366f1' }} />
+                            {ct.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
               {/* MANUAL DURATION INPUT (REQUIRED) */}
               <div className="space-y-2">
                 <Label htmlFor="duration" className="text-sm font-medium flex items-center gap-2">
@@ -571,7 +604,7 @@ export default function RequestsPage() {
                       <Button
                         className="flex-1 gap-2"
                         onClick={handleConvertToAppointment}
-                        disabled={isConverting || !selectedProfessionalId}
+                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId}
                       >
                         <CalendarPlus className="w-4 h-4" />
                         {isConverting ? 'A converter...' : 'Agendar Consulta'}
