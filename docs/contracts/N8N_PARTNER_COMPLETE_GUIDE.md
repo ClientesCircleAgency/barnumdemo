@@ -1,6 +1,6 @@
 # Guia Completo para o Parceiro n8n — Barnum
 
-> **Versão:** 1.0 — 2026-02-06
+> **Versão:** 1.1 — 2026-03-02
 > **Destinatário:** Parceiro técnico responsável pelas automações WhatsApp via n8n
 > **Idioma:** Português (Portugal) com termos técnicos em inglês quando necessário
 
@@ -273,21 +273,45 @@ https://barnumdemo.vercel.app/api/action?type=confirm&token=abc123
    > "Olá [nome], a sua consulta com [Dr. X] está marcada para [data] às [hora]. Confirme aqui: [link_confirmar] ou cancele aqui: [link_cancelar]"
 3. Os links de confirmação/cancelamento já vêm no payload (`action_links`)
 
-**Payload de exemplo:**
+**Payload de exemplo (gerado automaticamente pelo trigger):**
 ```json
 {
-  "patient_name": "Maria Santos",
-  "patient_phone": "+351912345678",
-  "appointment_date": "2026-02-10",
-  "appointment_time": "10:00",
-  "professional_name": "Dra. Silva",
-  "consultation_type": "Consulta Geral",
-  "action_links": {
-    "confirm": "https://barnumdemo.vercel.app/api/action?type=confirm&token=...",
-    "cancel": "https://barnumdemo.vercel.app/api/action?type=cancel&token=..."
+  "event_type": "appointment.pre_confirmed",
+  "entity_id": "uuid-da-consulta",
+  "created_at": "2026-03-02T20:00:00Z",
+  "appointment": {
+    "id": "uuid-da-consulta",
+    "date": "2026-02-10",
+    "time": "10:00",
+    "duration": 30,
+    "status": "confirmed",
+    "notes": "Convertido de pedido online.",
+    "final_notes": "",
+    "reason": ""
+  },
+  "patient": {
+    "id": "uuid-do-paciente",
+    "name": "Maria Santos",
+    "phone": "+351912345678",
+    "email": "maria@email.com",
+    "nif": "123456789"
+  },
+  "professional": {
+    "id": "uuid-do-profissional",
+    "name": "Dra. Silva"
+  },
+  "specialty": {
+    "id": "uuid-da-especialidade",
+    "name": "Medicina Dentária"
+  },
+  "consultation_type": {
+    "id": "uuid-do-tipo",
+    "name": "Check-Up"
   }
 }
 ```
+
+**Nota:** Os `action_links` (confirmar/cancelar) são gerados pelo endpoint `process-events` quando o n8n o chama. O payload do trigger contém os dados do paciente e da consulta; os links são adicionados durante o processamento.
 
 ---
 
@@ -394,7 +418,7 @@ https://barnumdemo.vercel.app/api/action?type=confirm&token=abc123
 | `entity_type` | TEXT | `appointment`, `appointment_request`, etc. |
 | `entity_id` | UUID | ID da entidade relacionada |
 | `workflow_id` | UUID | ID do workflow associado |
-| `payload` | JSONB | Dados para construir a mensagem (nome, telefone, data, links, etc.) |
+| `payload` | JSONB | Dados completos: `appointment` (date, time, duration, status), `patient` (name, phone, email, nif), `professional` (name), `specialty` (name), `consultation_type` (name) |
 | `status` | TEXT | `pending`, `processed`, `failed` |
 | `scheduled_for` | TIMESTAMPTZ | Quando o evento deve ser processado (null = imediato) |
 | `processed_at` | TIMESTAMPTZ | Quando foi processado |
