@@ -221,7 +221,7 @@ export default function SettingsPage() {
                           {isDoctor && (
                             <Badge variant="outline" className="text-xs flex items-center gap-1">
                               <Stethoscope className="h-3 w-3" />
-                              Médico
+                              {collab.professional_specialty || 'Médico'}
                             </Badge>
                           )}
                           {isAdmin && (
