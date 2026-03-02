@@ -66,7 +66,7 @@ export default function RequestsPage() {
 
   // Consultation types filtered by the request's specialty
   const filteredConsultationTypes = selectedRequest
-    ? consultationTypes.filter(ct => ct.specialty_id === selectedRequest.specialty_id)
+    ? consultationTypes.filter(ct => ct.specialtyId === selectedRequest.specialty_id)
     : [];
 
   // Reset state when modal opens/closes
