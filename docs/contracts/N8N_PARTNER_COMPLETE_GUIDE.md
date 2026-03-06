@@ -1,6 +1,6 @@
 # Guia Completo para o Parceiro n8n — Barnum
 
-> **Versão:** 2.1 — 2026-02-06
+> **Versão:** 3.0 — 2026-02-04
 > **Destinatário:** Parceiro técnico responsável pelas automações WhatsApp via n8n
 > **Idioma:** Português (Portugal) com termos técnicos em inglês quando necessário
 
@@ -10,132 +10,94 @@
 
 1. [Visão Geral](#1-visão-geral)
 2. [Arquitetura](#2-arquitetura)
-3. [Autenticação](#3-autenticação)
-4. [Variáveis de Ambiente](#4-variáveis-de-ambiente)
-5. [Supabase DB Webhooks](#5-supabase-db-webhooks)
-6. [Endpoints do Backend](#6-endpoints-do-backend)
-7. [Automações WhatsApp (1-6)](#7-automações-whatsapp-1-6)
-8. [Tabelas da Base de Dados Relevantes](#8-tabelas-da-base-de-dados-relevantes)
-9. [Fluxo Completo de Eventos](#9-fluxo-completo-de-eventos)
-10. [Exemplos de Workflows n8n](#10-exemplos-de-workflows-n8n)
-11. [Checklist do Parceiro](#11-checklist-do-parceiro)
-12. [FAQ e Troubleshooting](#12-faq-e-troubleshooting)
+3. [Variáveis de Ambiente](#3-variáveis-de-ambiente)
+4. [Supabase DB Webhooks](#4-supabase-db-webhooks)
+5. [Automações WhatsApp (1-6)](#5-automações-whatsapp-1-6)
+6. [Sugestão de Horários Alternativos](#6-sugestão-de-horários-alternativos)
+7. [Tabelas da Base de Dados](#7-tabelas-da-base-de-dados)
+8. [Fluxo Completo de Eventos](#8-fluxo-completo-de-eventos)
+9. [Exemplos de Workflows n8n](#9-exemplos-de-workflows-n8n)
+10. [Checklist do Parceiro](#10-checklist-do-parceiro)
+11. [FAQ e Troubleshooting](#11-faq-e-troubleshooting)
 
 ---
 
 ## 1. Visão Geral
 
-O Barnum é uma plataforma de gestão de clínicas. Quando certas ações acontecem na plataforma (marcar consulta, cancelar, finalizar, etc.), o Supabase envia automaticamente os dados da alteração para o n8n via **Database Webhooks**. O n8n é responsável por:
+O Barnum é uma plataforma de gestão de clínicas. O n8n é responsável por enviar mensagens WhatsApp aos pacientes quando certos eventos acontecem na base de dados.
 
-1. **Receber** eventos em tempo real via webhooks
-2. **Compor e enviar** mensagens WhatsApp aos pacientes (lembretes one-way)
-3. **Processar** respostas de pacientes apenas para no-show (reagendamento) e review
+**Como funciona:**
 
-**Regra fundamental:** O n8n é o ÚNICO responsável por decidir **quando** e **como** executar ações. O backend NÃO tem cron jobs, triggers de WhatsApp, nem tabelas intermediárias — é puramente reativo.
+1. Quando algo muda na base de dados (nova consulta, cancelamento, etc.), o Supabase envia automaticamente os dados ao n8n via **Database Webhooks**
+2. O n8n compõe e envia a mensagem WhatsApp ao paciente
+3. **Todas as mensagens são one-way** — o paciente NÃO responde via WhatsApp
+4. A única interação do paciente é clicar num **link de slot sugerido** (quando a secretária sugere horários alternativos)
 
-**Nota importante:** As mensagens de nova consulta (AUT-1) e lembrete 24h (AUT-2) são **informativas e one-way** — o paciente NÃO confirma nem cancela via WhatsApp. Isto evita confusão com slots preenchidos por outros pacientes quando a mensagem não é vista.
+**Princípios:**
 
-**Mudança v2.0:** A arquitetura anterior usava tabelas `whatsapp_events`/`whatsapp_workflows` como outbox e endpoints de polling. Estes foram **removidos**. O Supabase agora envia eventos diretamente ao n8n via DB Webhooks.
+- **Zero backend:** Não existem endpoints intermediários. O n8n comunica diretamente com o Supabase via REST API
+- **Zero respostas:** Não existe chatbot nem processamento de respostas do paciente
+- **Tudo reativo:** O n8n reage a mudanças na base de dados (exceto o lembrete 24h que usa CRON)
 
 ---
 
 ## 2. Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    BARNUM (Supabase)                   │
-│                                                       │
-│  ┌─────────────┐    ┌──────────────────┐             │
-│  │  UI (React)  │───>│  PostgreSQL (DB)  │             │
-│  └─────────────┘    │                    │             │
-│                      │  appointments     │──────────┐ │
-│                      │  appointment_     │          │ │
-│                      │    requests       │          │ │
-│                      └──────────────────┘          │ │
-│                              │                      │ │
-│                              │ DB Webhooks           │ │
-│                              │ (INSERT/UPDATE)       │ │
-│                              ▼                       │ │
-│  ┌──────────────────────────────────┐              │ │
-│  │  Vercel API Endpoints            │              │ │
-│  │  /api/webhook               <───│──────────────│─│─── n8n envia respostas
-│  │  /api/action                <───│──────────────│─│─── Paciente clica link
-│  └──────────────────────────────────┘              │ │
-└─────────────────────────────────────────────────────┘
-                                                      │
-                 ┌────────────────────────────────────┘
-                 │  HTTP POST (real-time)
-                 ▼
-┌─────────────────────────────────────────────────────┐
-│                    n8n (Externo)                      │
-│                                                       │
-│  Webhook Node: recebe dados de appointments          │
-│  Webhook Node: recebe dados de appointment_requests  │
-│  Switch Node: decide automação por tipo de evento    │
-│  Supabase Node: lookup de paciente/profissional      │
-│  WhatsApp Node: envia mensagens                      │
-│  CRON Node: lembrete 24h (diário 08:00)              │
-│  Webhook Node: receber respostas → /api/webhook      │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│           BARNUM (Supabase)             │
+│                                         │
+│  ┌───────────┐    ┌────────────────┐    │
+│  │ UI (React) │──>│ PostgreSQL (DB) │    │
+│  └───────────┘    │                │    │
+│                    │ appointments   │    │
+│                    │ appointment_   │    │
+│                    │   requests     │    │
+│                    │ appointment_   │    │
+│                    │   suggestions  │    │
+│                    │ patients       │    │
+│                    └────────────────┘    │
+│                           │              │
+│                    DB Webhooks            │
+│                    (INSERT/UPDATE)        │
+└───────────────────────────┼──────────────┘
+                            │ HTTP POST (real-time)
+                            ▼
+┌─────────────────────────────────────────┐
+│              n8n (Externo)              │
+│                                         │
+│  Webhook Nodes: recebem dados do        │
+│    Supabase (3 webhooks)                │
+│  Switch Node: decide automação          │
+│  Supabase REST: lookup de dados         │
+│  WhatsApp API: envia mensagens          │
+│  CRON Node: lembrete 24h (08:00)        │
+└─────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Autenticação
-
-### Para DB Webhooks (Supabase → n8n)
-
-O Supabase DB Webhook pode incluir um header customizado para autenticar:
-
-```
-Authorization: Bearer <DB_WEBHOOK_SECRET>
-```
-
-O n8n deve validar este header no Webhook Node antes de processar.
-
-### Para o endpoint `/api/webhook` (n8n → Backend)
-
-**Header obrigatório:**
-```
-x-webhook-signature: <HMAC-SHA256 do body com WEBHOOK_SECRET>
-```
-
-Como calcular o HMAC no n8n:
-1. Usar um nó "Crypto" ou "Function"
-2. Input: o body JSON do request (como string)
-3. Chave: o valor de `WEBHOOK_SECRET`
-4. Algoritmo: HMAC-SHA256
-5. Output: hex string
-
----
-
-## 4. Variáveis de Ambiente
+## 3. Variáveis de Ambiente
 
 Variáveis que devem estar configuradas **no n8n**:
 
 | Variável | Onde obter | Para quê |
 |----------|-----------|----------|
 | `DB_WEBHOOK_SECRET` | Combinar com o admin do Barnum | Validar que os webhooks vêm do Supabase |
-| `WEBHOOK_SECRET` | Combinar com o admin do Barnum | Assinar callbacks para /api/webhook |
-| `BARNUM_API_URL` | URL do Vercel (ex: `https://barnumdemo.vercel.app`) | Base URL para chamadas ao backend |
-| `SUPABASE_URL` | Dashboard do Supabase | Para lookups de dados (paciente, profissional) |
-| `SUPABASE_ANON_KEY` | Dashboard do Supabase | Para autenticar lookups REST |
+| `SUPABASE_URL` | Dashboard do Supabase | Para lookups e updates via REST API |
+| `SUPABASE_ANON_KEY` | Dashboard do Supabase | Para autenticar chamadas REST |
 
-Variáveis que devem estar configuradas **no Vercel** (pelo admin do Barnum):
-
-| Variável | Valor |
-|----------|-------|
-| `WEBHOOK_SECRET` | Mesmo valor configurado no n8n |
+Apenas 3 variáveis. Nada mais.
 
 ---
 
-## 5. Supabase DB Webhooks
+## 4. Supabase DB Webhooks
 
-O n8n recebe dados em tempo real via 2 DB Webhooks configurados no Supabase Dashboard.
+O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase Dashboard.
 
 ### Webhook 1: `appointments` (INSERT + UPDATE)
 
-**Eventos:** Cada vez que uma consulta é criada ou atualizada, o Supabase envia um POST para o n8n.
+**Eventos:** Cada vez que uma consulta é criada ou atualizada.
 
 **Payload automático (exemplo para UPDATE):**
 ```json
@@ -162,7 +124,7 @@ O n8n recebe dados em tempo real via 2 DB Webhooks configurados no Supabase Dash
   },
   "old_record": {
     "id": "uuid-da-consulta",
-    "status": "scheduled",
+    "status": "confirmed",
     "finalized_at": null
   }
 }
@@ -172,10 +134,10 @@ O n8n recebe dados em tempo real via 2 DB Webhooks configurados no Supabase Dash
 
 | Condição | Automação |
 |----------|-----------|
-| `type == INSERT` | AUT-1: Notificação de nova consulta (lembrete one-way) |
+| `type == INSERT` | AUT-1: Notificação de nova consulta |
 | `type == UPDATE` AND `old_record.status != cancelled` AND `record.status == cancelled` | AUT-5: Cancelamento |
-| `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: Reagendamento no-show |
-| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` | AUT-6: Review (enviar 2h depois via Wait node) |
+| `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: No-show |
+| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` | AUT-6: Review (enviar 2h depois) |
 
 ### Webhook 2: `appointment_requests` (UPDATE)
 
@@ -189,12 +151,14 @@ O n8n recebe dados em tempo real via 2 DB Webhooks configurados no Supabase Dash
   "schema": "public",
   "record": {
     "id": "uuid",
-    "patient_name": "João Silva",
-    "patient_phone": "+351912345678",
-    "patient_email": "joao@example.com",
+    "name": "João Silva",
+    "phone": "+351912345678",
+    "email": "joao@example.com",
+    "nif": "123456789",
     "specialty_id": "uuid",
     "preferred_date": "2026-02-15",
-    "preferred_time": "morning",
+    "preferred_time": "14:00",
+    "reason": "Check-up",
     "status": "rejected",
     "notes": "..."
   },
@@ -210,9 +174,39 @@ O n8n recebe dados em tempo real via 2 DB Webhooks configurados no Supabase Dash
 |----------|-----------|
 | `old_record.status == pending` AND `record.status == rejected` | AUT-4: Notificação de rejeição |
 
+### Webhook 3: `appointment_suggestions` (INSERT)
+
+**Eventos:** Quando a secretária sugere horários alternativos a um paciente.
+
+**Payload automático (exemplo):**
+```json
+{
+  "type": "INSERT",
+  "table": "appointment_suggestions",
+  "schema": "public",
+  "record": {
+    "id": "uuid",
+    "appointment_request_id": "uuid-do-pedido",
+    "patient_id": "uuid-do-paciente",
+    "suggested_slots": [
+      { "date": "2026-02-12", "time": "10:00", "professional_id": "uuid" },
+      { "date": "2026-02-12", "time": "15:00", "professional_id": "uuid" },
+      { "date": "2026-02-13", "time": "09:30", "professional_id": "uuid" }
+    ],
+    "status": "pending",
+    "accepted_slot": null,
+    "expires_at": "2026-02-11T23:59:59Z",
+    "created_at": "2026-02-04T12:00:00Z"
+  },
+  "old_record": null
+}
+```
+
+**Lógica:** Ver secção 6 (Sugestão de Horários Alternativos).
+
 ### Lookup de dados adicionais
 
-O payload do webhook contém apenas IDs (ex: `patient_id`). Para obter nome e telefone do paciente:
+O payload do webhook contém apenas IDs (ex: `patient_id`). Para obter nome e telefone do paciente, o n8n faz um lookup via Supabase REST API:
 
 ```
 GET {SUPABASE_URL}/rest/v1/patients?id=eq.{patient_id}&select=name,phone,email
@@ -220,108 +214,50 @@ Authorization: Bearer {SUPABASE_ANON_KEY}
 apikey: {SUPABASE_ANON_KEY}
 ```
 
-Similarmente para profissionais, especialidades e tipos de consulta.
+Da mesma forma para profissionais e especialidades:
 
----
-
-## 6. Endpoints do Backend
-
-### 6.1 POST `/api/webhook`
-
-**O que faz:** Recebe respostas/ações dos pacientes (vindas do n8n após processar respostas WhatsApp).
-
-**Quando chamar:** Quando o paciente responde a uma mensagem WhatsApp (apenas para no-show reschedule ou review).
-
-**Nota:** As mensagens de nova consulta (AUT-1) e lembrete 24h (AUT-2) são one-way — o paciente NÃO responde. Este endpoint é usado apenas para ações de reagendamento e avaliação.
-
-**Request:**
-```http
-POST /api/webhook
-x-webhook-signature: <hmac-sha256-hex>
-Content-Type: application/json
-
-{
-  "action": "reschedule",
-  "appointmentId": "uuid-da-consulta",
-  "patientPhone": "+351912345678",
-  "metadata": {}
-}
 ```
-
-**Ações suportadas:**
-
-| Action | O que faz |
-|--------|----------|
-| `cancel` | Marca consulta como `cancelled` |
-| `reschedule` | Inicia fluxo de reagendamento |
-| `no_show_reschedule` | Reagenda após no-show |
-| `reactivation` | Reativa uma consulta cancelada |
-| `review` | Regista avaliação do paciente |
-
-**Response:**
-```json
-{
-  "success": true,
-  "action": "reschedule",
-  "appointmentId": "uuid",
-  "newStatus": "scheduled"
-}
+GET {SUPABASE_URL}/rest/v1/professionals?id=eq.{professional_id}&select=name
+GET {SUPABASE_URL}/rest/v1/specialties?id=eq.{specialty_id}&select=name
+GET {SUPABASE_URL}/rest/v1/consultation_types?id=eq.{consultation_type_id}&select=name
 ```
 
 ---
 
-### 6.2 GET `/api/action`
+## 5. Automações WhatsApp (1-6)
 
-**O que faz:** Links públicos que os pacientes clicam diretamente (ex: no WhatsApp). Valida o token e executa a ação.
+Todas as automações enviam mensagens **one-way** — o paciente NÃO responde.
 
-**NÃO é chamado pelo n8n.** Pode ser incluído em mensagens WhatsApp como link clicável para ações específicas (cancelamento, review).
-
-**Exemplo:**
-```
-https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
-```
-
-**Nota:** Não existe link de confirmação — as consultas são confirmadas pela secretária no dashboard.
-
----
-
-## 7. Automações WhatsApp (1-6)
-
-### Automação 1: Notificação de Nova Consulta (one-way)
+### Automação 1: Notificação de Nova Consulta
 
 **Trigger:** DB Webhook — `appointments` INSERT
-**Condição:** `record.status` é `confirmed`
 
 **O que o n8n deve fazer:**
 1. Receber webhook
-2. Fazer lookup do paciente: `GET /rest/v1/patients?id=eq.{record.patient_id}`
-3. Fazer lookup do profissional: `GET /rest/v1/professionals?id=eq.{record.professional_id}`
-4. Enviar mensagem WhatsApp informativa ao paciente (sem botões de confirmação):
-   > "Olá [nome], a sua consulta com [Dr. X] está marcada para [data] às [hora]. Se precisar de cancelar ou reagendar, contacte-nos pelo [telefone da clínica]."
-
-**Importante:** Esta mensagem é **one-way** — o paciente NÃO precisa de confirmar. A consulta já está confirmada no sistema.
+2. Lookup do paciente: `GET /rest/v1/patients?id=eq.{record.patient_id}`
+3. Lookup do profissional: `GET /rest/v1/professionals?id=eq.{record.professional_id}`
+4. Enviar WhatsApp:
+   > "Olá [nome], a sua consulta está marcada para [data] às [hora] com [Dr. X]. Se precisar de cancelar ou reagendar, contacte-nos pelo [telefone da clínica]."
 
 ---
 
-### Automação 2: Lembrete 24h (one-way)
+### Automação 2: Lembrete 24h
 
 **Trigger:** CRON do n8n — diário às 08:00
 **NÃO usa DB Webhook.** O n8n consulta diretamente a base de dados.
 
-**Workflow:**
+**O que o n8n deve fazer:**
 1. CRON: todos os dias às 08:00
-2. Supabase Node: query
+2. Query Supabase:
    ```
-   GET /rest/v1/appointments?date=eq.{tomorrow}&status=eq.confirmed&select=*
+   GET /rest/v1/appointments?date=eq.{amanhã}&status=eq.confirmed&select=*
    ```
-3. Para cada consulta: lookup do paciente e enviar WhatsApp informativo (sem botões):
+3. Para cada consulta: lookup do paciente e enviar WhatsApp:
    > "Olá [nome], lembrete: tem consulta amanhã [data] às [hora] com [Dr. X]. Se precisar de cancelar ou reagendar, contacte-nos pelo [telefone da clínica]."
-
-**Importante:** Esta mensagem é **one-way** — o paciente NÃO precisa de responder. É apenas um lembrete informativo.
 
 ---
 
-### Automação 3: Reagendamento por No-Show
+### Automação 3: No-Show
 
 **Trigger:** DB Webhook — `appointments` UPDATE
 **Condição:** `old_record.status != no_show` AND `record.status == no_show`
@@ -329,25 +265,24 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 **O que o n8n deve fazer:**
 1. Receber webhook
 2. Lookup do paciente
-3. Enviar mensagem WhatsApp:
-   > "Olá [nome], reparámos que não compareceu à consulta de [data]. Gostaria de reagendar? Responda SIM ou contacte-nos."
-4. Se o paciente responder, enviar para `/api/webhook` com `action: "reschedule"` ou `action: "cancel"`
+3. Enviar WhatsApp:
+   > "Olá [nome], reparámos que não compareceu à consulta de [data]. Se desejar reagendar, contacte-nos pelo [telefone da clínica]."
 
 ---
 
-### Automação 4: Notificação de Rejeição de Pedido
+### Automação 4: Rejeição de Pedido
 
 **Trigger:** DB Webhook — `appointment_requests` UPDATE
 **Condição:** `old_record.status == pending` AND `record.status == rejected`
 
 **O que o n8n deve fazer:**
-1. Receber webhook (já tem `patient_name`, `patient_phone` no record)
-2. Enviar mensagem WhatsApp:
+1. Receber webhook (já tem `name`, `phone` no record)
+2. Enviar WhatsApp:
    > "Olá [nome], infelizmente não nos foi possível agendar a consulta solicitada. Contacte-nos para mais informações."
 
 ---
 
-### Automação 5: Notificação de Cancelamento
+### Automação 5: Cancelamento
 
 **Trigger:** DB Webhook — `appointments` UPDATE
 **Condição:** `old_record.status != cancelled` AND `record.status == cancelled`
@@ -355,12 +290,12 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 **O que o n8n deve fazer:**
 1. Receber webhook
 2. Lookup do paciente
-3. Enviar mensagem WhatsApp:
-   > "Olá [nome], a sua consulta de [data] às [hora] foi cancelada. Se desejar reagendar, contacte-nos."
+3. Enviar WhatsApp:
+   > "Olá [nome], a sua consulta de [data] às [hora] foi cancelada. Se desejar reagendar, contacte-nos pelo [telefone da clínica]."
 
 ---
 
-### Automação 6: Lembrete de Avaliação
+### Automação 6: Pedido de Avaliação (Review)
 
 **Trigger:** DB Webhook — `appointments` UPDATE
 **Condição:** `old_record.finalized_at == null` AND `record.finalized_at != null`
@@ -369,12 +304,61 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 1. Receber webhook
 2. **Wait 2 horas** (usar Wait node no n8n)
 3. Lookup do paciente
-4. Enviar mensagem WhatsApp:
-   > "Olá [nome], obrigado por visitar a nossa clínica! Gostaríamos de saber como correu a sua consulta. Avalie aqui: [link]"
+4. Enviar WhatsApp:
+   > "Olá [nome], obrigado por visitar a nossa clínica! Gostaríamos de saber como correu a sua consulta. Avalie aqui: [link Google Reviews]"
 
 ---
 
-## 8. Tabelas da Base de Dados Relevantes
+## 6. Sugestão de Horários Alternativos
+
+Este é o **único fluxo com interação do paciente**. Quando a secretária rejeita um pedido e sugere horários alternativos:
+
+**Fluxo:**
+
+```
+1. Secretária seleciona slots disponíveis na UI
+        │
+        ▼
+2. INSERT em appointment_suggestions (com suggested_slots JSONB)
+        │
+        ▼
+3. DB Webhook envia para n8n
+        │
+        ▼
+4. n8n compõe WhatsApp com links clicáveis (1 link por slot)
+   Cada link aponta para um Webhook Node do n8n:
+   https://<n8n>/webhook/<id>?suggestion_id=xxx&slot_index=0
+        │
+        ▼
+5. Paciente clica no slot que prefere
+        │
+        ▼
+6. n8n recebe o clique (Webhook Node)
+        │
+        ▼
+7. n8n atualiza appointment_suggestions via REST API:
+   PATCH /rest/v1/appointment_suggestions?id=eq.{suggestion_id}
+   Body: { "status": "accepted", "accepted_slot": { ... } }
+        │
+        ▼
+8. n8n cria a consulta via REST API:
+   POST /rest/v1/appointments
+   Body: { patient_id, professional_id, date, time, status: "confirmed", ... }
+```
+
+**Mensagem WhatsApp exemplo:**
+> "Olá [nome], temos os seguintes horários disponíveis para si:
+> 1. 12/02 às 10:00 — [link]
+> 2. 12/02 às 15:00 — [link]
+> 3. 13/02 às 09:30 — [link]
+>
+> Clique no horário que prefere para confirmar."
+
+**Nota:** Os links apontam diretamente para Webhook Nodes do n8n. Quando o paciente clica, o n8n recebe o request e processa tudo internamente.
+
+---
+
+## 7. Tabelas da Base de Dados
 
 ### `appointments` (tabela central — fonte de eventos)
 
@@ -388,9 +372,9 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 | `date` | DATE | Data da consulta |
 | `time` | TIME | Hora da consulta |
 | `duration` | INTEGER | Duração em minutos |
-| `status` | ENUM | `scheduled`, `pre_confirmed`, `confirmed`, `waiting`, `in_progress`, `completed`, `cancelled`, `no_show` |
+| `status` | ENUM | `confirmed`, `waiting`, `in_progress`, `completed`, `cancelled`, `no_show`, `finalized` |
 | `notes` | TEXT | Notas da consulta |
-| `final_notes` | TEXT | Notas de finalização |
+| `final_notes` | TEXT | Prescrição médica / notas de finalização |
 | `finalized_at` | TIMESTAMPTZ | Quando foi finalizada |
 | `cancellation_reason` | TEXT | Motivo do cancelamento |
 
@@ -399,13 +383,27 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
 | `id` | UUID | ID único |
-| `patient_name` | TEXT | Nome do paciente |
-| `patient_phone` | TEXT | Telefone |
-| `patient_email` | TEXT | Email |
+| `name` | TEXT | Nome do paciente |
+| `phone` | TEXT | Telefone (formato E.164: +351...) |
+| `email` | TEXT | Email |
+| `nif` | TEXT | NIF |
 | `specialty_id` | UUID | Especialidade pretendida |
+| `reason` | TEXT | Motivo da consulta |
 | `preferred_date` | DATE | Data preferida |
-| `preferred_time` | TEXT | `morning`, `afternoon`, `any` |
-| `status` | TEXT | `pending`, `approved`, `rejected` |
+| `preferred_time` | TEXT | Hora preferida |
+| `status` | TEXT | `pending`, `approved`, `rejected`, `converted` |
+
+### `appointment_suggestions` (sugestões de horários)
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | UUID | ID único |
+| `appointment_request_id` | UUID | FK → appointment_requests |
+| `patient_id` | UUID | FK → patients |
+| `suggested_slots` | JSONB | Array de slots sugeridos |
+| `status` | TEXT | `pending`, `accepted`, `expired` |
+| `accepted_slot` | JSONB | Slot que o paciente aceitou |
+| `expires_at` | TIMESTAMPTZ | Expiração da sugestão |
 
 ### `patients` (para lookup)
 
@@ -413,7 +411,7 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 |--------|------|-----------|
 | `id` | UUID | ID único |
 | `name` | TEXT | Nome |
-| `phone` | TEXT | Telefone (para WhatsApp) |
+| `phone` | TEXT | Telefone (formato E.164) |
 | `email` | TEXT | Email |
 | `nif` | TEXT | NIF |
 
@@ -425,63 +423,50 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
 | `name` | TEXT | Nome |
 | `specialty_id` | UUID | FK → specialties |
 
-### `whatsapp_action_tokens` (links de ação)
-
-| Coluna | Tipo | Descrição |
-|--------|------|-----------|
-| `token` | TEXT | Token único (na URL) |
-| `action_type` | TEXT | `confirm`, `cancel`, `reschedule` |
-| `appointment_id` | UUID | Consulta associada |
-| `patient_id` | UUID | Paciente |
-| `expires_at` | TIMESTAMPTZ | Expiração |
-| `used_at` | TIMESTAMPTZ | Quando foi usado |
-
 ---
 
-## 9. Fluxo Completo de Eventos
+## 8. Fluxo Completo de Eventos
 
 ```
-1. AÇÃO NA UI (ex: criar/cancelar/finalizar consulta)
+1. AÇÃO NA UI (criar/cancelar/finalizar consulta, sugerir slots)
         │
-        v
-2. Supabase DB atualiza appointments/appointment_requests
+        ▼
+2. Supabase DB atualiza a tabela correspondente
         │
-        v
+        ▼
 3. Supabase DB Webhook envia POST ao n8n (em tempo real)
         │
-        v
+        ▼
 4. n8n recebe dados (record + old_record)
         │
-        v
-5. n8n faz lookup de paciente/profissional via Supabase REST
+        ▼
+5. n8n faz lookup de paciente/profissional via Supabase REST API
         │
-        v
-6. n8n compõe e envia mensagem WhatsApp ao paciente
+        ▼
+6. n8n compõe e envia mensagem WhatsApp ao paciente (one-way)
+```
+
+Para sugestão de slots, há um passo adicional:
+```
+7. Paciente clica num link de slot → n8n Webhook Node recebe
         │
-        v
-7. Paciente clica link OU responde mensagem
-        │
-        v
-8a. Se clicou link → /api/action processa diretamente
-8b. Se respondeu → n8n envia para /api/webhook
-        │
-        v
-9. Backend atualiza estado da consulta
+        ▼
+8. n8n cria appointment via Supabase REST API (POST /rest/v1/appointments)
 ```
 
 ---
 
-## 10. Exemplos de Workflows n8n
+## 9. Exemplos de Workflows n8n
 
 ### Workflow 1: Eventos de Appointments (real-time)
 
 ```
 [Webhook Node: recebe POST do Supabase]
-    → [IF: Authorization header == Bearer {secret}]
+    → [IF: Authorization header == Bearer {DB_WEBHOOK_SECRET}]
     → [Switch: por tipo de evento]
         ├─ type==INSERT → [Lookup paciente] → [Enviar notificação nova consulta]
         ├─ status changed to "cancelled" → [Lookup paciente] → [Enviar cancelamento]
-        ├─ status changed to "no_show" → [Lookup paciente] → [Enviar reagendamento]
+        ├─ status changed to "no_show" → [Lookup paciente] → [Enviar no-show]
         └─ finalized_at changed → [Wait 2h] → [Lookup paciente] → [Enviar review]
 ```
 
@@ -492,80 +477,101 @@ https://barnumdemo.vercel.app/api/action?type=cancel&token=abc123
     → [Supabase Node: SELECT appointments WHERE date = tomorrow AND status = confirmed]
     → [Loop: para cada consulta]
         → [Lookup paciente]
-        → [Enviar WhatsApp de lembrete 24h (one-way)]
+        → [Enviar WhatsApp de lembrete 24h]
 ```
 
 ### Workflow 3: Eventos de Appointment Requests
 
 ```
 [Webhook Node: recebe POST do Supabase]
-    → [IF: Authorization header == Bearer {secret}]
+    → [IF: Authorization header == Bearer {DB_WEBHOOK_SECRET}]
     → [IF: old_record.status == pending AND record.status == rejected]
         → [Enviar WhatsApp de rejeição ao paciente]
 ```
 
-### Workflow 4: Receber Respostas de Pacientes (apenas no-show e review)
+### Workflow 4: Sugestão de Horários Alternativos
 
 ```
-[Webhook WhatsApp: mensagem recebida]
-    → [Interpretar resposta (SIM/NÃO para reagendamento)]
-    → [Mapear para action: reschedule/cancel]
-    → [HTTP Request: POST /api/webhook com HMAC]
-    → [Log resultado]
+[Webhook Node: recebe POST do Supabase (appointment_suggestions INSERT)]
+    → [IF: Authorization header == Bearer {DB_WEBHOOK_SECRET}]
+    → [Lookup paciente via patient_id]
+    → [Compor mensagem com links clicáveis para cada slot]
+    → [Enviar WhatsApp com slots]
 ```
 
-**Nota:** Este workflow só é ativado quando o paciente responde a mensagens de no-show (AUT-3). As mensagens de nova consulta (AUT-1) e lembrete 24h (AUT-2) são one-way e não esperam resposta.
+### Workflow 5: Paciente Aceita Slot Sugerido
+
+```
+[Webhook Node: recebe clique do paciente (GET com query params)]
+    → [Ler suggestion_id e slot_index dos query params]
+    → [Lookup appointment_suggestion via Supabase REST]
+    → [Extrair slot aceite do array suggested_slots]
+    → [PATCH appointment_suggestions: status=accepted, accepted_slot={...}]
+    → [POST appointments: criar consulta com dados do slot]
+    → [Responder com página HTML de confirmação]
+```
 
 ---
 
-## 11. Checklist do Parceiro
+## 10. Checklist do Parceiro
 
 ### Antes de começar
 - [ ] Receber `DB_WEBHOOK_SECRET` do admin Barnum
-- [ ] Receber `WEBHOOK_SECRET` do admin Barnum
-- [ ] Receber URL do Vercel (ex: `https://barnumdemo.vercel.app`)
-- [ ] Receber `SUPABASE_URL` e `SUPABASE_ANON_KEY` para lookups
-- [ ] Configurar variáveis no n8n
+- [ ] Receber `SUPABASE_URL` e `SUPABASE_ANON_KEY`
+- [ ] Configurar as 3 variáveis no n8n
 - [ ] Acesso ao WhatsApp Business API (Twilio, 360dialog, ou outro)
 
-### Implementar
-- [ ] Workflow 1: Webhook para `appointments` (INSERT + UPDATE)
-- [ ] Workflow 2: CRON diário para lembrete 24h (one-way)
-- [ ] Workflow 3: Webhook para `appointment_requests` (UPDATE)
-- [ ] Workflow 4: Receber respostas → /api/webhook
-- [ ] Templates WhatsApp aprovados (6 automações — AUT-1 e AUT-2 são one-way sem botões)
+### Configurar DB Webhooks (no Supabase Dashboard)
+- [ ] Webhook 1: `appointments` → INSERT + UPDATE → URL do Webhook Node n8n
+- [ ] Webhook 2: `appointment_requests` → UPDATE → URL do Webhook Node n8n
+- [ ] Webhook 3: `appointment_suggestions` → INSERT → URL do Webhook Node n8n
+
+### Implementar Workflows
+- [ ] Workflow 1: Eventos de appointments (AUT-1, AUT-3, AUT-5, AUT-6)
+- [ ] Workflow 2: CRON lembrete 24h (AUT-2)
+- [ ] Workflow 3: Eventos de appointment_requests (AUT-4)
+- [ ] Workflow 4: Sugestão de horários (enviar WhatsApp com links)
+- [ ] Workflow 5: Paciente aceita slot (criar appointment)
+- [ ] Templates WhatsApp aprovados (todas as mensagens são one-way)
 
 ### Testar
-- [ ] Criar consulta na UI → verificar que webhook chega ao n8n → mensagem one-way enviada
-- [ ] Cancelar consulta → verificar que webhook de update chega
-- [ ] Marcar no-show → verificar que webhook de update chega → resposta do paciente funciona
-- [ ] Finalizar consulta → verificar que webhook de update chega com `finalized_at`
-- [ ] Testar CRON de lembrete 24h com consultas de amanhã
-- [ ] Rejeitar pedido → verificar que webhook de `appointment_requests` chega
+- [ ] Criar consulta na UI → verificar que webhook chega ao n8n → mensagem enviada
+- [ ] Cancelar consulta → mensagem de cancelamento enviada
+- [ ] Marcar no-show → mensagem enviada
+- [ ] Finalizar consulta → mensagem de review enviada (2h depois)
+- [ ] CRON lembrete 24h → consultas de amanhã recebem lembrete
+- [ ] Rejeitar pedido → mensagem de rejeição enviada
+- [ ] Sugerir slots → paciente recebe WhatsApp com links → clicar cria consulta
 
 ### Produção
-- [ ] Confirmar que DB Webhooks estão configurados no Supabase Dashboard
-- [ ] Confirmar que `WEBHOOK_SECRET` está definido no Vercel
+- [ ] Confirmar que os 3 DB Webhooks estão ativos no Supabase Dashboard
 - [ ] Monitorizar logs durante primeiros dias
 - [ ] Configurar alertas para falhas de envio
 
 ---
 
-## 12. FAQ e Troubleshooting
+## 11. FAQ e Troubleshooting
 
 **P: O webhook não chega ao n8n.**
 R: Verificar no Supabase Dashboard → Database → Webhooks que os webhooks estão ativos e a URL do n8n está correta. Verificar logs do webhook no Supabase.
-
-**P: Recebo 401 no /api/webhook.**
-R: Verificar que o header `x-webhook-signature` está correto e corresponde ao HMAC calculado com `WEBHOOK_SECRET`.
-
-**P: O HMAC não valida no /api/webhook.**
-R: Verificar que está a calcular o HMAC sobre o body **exato** (como string JSON), usando SHA-256, e que o `WEBHOOK_SECRET` é o mesmo nos dois lados.
 
 **P: Como obter dados do paciente a partir do patient_id?**
 R: Usar o Supabase Node ou HTTP Request:
 ```
 GET {SUPABASE_URL}/rest/v1/patients?id=eq.{patient_id}&select=name,phone,email
+Authorization: Bearer {SUPABASE_ANON_KEY}
+apikey: {SUPABASE_ANON_KEY}
+```
+
+**P: Como o n8n atualiza dados no Supabase?**
+R: Usar HTTP Request ou Supabase Node:
+```
+PATCH {SUPABASE_URL}/rest/v1/appointments?id=eq.{appointment_id}
+Authorization: Bearer {SUPABASE_ANON_KEY}
+apikey: {SUPABASE_ANON_KEY}
+Content-Type: application/json
+
+{ "status": "confirmed" }
 ```
 
 **P: Como testar sem WhatsApp?**
@@ -574,24 +580,26 @@ R: Inserir/atualizar registos diretamente na tabela `appointments` via Supabase 
 **P: Os webhooks são idempotentes?**
 R: Não automaticamente. O n8n deve implementar lógica de deduplicação se necessário (ex: guardar `record.id + record.updated_at` para evitar processar o mesmo evento duas vezes).
 
+**P: O que acontece se o link de slot sugerido expirar?**
+R: O n8n deve verificar o campo `expires_at` da sugestão antes de criar a consulta. Se expirou, mostrar uma página HTML a dizer "Este link expirou. Contacte a clínica."
+
 ---
 
-## Removido na v2.0
+## Removido na v3.0
 
 Os seguintes componentes foram **removidos** e NÃO devem ser usados:
 
-- Tabela `whatsapp_events` (outbox)
-- Tabela `whatsapp_workflows` (workflow tracking)
-- Endpoint `/api/n8n/process-events`
-- Endpoint `/api/n8n/create-24h-confirmations`
-- Endpoint `/api/internal`
-- Triggers PostgreSQL (`trigger_pre_confirmation`, `trigger_no_show`, `trigger_review`)
-- Função `create_whatsapp_event()`
+- Endpoint `/api/webhook` (removido — n8n atualiza Supabase diretamente)
+- Endpoint `/api/action` (removido — links de ação do paciente apontam para n8n)
+- Tabela `whatsapp_action_tokens` (removida — sem links de ação via backend)
+- Tabela `whatsapp_events` (removida na v2.0)
+- Tabela `whatsapp_workflows` (removida na v2.0)
+- Todas as funções de HMAC/signature (removidas)
 
 ---
 
 ## Contacto
 
-Para questões sobre endpoints, payloads, ou comportamento do backend:
+Para questões sobre webhooks, payloads, ou tabelas:
 - Consultar `docs/contracts/SUPABASE_DB_WEBHOOKS_SETUP.md` para setup dos webhooks
 - Contactar o admin do Barnum para credenciais e acesso

@@ -1,44 +1,46 @@
 # Supabase Database Webhooks — Setup Guide
 
-This guide documents how to configure the 2 Supabase Database Webhooks that replace the old outbox pattern (whatsapp_events/workflows tables + triggers).
+> **Versão:** 2.0 — 2026-02-04
 
-## Architecture
+Este guia documenta como configurar os 3 Supabase Database Webhooks que enviam eventos ao n8n em tempo real.
+
+## Arquitetura
 
 ```
-appointments / appointment_requests table
-        │  INSERT or UPDATE
+appointments / appointment_requests / appointment_suggestions
+        │  INSERT ou UPDATE
         ▼
 Supabase DB Webhook
         │  HTTP POST (real-time)
         ▼
-n8n Webhook Node  →  Switch (event type)  →  WhatsApp API
+n8n Webhook Node  →  Switch (tipo de evento)  →  WhatsApp API
 ```
 
-The n8n workflow receives the full row data (`record` + `old_record`) directly from Supabase whenever a relevant change occurs. No intermediate tables or polling required.
+O n8n recebe os dados completos da linha (`record` + `old_record`) diretamente do Supabase. Sem tabelas intermediárias, sem polling, sem endpoints backend.
 
 ---
 
 ## Webhook 1: `appointments`
 
-### Purpose
-Triggers WhatsApp automations when appointments are created, confirmed, cancelled, completed, or marked as no-show.
+### Objetivo
+Aciona automações WhatsApp quando consultas são criadas, canceladas, marcadas como no-show, ou finalizadas.
 
-### Configuration (Supabase Dashboard)
+### Configuração (Supabase Dashboard)
 
-1. Go to **Database → Webhooks** in the Supabase Dashboard
-2. Click **Create a new webhook**
-3. Fill in:
+1. Ir a **Database → Webhooks** no Supabase Dashboard
+2. Clicar **Create a new webhook**
+3. Preencher:
    - **Name**: `appointments_to_n8n`
    - **Table**: `appointments`
    - **Events**: `INSERT`, `UPDATE`
    - **Type**: `HTTP Request`
    - **Method**: `POST`
-   - **URL**: `https://<your-n8n-instance>/webhook/<webhook-id>`
+   - **URL**: `https://<instancia-n8n>/webhook/<webhook-id>`
    - **Headers**:
      - `Content-Type`: `application/json`
-     - `Authorization`: `Bearer <shared-secret>` (optional, for security)
+     - `Authorization`: `Bearer <DB_WEBHOOK_SECRET>`
 
-### Payload Structure (sent automatically by Supabase)
+### Payload (enviado automaticamente pelo Supabase)
 
 ```json
 {
@@ -66,20 +68,20 @@ Triggers WhatsApp automations when appointments are created, confirmed, cancelle
 }
 ```
 
-For `UPDATE` events, `old_record` contains the previous row values.
+Para eventos `UPDATE`, `old_record` contém os valores anteriores da linha.
 
-### n8n Logic (Switch Node)
+### Lógica n8n (Switch Node)
 
-| Condition | Automation |
-|-----------|------------|
-| `type == INSERT` and `record.status == confirmed` | AUT-1: New appointment notification (one-way, no action links) |
-| `type == UPDATE` and `old_record.status != cancelled` and `record.status == cancelled` | AUT-5: Cancellation WhatsApp |
-| `type == UPDATE` and `old_record.status != no_show` and `record.status == no_show` | AUT-3: Reschedule prompt |
-| `type == UPDATE` and `old_record.finalized_at == null` and `record.finalized_at != null` | AUT-6: Review request (2h delay in n8n) |
+| Condição | Automação |
+|----------|-----------|
+| `type == INSERT` | AUT-1: Notificação de nova consulta (one-way) |
+| `type == UPDATE` AND `old_record.status != cancelled` AND `record.status == cancelled` | AUT-5: Cancelamento |
+| `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: No-show |
+| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` | AUT-6: Review (2h delay no n8n) |
 
-### 24h Reminder (AUT-2)
+### Lembrete 24h (AUT-2)
 
-This is NOT triggered by a webhook. Instead, n8n runs a **daily CRON** (e.g., at 08:00) that queries:
+NÃO é acionado por webhook. O n8n usa um **CRON diário** (ex: 08:00) que consulta:
 
 ```sql
 SELECT * FROM appointments
@@ -87,98 +89,127 @@ WHERE date = CURRENT_DATE + interval '1 day'
   AND status = 'confirmed'
 ```
 
-n8n sends a **one-way reminder** WhatsApp for each matching appointment. No action links or confirmation buttons — the message is purely informational.
+O n8n envia um lembrete **one-way** para cada consulta encontrada.
 
 ---
 
 ## Webhook 2: `appointment_requests`
 
-### Purpose
-Optionally notify n8n when appointment requests change status (e.g., approved, rejected).
+### Objetivo
+Notificar o n8n quando pedidos de marcação são rejeitados.
 
-### Configuration (Supabase Dashboard)
+### Configuração (Supabase Dashboard)
 
-1. Go to **Database → Webhooks**
-2. Click **Create a new webhook**
-3. Fill in:
+1. Ir a **Database → Webhooks**
+2. Clicar **Create a new webhook**
+3. Preencher:
    - **Name**: `appointment_requests_to_n8n`
    - **Table**: `appointment_requests`
    - **Events**: `UPDATE`
    - **Type**: `HTTP Request`
    - **Method**: `POST`
-   - **URL**: `https://<your-n8n-instance>/webhook/<webhook-id>`
-   - **Headers**: same as Webhook 1
+   - **URL**: `https://<instancia-n8n>/webhook/<webhook-id>`
+   - **Headers**: mesmos do Webhook 1
 
-### Payload Structure
+### Lógica n8n
+
+| Condição | Automação |
+|----------|-----------|
+| `old_record.status == pending` AND `record.status == rejected` | AUT-4: Notificação de rejeição |
+
+---
+
+## Webhook 3: `appointment_suggestions`
+
+### Objetivo
+Notificar o n8n quando a secretária sugere horários alternativos a um paciente.
+
+### Configuração (Supabase Dashboard)
+
+1. Ir a **Database → Webhooks**
+2. Clicar **Create a new webhook**
+3. Preencher:
+   - **Name**: `appointment_suggestions_to_n8n`
+   - **Table**: `appointment_suggestions`
+   - **Events**: `INSERT`
+   - **Type**: `HTTP Request`
+   - **Method**: `POST`
+   - **URL**: `https://<instancia-n8n>/webhook/<webhook-id>`
+   - **Headers**: mesmos do Webhook 1
+
+### Payload
 
 ```json
 {
-  "type": "UPDATE",
-  "table": "appointment_requests",
+  "type": "INSERT",
+  "table": "appointment_suggestions",
   "schema": "public",
   "record": {
     "id": "uuid",
-    "patient_name": "João Silva",
-    "patient_phone": "+351912345678",
-    "patient_email": "joao@example.com",
-    "specialty_id": "uuid",
-    "preferred_date": "2026-02-15",
-    "preferred_time": "morning",
-    "status": "approved",
-    "notes": "..."
+    "appointment_request_id": "uuid",
+    "patient_id": "uuid",
+    "suggested_slots": [
+      { "date": "2026-02-12", "time": "10:00", "professional_id": "uuid" },
+      { "date": "2026-02-12", "time": "15:00", "professional_id": "uuid" },
+      { "date": "2026-02-13", "time": "09:30", "professional_id": "uuid" }
+    ],
+    "status": "pending",
+    "accepted_slot": null,
+    "expires_at": "2026-02-11T23:59:59Z"
   },
-  "old_record": {
-    "status": "pending"
-  }
+  "old_record": null
 }
 ```
 
-### n8n Logic
+### Lógica n8n
 
-| Condition | Action |
-|-----------|--------|
-| `old_record.status == pending` and `record.status == rejected` | AUT-4: Rejection notification WhatsApp |
-
----
-
-## Patient Data Lookup
-
-Webhook payloads contain IDs (`patient_id`, `professional_id`, etc.), not full names/phones. To compose WhatsApp messages, n8n should:
-
-1. Use a **Supabase Node** or **HTTP Request** to fetch patient details:
-   ```
-   GET /rest/v1/patients?id=eq.<patient_id>&select=name,phone,email
-   ```
-
-2. Similarly for professional name:
-   ```
-   GET /rest/v1/professionals?id=eq.<professional_id>&select=name
-   ```
-
-3. And specialty/consultation type names if needed.
-
-This is a simple lookup that n8n handles natively with the Supabase integration node.
+1. Lookup do paciente via `patient_id`
+2. Compor mensagem WhatsApp com links clicáveis (1 por slot)
+3. Cada link aponta para um Webhook Node do n8n: `https://<n8n>/webhook/<id>?suggestion_id=xxx&slot_index=0`
+4. Quando o paciente clica, o n8n:
+   - Atualiza `appointment_suggestions` (status → accepted, accepted_slot → slot escolhido)
+   - Cria a consulta em `appointments` via REST API
 
 ---
 
-## Security
+## Lookup de Dados
 
-- Use a shared secret in the `Authorization` header to authenticate webhook calls
-- n8n should validate this header before processing
-- Supabase DB Webhooks run with the database's permissions (SECURITY DEFINER)
+Os payloads contêm IDs. Para obter nomes/telefones:
+
+```
+GET {SUPABASE_URL}/rest/v1/patients?id=eq.<patient_id>&select=name,phone,email
+Authorization: Bearer {SUPABASE_ANON_KEY}
+apikey: {SUPABASE_ANON_KEY}
+```
+
+```
+GET {SUPABASE_URL}/rest/v1/professionals?id=eq.<professional_id>&select=name
+```
+
+O n8n tem integração nativa com Supabase — usar o Supabase Node é a forma mais simples.
 
 ---
 
-## Removed (Legacy)
+## Segurança
 
-The following have been removed and should NOT be recreated:
+- Usar um secret partilhado no header `Authorization` para autenticar os webhooks
+- O n8n deve validar este header antes de processar
+- Os DB Webhooks do Supabase correm com permissões `SECURITY DEFINER`
 
-- `whatsapp_events` table (outbox)
-- `whatsapp_workflows` table (workflow tracking)
-- `trigger_pre_confirmation()` function
-- `trigger_no_show()` function
-- `trigger_review()` function
-- `create_whatsapp_event()` function
-- `/api/n8n/process-events` endpoint
-- `/api/n8n/create-24h-confirmations` endpoint
-- `/api/internal` endpoint
+---
+
+## Removido (Legacy)
+
+Os seguintes componentes foram removidos e NÃO devem ser usados:
+
+- Tabela `whatsapp_events` (outbox — removida)
+- Tabela `whatsapp_workflows` (workflow tracking — removida)
+- Tabela `whatsapp_action_tokens` (links de ação — removida)
+- Endpoint `/api/webhook` (removido)
+- Endpoint `/api/action` (removido)
+- Endpoint `/api/n8n/process-events` (removido)
+- Endpoint `/api/n8n/create-24h-confirmations` (removido)
+- Endpoint `/api/internal` (removido)
+- Triggers PostgreSQL (`trigger_pre_confirmation`, `trigger_no_show`, `trigger_review`)
+- Função `create_whatsapp_event()`
+- Funções `validate_action_token()`, `mark_token_used()`, `generate_action_token()`
