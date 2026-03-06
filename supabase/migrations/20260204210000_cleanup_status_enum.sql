@@ -1,9 +1,8 @@
--- Change default from 'scheduled' to 'confirmed'
-ALTER TABLE public.appointments
-  ALTER COLUMN status SET DEFAULT 'confirmed'::public.appointment_status;
-
 -- Migrate any existing rows with deprecated statuses
 UPDATE public.appointments SET status = 'confirmed' WHERE status IN ('scheduled', 'pre_confirmed');
+
+-- Drop default before type change (avoids cast error)
+ALTER TABLE public.appointments ALTER COLUMN status DROP DEFAULT;
 
 -- Recreate enum without deprecated values
 ALTER TYPE public.appointment_status RENAME TO appointment_status_old;
