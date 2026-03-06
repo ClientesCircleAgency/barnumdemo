@@ -1,13 +1,11 @@
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Clock, CalendarCheck, AlertCircle, List } from 'lucide-react';
+import { Clock, CalendarCheck, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useClinic } from '@/context/ClinicContext';
 import { StatusBadge } from './StatusBadge';
 import type { ClinicAppointment } from '@/types/clinic';
-import { Link } from 'react-router-dom';
 
 interface DaySummaryPanelProps {
   currentDate: Date;
@@ -15,7 +13,7 @@ interface DaySummaryPanelProps {
 }
 
 export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryPanelProps) {
-  const { appointments, getPatientById, getProfessionalById, waitlist } = useClinic();
+  const { appointments, getPatientById, getProfessionalById } = useClinic();
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const todayAppointments = appointments.filter((a) => a.date === dateStr);
@@ -157,22 +155,6 @@ export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryP
         </CardContent>
       </Card>
 
-      {/* Link para lista de espera */}
-      <Card>
-        <CardContent className="p-3">
-          <Link to="/admin/lista-espera">
-            <Button variant="outline" className="w-full justify-start gap-2">
-              <List className="h-4 w-4" />
-              Lista de Espera
-              {waitlist.length > 0 && (
-                <Badge variant="destructive" className="ml-auto">
-                  {waitlist.length}
-                </Badge>
-              )}
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }

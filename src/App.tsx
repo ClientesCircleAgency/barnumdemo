@@ -12,7 +12,6 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import AgendaPage from "./pages/admin/AgendaPage";
 import PatientsPage from "./pages/admin/PatientsPage";
 import PatientDetailPage from "./pages/admin/PatientDetailPage";
-import WaitlistPage from "./pages/admin/WaitlistPage";
 import WaitingRoomPage from "./pages/admin/WaitingRoomPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import RequestsPage from "./pages/admin/RequestsPage";
@@ -38,7 +37,6 @@ const App = () => (
             <Route path="pedidos" element={<RequestsPage />} />
             <Route path="pacientes" element={<PatientsPage />} />
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
-            <Route path="lista-espera" element={<WaitlistPage />} />
             <Route path="sala-espera" element={<WaitingRoomPage />} />
             <Route 
               path="configuracoes" 

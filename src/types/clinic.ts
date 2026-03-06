@@ -12,12 +12,6 @@ export type AppointmentStatus =
   | 'cancelled'      // Cancelada
   | 'no_show';       // Não compareceu
 
-// Prioridade para lista de espera
-export type WaitlistPriority = 'low' | 'medium' | 'high';
-
-// Preferência de horário
-export type TimePreference = 'morning' | 'afternoon' | 'any';
-
 // Profissional (camelCase for components)
 export interface Professional {
   id: string;
@@ -70,33 +64,11 @@ export interface ClinicAppointment {
   reason?: string;
   notes?: string;
   finalNotes?: string;
-  roomId?: string;
   cancellationReason?: string;
   reviewOptOut?: boolean;
   finalizedAt?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-// Item da Lista de Espera (camelCase)
-export interface WaitlistItem {
-  id: string;
-  patientId: string;
-  specialtyId?: string;
-  professionalId?: string;
-  timePreference: TimePreference;
-  preferredDates?: string[];
-  priority: WaitlistPriority;
-  sortOrder?: number;
-  reason?: string;
-  createdAt: string;
-}
-
-// Sala/Cadeira
-export interface Room {
-  id: string;
-  name: string;
-  specialtyId?: string;
 }
 
 // Configurações da agenda
@@ -120,14 +92,3 @@ export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   no_show: 'Não compareceu',
 };
 
-export const waitlistPriorityLabels: Record<WaitlistPriority, string> = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-};
-
-export const timePreferenceLabels: Record<TimePreference, string> = {
-  morning: 'Manhã',
-  afternoon: 'Tarde',
-  any: 'Qualquer',
-};

@@ -5,7 +5,6 @@ import {
   User,
   Calendar,
   Clock,
-  MapPin,
   FileText,
   Phone,
   Mail,
@@ -72,7 +71,6 @@ export function AppointmentDetailDrawer({
     updateAppointment,
     updateAppointmentStatus,
     deleteAppointment,
-    rooms,
   } = useClinic();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -85,8 +83,6 @@ export function AppointmentDetailDrawer({
   const professional = getProfessionalById(appointment.professionalId);
   const consultationType = getConsultationTypeById(appointment.consultationTypeId);
   const specialty = getSpecialtyById(appointment.specialtyId);
-  const room = rooms.find((r) => r.id === appointment.roomId);
-
   const handleStatusChange = (newStatus: AppointmentStatus) => {
     updateAppointmentStatus(appointment.id, newStatus);
     toast({
@@ -227,15 +223,6 @@ export function AppointmentDetailDrawer({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Especialidade</span>
                   <span className="font-medium">{specialty.name}</span>
-                </div>
-              )}
-              {room && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Sala</span>
-                  <span className="font-medium flex items-center gap-1">
-                    <MapPin className="h-3 w-3" />
-                    {room.name}
-                  </span>
                 </div>
               )}
             </div>

@@ -59,7 +59,6 @@ export function AppointmentWizard({
     professionals,
     specialties,
     consultationTypes,
-    rooms,
     addAppointment,
     getConsultationTypeById,
   } = useClinic();
@@ -77,7 +76,6 @@ export function AppointmentWizard({
       time: '09:00',
       duration: 30,
       notes: '',
-      roomId: '',
       sendConfirmation: true,
     },
     mode: 'onChange',
@@ -95,7 +93,6 @@ export function AppointmentWizard({
         time: '09:00',
         duration: 30,
         notes: '',
-        roomId: '',
         sendConfirmation: true,
       });
       setStep(1);
@@ -113,7 +110,6 @@ export function AppointmentWizard({
       time: '09:00',
       duration: 30,
       notes: '',
-      roomId: '',
       sendConfirmation: true,
     });
   };
@@ -164,7 +160,6 @@ export function AppointmentWizard({
       duration: data.duration,
       status: 'scheduled' as AppointmentStatus,
       notes: data.notes?.trim() || undefined,
-      roomId: data.roomId || undefined,
     });
 
     toast({
@@ -424,30 +419,6 @@ export function AppointmentWizard({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="roomId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sala/Gabinete</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Opcional" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-popover z-50">
-                          {rooms.map((room) => (
-                            <SelectItem key={room.id} value={room.id}>
-                              {room.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               {/* Notas */}

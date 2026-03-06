@@ -3,17 +3,13 @@ import { usePatients, useAddPatient, useUpdatePatient } from '@/hooks/usePatient
 import { useAppointments, useAddAppointment, useUpdateAppointment, useUpdateAppointmentStatus, useDeleteAppointment } from '@/hooks/useAppointments';
 import { useProfessionals, useAddProfessional, useUpdateProfessional, useDeleteProfessional } from '@/hooks/useProfessionals';
 import { useConsultationTypes, useAddConsultationType, useUpdateConsultationType, useDeleteConsultationType } from '@/hooks/useConsultationTypes';
-import { useWaitlist, useAddToWaitlist, useUpdateWaitlistItem, useRemoveFromWaitlist } from '@/hooks/useWaitlist';
 import { useSpecialties } from '@/hooks/useSpecialties';
-import { useRooms } from '@/hooks/useRooms';
 import type { 
   Patient, 
   ClinicAppointment, 
   Professional, 
   ConsultationType, 
-  WaitlistItem, 
   Specialty,
-  Room,
   AppointmentStatus,
 } from '@/types/clinic';
 
@@ -46,7 +42,6 @@ function mapAppointment(row: any): ClinicAppointment {
     reason: row.reason || undefined,
     notes: row.notes || undefined,
     finalNotes: row.final_notes || undefined,
-    roomId: row.room_id || undefined,
     cancellationReason: row.cancellation_reason || undefined,
     reviewOptOut: row.review_opt_out ?? false,
     finalizedAt: row.finalized_at || undefined,
@@ -75,33 +70,10 @@ function mapConsultationType(row: any): ConsultationType {
   };
 }
 
-function mapWaitlistItem(row: any): WaitlistItem {
-  return {
-    id: row.id,
-    patientId: row.patient_id,
-    specialtyId: row.specialty_id || undefined,
-    professionalId: row.professional_id || undefined,
-    timePreference: row.time_preference,
-    preferredDates: row.preferred_dates || undefined,
-    priority: row.priority,
-    sortOrder: row.sort_order,
-    reason: row.reason || undefined,
-    createdAt: row.created_at,
-  };
-}
-
 function mapSpecialty(row: any): Specialty {
   return {
     id: row.id,
     name: row.name,
-  };
-}
-
-function mapRoom(row: any): Room {
-  return {
-    id: row.id,
-    name: row.name,
-    specialtyId: row.specialty_id || undefined,
   };
 }
 
@@ -112,8 +84,6 @@ interface ClinicContextType {
   professionals: Professional[];
   specialties: Specialty[];
   consultationTypes: ConsultationType[];
-  waitlist: WaitlistItem[];
-  rooms: Room[];
   
   // Loading states
   isLoading: boolean;
@@ -131,11 +101,6 @@ interface ClinicContextType {
   deleteAppointment: (id: string) => void;
   getAppointmentsByDate: (date: string) => ClinicAppointment[];
   getAppointmentsByPatient: (patientId: string) => ClinicAppointment[];
-
-  // Ações - Lista de Espera
-  addToWaitlist: (item: Omit<WaitlistItem, 'id' | 'createdAt'>) => void;
-  removeFromWaitlist: (id: string) => void;
-  updateWaitlistItem: (id: string, data: Partial<WaitlistItem>) => void;
 
   // Ações - Profissionais
   addProfessional: (professional: Omit<Professional, 'id'>) => void;
@@ -161,18 +126,14 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
   const { data: appointmentsData = [], isLoading: loadingAppointments } = useAppointments();
   const { data: professionalsData = [], isLoading: loadingProfessionals } = useProfessionals();
   const { data: consultationTypesData = [], isLoading: loadingTypes } = useConsultationTypes();
-  const { data: waitlistData = [], isLoading: loadingWaitlist } = useWaitlist();
   const { data: specialtiesData = [] } = useSpecialties();
-  const { data: roomsData = [] } = useRooms();
 
   // Map to camelCase
   const patients = useMemo(() => patientsData.map(mapPatient), [patientsData]);
   const appointments = useMemo(() => appointmentsData.map(mapAppointment), [appointmentsData]);
   const professionals = useMemo(() => professionalsData.map(mapProfessional), [professionalsData]);
   const consultationTypes = useMemo(() => consultationTypesData.map(mapConsultationType), [consultationTypesData]);
-  const waitlist = useMemo(() => waitlistData.map(mapWaitlistItem), [waitlistData]);
   const specialties = useMemo(() => specialtiesData.map(mapSpecialty), [specialtiesData]);
-  const rooms = useMemo(() => roomsData.map(mapRoom), [roomsData]);
 
   // Mutations
   const addPatientMutation = useAddPatient();
@@ -191,11 +152,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
   const updateConsultationTypeMutation = useUpdateConsultationType();
   const deleteConsultationTypeMutation = useDeleteConsultationType();
   
-  const addToWaitlistMutation = useAddToWaitlist();
-  const updateWaitlistMutation = useUpdateWaitlistItem();
-  const removeFromWaitlistMutation = useRemoveFromWaitlist();
-
-  const isLoading = loadingPatients || loadingAppointments || loadingProfessionals || loadingTypes || loadingWaitlist;
+  const isLoading = loadingPatients || loadingAppointments || loadingProfessionals || loadingTypes;
 
   const value = useMemo(() => ({
     // Data
@@ -204,8 +161,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     professionals,
     specialties,
     consultationTypes,
-    waitlist,
-    rooms,
     isLoading,
 
     // Patient actions
@@ -249,7 +204,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         duration: appointmentData.duration,
         status: appointmentData.status,
         notes: appointmentData.notes,
-        room_id: appointmentData.roomId,
       });
       return mapAppointment(result);
     },
@@ -268,7 +222,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
           reason: data.reason,
           notes: data.notes,
           final_notes: data.finalNotes,
-          room_id: data.roomId,
           cancellation_reason: data.cancellationReason,
           review_opt_out: data.reviewOptOut,
           finalized_at: data.finalizedAt,
@@ -283,38 +236,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     },
     getAppointmentsByDate: (date: string) => appointments.filter((a) => a.date === date),
     getAppointmentsByPatient: (patientId: string) => appointments.filter((a) => a.patientId === patientId),
-
-    // Waitlist actions
-    addToWaitlist: (itemData: Omit<WaitlistItem, 'id' | 'createdAt'>) => {
-      addToWaitlistMutation.mutate({
-        patient_id: itemData.patientId,
-        specialty_id: itemData.specialtyId,
-        professional_id: itemData.professionalId,
-        time_preference: itemData.timePreference,
-        preferred_dates: itemData.preferredDates,
-        priority: itemData.priority,
-        sort_order: itemData.sortOrder || 0,
-        reason: itemData.reason,
-      });
-    },
-    removeFromWaitlist: (id: string) => {
-      removeFromWaitlistMutation.mutate(id);
-    },
-    updateWaitlistItem: (id: string, data: Partial<WaitlistItem>) => {
-      updateWaitlistMutation.mutate({ 
-        id, 
-        data: {
-          patient_id: data.patientId,
-          specialty_id: data.specialtyId,
-          professional_id: data.professionalId,
-          time_preference: data.timePreference,
-          preferred_dates: data.preferredDates,
-          priority: data.priority,
-          sort_order: data.sortOrder,
-          reason: data.reason,
-        }
-      });
-    },
 
     // Professional actions
     addProfessional: (data: Omit<Professional, 'id'>) => {
@@ -374,8 +295,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     professionals,
     specialties,
     consultationTypes,
-    waitlist,
-    rooms,
     isLoading,
     addPatientMutation,
     updatePatientMutation,
@@ -389,9 +308,6 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     addConsultationTypeMutation,
     updateConsultationTypeMutation,
     deleteConsultationTypeMutation,
-    addToWaitlistMutation,
-    updateWaitlistMutation,
-    removeFromWaitlistMutation,
   ]);
 
   return <ClinicContext.Provider value={value}>{children}</ClinicContext.Provider>;

@@ -228,8 +228,7 @@ export default function RequestsPage() {
   };
 
   const handleSendWhatsApp = (message: string, phone: string) => {
-    // Format phone for WhatsApp (remove spaces, add country code if needed)
-    const formattedPhone = phone.replace(/\s/g, '').replace(/^0/, '351');
+    const formattedPhone = phone.replace(/\s/g, '').replace(/^\+/, '');
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
     toast.success('WhatsApp aberto com mensagem');

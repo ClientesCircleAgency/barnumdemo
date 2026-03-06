@@ -28,11 +28,6 @@ export const appointmentFormSchema = z.object({
     .max(1000, { message: 'Observações devem ter no máximo 1000 caracteres' })
     .optional()
     .or(z.literal('')),
-  roomId: z
-    .string()
-    .uuid({ message: 'Sala inválida' })
-    .optional()
-    .or(z.literal('')),
   sendConfirmation: z.boolean().default(true),
 });
 

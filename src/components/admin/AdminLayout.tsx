@@ -18,7 +18,6 @@ const pageTitles: Record<string, { title: string }> = {
   '/admin/agenda': { title: 'Agenda do Dia' },
   '/admin/pacientes': { title: 'Gestão de Pacientes' },
   '/admin/sala-espera': { title: 'Fluxo de Atendimento' },
-  '/admin/lista-espera': { title: 'Lista de Espera' },
   '/admin/configuracoes': { title: 'Configurações' },
   '/admin/pedidos': { title: 'Pedidos de Marcação' },
   '/admin/plano': { title: 'Plano' },
