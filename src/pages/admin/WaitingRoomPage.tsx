@@ -238,8 +238,6 @@ export default function WaitingRoomPage() {
 
     // Validar transições (permite avançar e recuar)
     const validTransitions: Record<AppointmentStatus, AppointmentStatus[]> = {
-      scheduled: ['pre_confirmed', 'confirmed'],
-      pre_confirmed: ['confirmed', 'cancelled'],
       confirmed: ['waiting', 'cancelled'],
       waiting: ['confirmed', 'in_progress', 'no_show'],
       in_progress: ['waiting', 'completed'],

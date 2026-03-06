@@ -158,7 +158,7 @@ export function AppointmentWizard({
       date: format(data.date, 'yyyy-MM-dd'),
       time: data.time,
       duration: data.duration,
-      status: 'scheduled' as AppointmentStatus,
+      status: 'confirmed' as AppointmentStatus,
       notes: data.notes?.trim() || undefined,
     });
 

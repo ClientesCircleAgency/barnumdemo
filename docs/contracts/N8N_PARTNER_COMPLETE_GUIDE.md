@@ -1,6 +1,6 @@
 # Guia Completo para o Parceiro n8n — Barnum
 
-> **Versão:** 3.0 — 2026-02-04
+> **Versão:** 3.1 — 2026-02-04
 > **Destinatário:** Parceiro técnico responsável pelas automações WhatsApp via n8n
 > **Idioma:** Português (Portugal) com termos técnicos em inglês quando necessário
 
@@ -115,17 +115,20 @@ O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase 
     "time": "14:00",
     "duration": 30,
     "status": "confirmed",
+    "reason": "Check-up dentário",
     "notes": "...",
     "final_notes": null,
     "finalized_at": null,
     "cancellation_reason": null,
+    "review_opt_out": false,
     "created_at": "2026-02-04T10:00:00Z",
     "updated_at": "2026-02-04T12:00:00Z"
   },
   "old_record": {
     "id": "uuid-da-consulta",
     "status": "confirmed",
-    "finalized_at": null
+    "finalized_at": null,
+    "review_opt_out": false
   }
 }
 ```
@@ -137,7 +140,7 @@ O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase 
 | `type == INSERT` | AUT-1: Notificação de nova consulta |
 | `type == UPDATE` AND `old_record.status != cancelled` AND `record.status == cancelled` | AUT-5: Cancelamento |
 | `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: No-show |
-| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` | AUT-6: Review (enviar 2h depois) |
+| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` AND `record.review_opt_out == false` | AUT-6: Review (enviar 2h depois) |
 
 ### Webhook 2: `appointment_requests` (UPDATE)
 
@@ -160,7 +163,12 @@ O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase 
     "preferred_time": "14:00",
     "reason": "Check-up",
     "status": "rejected",
-    "notes": "..."
+    "assigned_professional_id": null,
+    "estimated_duration": null,
+    "rejection_reason": "Agenda indisponível",
+    "cancel_reason": null,
+    "created_at": "2026-02-04T09:00:00Z",
+    "updated_at": "2026-02-04T12:00:00Z"
   },
   "old_record": {
     "status": "pending"
@@ -196,7 +204,8 @@ O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase 
     "status": "pending",
     "accepted_slot": null,
     "expires_at": "2026-02-11T23:59:59Z",
-    "created_at": "2026-02-04T12:00:00Z"
+    "created_at": "2026-02-04T12:00:00Z",
+    "updated_at": "2026-02-04T12:00:00Z"
   },
   "old_record": null
 }
@@ -298,13 +307,14 @@ Todas as automações enviam mensagens **one-way** — o paciente NÃO responde.
 ### Automação 6: Pedido de Avaliação (Review)
 
 **Trigger:** DB Webhook — `appointments` UPDATE
-**Condição:** `old_record.finalized_at == null` AND `record.finalized_at != null`
+**Condição:** `old_record.finalized_at == null` AND `record.finalized_at != null` AND `record.review_opt_out == false`
 
 **O que o n8n deve fazer:**
 1. Receber webhook
-2. **Wait 2 horas** (usar Wait node no n8n)
-3. Lookup do paciente
-4. Enviar WhatsApp:
+2. Verificar que `record.review_opt_out == false` (se `true`, NÃO enviar — a secretária optou por não enviar review)
+3. **Wait 2 horas** (usar Wait node no n8n)
+4. Lookup do paciente
+5. Enviar WhatsApp:
    > "Olá [nome], obrigado por visitar a nossa clínica! Gostaríamos de saber como correu a sua consulta. Avalie aqui: [link Google Reviews]"
 
 ---
@@ -372,11 +382,17 @@ Este é o **único fluxo com interação do paciente**. Quando a secretária rej
 | `date` | DATE | Data da consulta |
 | `time` | TIME | Hora da consulta |
 | `duration` | INTEGER | Duração em minutos |
-| `status` | ENUM | `confirmed`, `waiting`, `in_progress`, `completed`, `cancelled`, `no_show`, `finalized` |
+| `status` | ENUM | `confirmed`, `waiting`, `in_progress`, `completed`, `cancelled`, `no_show` |
+| `reason` | TEXT | Motivo da consulta |
 | `notes` | TEXT | Notas da consulta |
 | `final_notes` | TEXT | Prescrição médica / notas de finalização |
-| `finalized_at` | TIMESTAMPTZ | Quando foi finalizada |
+| `finalized_at` | TIMESTAMPTZ | Quando foi finalizada (NULL = não finalizada) |
 | `cancellation_reason` | TEXT | Motivo do cancelamento |
+| `review_opt_out` | BOOLEAN | Se `true`, NÃO enviar pedido de review (default: `false`) |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Última atualização |
+
+> **Nota:** Não existe status `finalized`. A finalização é indicada por `finalized_at` ter um valor (não NULL). O status permanece `completed` quando a consulta é finalizada.
 
 ### `appointment_requests` (pedidos de marcação)
 
@@ -387,11 +403,17 @@ Este é o **único fluxo com interação do paciente**. Quando a secretária rej
 | `phone` | TEXT | Telefone (formato E.164: +351...) |
 | `email` | TEXT | Email |
 | `nif` | TEXT | NIF |
-| `specialty_id` | UUID | Especialidade pretendida |
+| `specialty_id` | UUID | FK → specialties |
 | `reason` | TEXT | Motivo da consulta |
 | `preferred_date` | DATE | Data preferida |
-| `preferred_time` | TEXT | Hora preferida |
-| `status` | TEXT | `pending`, `approved`, `rejected`, `converted` |
+| `preferred_time` | TIME | Hora preferida |
+| `status` | ENUM | `pending`, `pre_confirmed`, `suggested`, `converted`, `cancelled`, `expired`, `rejected` |
+| `assigned_professional_id` | UUID | FK → professionals (profissional atribuído) |
+| `estimated_duration` | INTEGER | Duração estimada em minutos |
+| `rejection_reason` | TEXT | Motivo da rejeição |
+| `cancel_reason` | TEXT | Motivo do cancelamento |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Última atualização |
 
 ### `appointment_suggestions` (sugestões de horários)
 
@@ -404,24 +426,54 @@ Este é o **único fluxo com interação do paciente**. Quando a secretária rej
 | `status` | TEXT | `pending`, `accepted`, `expired` |
 | `accepted_slot` | JSONB | Slot que o paciente aceitou |
 | `expires_at` | TIMESTAMPTZ | Expiração da sugestão |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Última atualização |
 
 ### `patients` (para lookup)
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
 | `id` | UUID | ID único |
-| `name` | TEXT | Nome |
-| `phone` | TEXT | Telefone (formato E.164) |
+| `nif` | TEXT | NIF (identificação fiscal) |
+| `name` | TEXT | Nome completo |
+| `phone` | TEXT | Telefone (formato E.164: +351...) |
 | `email` | TEXT | Email |
-| `nif` | TEXT | NIF |
+| `birth_date` | DATE | Data de nascimento |
+| `notes` | TEXT | Notas sobre o paciente |
+| `tags` | TEXT[] | Tags/etiquetas |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+| `updated_at` | TIMESTAMPTZ | Última atualização |
 
 ### `professionals` (para lookup)
 
 | Coluna | Tipo | Descrição |
 |--------|------|-----------|
 | `id` | UUID | ID único |
-| `name` | TEXT | Nome |
+| `name` | TEXT | Nome completo |
 | `specialty_id` | UUID | FK → specialties |
+| `color` | TEXT | Cor na agenda (hex, default: #3b82f6) |
+| `avatar_url` | TEXT | URL do avatar |
+| `user_id` | UUID | FK → auth.users (conta de login) |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+
+### `specialties` (para lookup)
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | UUID | ID único |
+| `name` | TEXT | Nome da especialidade (ex: "Medicina Dentária", "Rejuvenescimento Facial") |
+| `created_at` | TIMESTAMPTZ | Data de criação |
+
+### `consultation_types` (para lookup)
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | UUID | ID único |
+| `name` | TEXT | Nome do tipo (ex: "Limpeza", "Extração", "Botox") |
+| `default_duration` | INTEGER | Duração padrão em minutos (default: 30) |
+| `color` | TEXT | Cor para UI |
+| `specialty_id` | UUID | FK → specialties (cada tipo pertence a uma especialidade) |
+| `created_at` | TIMESTAMPTZ | Data de criação |
 
 ---
 
@@ -467,7 +519,7 @@ Para sugestão de slots, há um passo adicional:
         ├─ type==INSERT → [Lookup paciente] → [Enviar notificação nova consulta]
         ├─ status changed to "cancelled" → [Lookup paciente] → [Enviar cancelamento]
         ├─ status changed to "no_show" → [Lookup paciente] → [Enviar no-show]
-        └─ finalized_at changed → [Wait 2h] → [Lookup paciente] → [Enviar review]
+        └─ finalized_at changed AND review_opt_out==false → [Wait 2h] → [Lookup paciente] → [Enviar review]
 ```
 
 ### Workflow 2: Lembrete 24h (diário às 08:00)

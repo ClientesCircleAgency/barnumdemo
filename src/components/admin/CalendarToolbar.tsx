@@ -86,7 +86,6 @@ export function CalendarToolbar({
 
   const statusOptions: { value: string; label: string }[] = [
     { value: 'all', label: 'Todos os estados' },
-    { value: 'scheduled', label: 'Marcadas' },
     { value: 'confirmed', label: 'Confirmadas' },
     { value: 'waiting', label: 'Em espera' },
     { value: 'in_progress', label: 'Em atendimento' },

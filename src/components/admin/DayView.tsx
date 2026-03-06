@@ -25,8 +25,6 @@ interface DayViewProps {
 
 // Status display configuration
 const statusConfig: Record<string, { label: string; shortLabel: string; bgClass: string; textClass: string; showDoubleCheck?: boolean }> = {
-  scheduled: { label: 'Enviado', shortLabel: 'Env.', bgClass: 'bg-card', textClass: 'text-muted-foreground' },
-  pre_confirmed: { label: 'Pré-confirmado', shortLabel: 'Pré', bgClass: 'bg-amber-50', textClass: 'text-amber-600' },
   confirmed: { label: 'Confirmado', shortLabel: 'Conf.', bgClass: 'bg-primary/5', textClass: 'text-primary', showDoubleCheck: true },
   waiting: { label: 'Em espera', shortLabel: 'Esp.', bgClass: 'bg-yellow-50', textClass: 'text-yellow-700' },
   in_progress: { label: 'Em atendimento', shortLabel: 'At.', bgClass: 'bg-orange-50', textClass: 'text-orange-700' },
@@ -85,7 +83,7 @@ export function DayView({ appointments, onAppointmentClick }: DayViewProps) {
         const professional = apt ? getProfessionalById(apt.professionalId) : null;
         const type = apt ? getConsultationTypeById(apt.consultationTypeId) : null;
         const slotSpan = apt ? getAppointmentSlotSpan(apt) : 1;
-        const status = apt ? statusConfig[apt.status] || statusConfig.scheduled : null;
+        const status = apt ? statusConfig[apt.status] || statusConfig.confirmed : null;
         
         // Calculate row height based on span
         const rowHeight = slotSpan > 1 ? `${slotSpan * 48}px` : undefined;
@@ -134,7 +132,7 @@ export function DayView({ appointments, onAppointmentClick }: DayViewProps) {
                     {status.showDoubleCheck && (
                       <CheckCheck className="h-3 w-3 lg:h-4 lg:w-4 text-primary" />
                     )}
-                    {!status.showDoubleCheck && apt.status === 'scheduled' && (
+                    {!status.showDoubleCheck && (
                       <Check className="h-3 w-3 lg:h-4 lg:w-4 text-muted-foreground" />
                     )}
                   </div>

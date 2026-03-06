@@ -564,14 +564,12 @@ export type Database = {
     Enums: {
       app_role: "admin" | "secretary" | "doctor"
       appointment_status:
-      | "scheduled"
       | "confirmed"
       | "waiting"
       | "in_progress"
       | "completed"
       | "cancelled"
       | "no_show"
-      | "pre_confirmed"
       request_status:
       | "pending"
       | "pre_confirmed"
@@ -725,14 +723,12 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       appointment_status: [
-        "scheduled",
         "confirmed",
         "waiting",
         "in_progress",
         "completed",
         "cancelled",
         "no_show",
-        "pre_confirmed",
       ],
       time_preference: ["morning", "afternoon", "any"],
       waitlist_priority: ["low", "medium", "high"],

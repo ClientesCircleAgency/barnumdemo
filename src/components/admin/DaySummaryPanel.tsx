@@ -20,7 +20,6 @@ export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryP
 
   // Contadores por estado
   const statusCounts = {
-    scheduled: todayAppointments.filter((a) => a.status === 'scheduled').length,
     confirmed: todayAppointments.filter((a) => a.status === 'confirmed').length,
     waiting: todayAppointments.filter((a) => a.status === 'waiting').length,
     in_progress: todayAppointments.filter((a) => a.status === 'in_progress').length,
@@ -52,12 +51,6 @@ export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryP
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-              <span className="text-blue-700">Marcadas</span>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {statusCounts.scheduled}
-              </Badge>
-            </div>
             <div className="flex items-center justify-between p-2 bg-green-50 rounded">
               <span className="text-green-700">Confirmadas</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">

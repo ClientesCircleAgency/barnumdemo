@@ -1,6 +1,6 @@
 # Supabase Database Webhooks — Setup Guide
 
-> **Versão:** 2.0 — 2026-02-04
+> **Versão:** 2.1 — 2026-02-04
 
 Este guia documenta como configurar os 3 Supabase Database Webhooks que enviam eventos ao n8n em tempo real.
 
@@ -57,10 +57,12 @@ Aciona automações WhatsApp quando consultas são criadas, canceladas, marcadas
     "time": "14:00",
     "duration": 30,
     "status": "confirmed",
+    "reason": "Check-up dentário",
     "notes": "...",
     "final_notes": null,
     "finalized_at": null,
     "cancellation_reason": null,
+    "review_opt_out": false,
     "created_at": "2026-02-04T10:00:00Z",
     "updated_at": "2026-02-04T10:00:00Z"
   },
@@ -77,7 +79,7 @@ Para eventos `UPDATE`, `old_record` contém os valores anteriores da linha.
 | `type == INSERT` | AUT-1: Notificação de nova consulta (one-way) |
 | `type == UPDATE` AND `old_record.status != cancelled` AND `record.status == cancelled` | AUT-5: Cancelamento |
 | `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: No-show |
-| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` | AUT-6: Review (2h delay no n8n) |
+| `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` AND `record.review_opt_out == false` | AUT-6: Review (2h delay no n8n) |
 
 ### Lembrete 24h (AUT-2)
 
@@ -155,7 +157,9 @@ Notificar o n8n quando a secretária sugere horários alternativos a um paciente
     ],
     "status": "pending",
     "accepted_slot": null,
-    "expires_at": "2026-02-11T23:59:59Z"
+    "expires_at": "2026-02-11T23:59:59Z",
+    "created_at": "2026-02-04T12:00:00Z",
+    "updated_at": "2026-02-04T12:00:00Z"
   },
   "old_record": null
 }
@@ -184,6 +188,8 @@ apikey: {SUPABASE_ANON_KEY}
 
 ```
 GET {SUPABASE_URL}/rest/v1/professionals?id=eq.<professional_id>&select=name
+GET {SUPABASE_URL}/rest/v1/specialties?id=eq.<specialty_id>&select=name
+GET {SUPABASE_URL}/rest/v1/consultation_types?id=eq.<consultation_type_id>&select=name
 ```
 
 O n8n tem integração nativa com Supabase — usar o Supabase Node é a forma mais simples.

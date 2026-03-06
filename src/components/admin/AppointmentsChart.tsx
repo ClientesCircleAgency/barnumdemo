@@ -46,27 +46,26 @@ export function AppointmentsChart() {
   const { data: settings } = useSettings();
   const [activePeriod, setActivePeriod] = useState<Period>('month');
 
-  // Consultas marcadas (scheduled, confirmed, pre_confirmed)
-  const scheduledAppointments = useMemo(() => {
+  const activeAppointments = useMemo(() => {
     return appointments.filter((a) => 
-      ['scheduled', 'confirmed', 'pre_confirmed', 'waiting', 'in_progress', 'completed'].includes(a.status)
+      ['confirmed', 'waiting', 'in_progress', 'completed'].includes(a.status)
     );
   }, [appointments]);
 
   // Map por data
-  const scheduledCountByDate = useMemo(() => {
+  const activeCountByDate = useMemo(() => {
     const map = new Map<string, number>();
-    for (const apt of scheduledAppointments) {
+    for (const apt of activeAppointments) {
       map.set(apt.date, (map.get(apt.date) ?? 0) + 1);
     }
     return map;
-  }, [scheduledAppointments]);
+  }, [activeAppointments]);
 
   // Map por data+hora (para gráfico diário)
-  const scheduledCountByHour = useMemo(() => {
+  const activeCountByHour = useMemo(() => {
     const map = new Map<string, number>();
     const today = format(new Date(), 'yyyy-MM-dd');
-    for (const apt of scheduledAppointments) {
+    for (const apt of activeAppointments) {
       if (apt.date === today && apt.time) {
         const hour = apt.time.substring(0, 2);
         const key = `${apt.date}-${hour}`;
@@ -74,7 +73,7 @@ export function AppointmentsChart() {
       }
     }
     return map;
-  }, [scheduledAppointments]);
+  }, [activeAppointments]);
 
   // Horário de funcionamento da clínica
   const clinicOpenHour = useMemo(() => {
@@ -91,14 +90,14 @@ export function AppointmentsChart() {
     const today = new Date();
     
     const getScheduledInPeriod = (start: Date, end: Date) => {
-      return scheduledAppointments.filter(apt => {
+      return activeAppointments.filter(apt => {
         const aptDate = parseISO(apt.date);
         return isWithinInterval(aptDate, { start, end });
       }).length;
     };
 
     // Today
-    const dayCount = scheduledAppointments.filter(apt => apt.date === format(today, 'yyyy-MM-dd')).length;
+    const dayCount = activeAppointments.filter(apt => apt.date === format(today, 'yyyy-MM-dd')).length;
     
     // This week
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
@@ -121,7 +120,7 @@ export function AppointmentsChart() {
       month: { count: monthCount },
       year: { count: yearCount },
     };
-  }, [scheduledAppointments]);
+  }, [activeAppointments]);
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -142,7 +141,7 @@ export function AppointmentsChart() {
       for (const hourDate of hours) {
         const hour = format(hourDate, 'HH');
         const key = `${todayStr}-${hour}`;
-        const count = scheduledCountByHour.get(key) ?? 0;
+        const count = activeCountByHour.get(key) ?? 0;
         cumulative += count;
         points.push({ t: hourDate.getTime(), value: cumulative });
       }
@@ -188,7 +187,7 @@ export function AppointmentsChart() {
 
         let monthCount = 0;
         for (const d of days) {
-          monthCount += scheduledCountByDate.get(dateKey(d)) ?? 0;
+          monthCount += activeCountByDate.get(dateKey(d)) ?? 0;
         }
 
         cumulative += monthCount;
@@ -201,13 +200,13 @@ export function AppointmentsChart() {
     // Semana / Mês: pontos diários
     const days = eachDayOfInterval(interval);
     for (const d of days) {
-      const count = scheduledCountByDate.get(dateKey(d)) ?? 0;
+      const count = activeCountByDate.get(dateKey(d)) ?? 0;
       cumulative += count;
       points.push({ t: endOfDay(d).getTime(), value: cumulative });
     }
 
     return points;
-  }, [activePeriod, scheduledCountByDate, scheduledCountByHour, clinicOpenHour]);
+  }, [activePeriod, activeCountByDate, activeCountByHour, clinicOpenHour]);
 
   const chartConfig = {
     value: {

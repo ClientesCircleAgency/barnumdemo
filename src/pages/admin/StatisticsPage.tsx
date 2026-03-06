@@ -22,7 +22,7 @@ import { BarChart3, CheckCircle2, Clock, ListChecks } from 'lucide-react';
 
 type Period = 'today' | 'week' | 'month' | 'year';
 
-const ACTIVE_STATUSES = ['scheduled', 'confirmed', 'completed'] as const;
+const ACTIVE_STATUSES = ['confirmed', 'waiting', 'in_progress', 'completed'] as const;
 
 export default function StatisticsPage() {
   const { appointments } = useClinic();
@@ -83,7 +83,7 @@ export default function StatisticsPage() {
   const kpis = useMemo(() => {
     return {
       total: periodAppointments.length,
-      pending: periodAppointments.filter(apt => apt.status === 'scheduled').length,
+      pending: periodAppointments.filter(apt => apt.status === 'confirmed').length,
       confirmed: periodAppointments.filter(apt => apt.status === 'confirmed').length,
       completed: periodAppointments.filter(apt => apt.status === 'completed').length,
     };
@@ -113,12 +113,9 @@ export default function StatisticsPage() {
   const statusData = useMemo(() => {
     const completed = periodAppointments.filter(apt => apt.status === 'completed').length;
     const confirmed = periodAppointments.filter(apt => apt.status === 'confirmed').length;
-    const scheduled = periodAppointments.filter(apt => apt.status === 'scheduled').length;
-
     return [
       { label: 'Concluídas', value: completed, color: 'hsl(var(--chart-1))' },
       { label: 'Confirmadas', value: confirmed, color: 'hsl(var(--chart-2))' },
-      { label: 'Agendadas', value: scheduled, color: 'hsl(var(--chart-3))' },
     ];
   }, [periodAppointments]);
 

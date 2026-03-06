@@ -60,7 +60,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
 
   const todayDate = new Date().toISOString().split('T')[0];
   const pendingToday = appointments.filter(
-    (a) => a.date === todayDate && (a.status === 'scheduled' || a.status === 'confirmed')
+    (a) => a.date === todayDate && a.status === 'confirmed'
   ).length;
   const pendingRequests = requests.filter(r => r.status === 'pending').length;
 

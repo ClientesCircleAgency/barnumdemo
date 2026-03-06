@@ -265,12 +265,6 @@ export function AppointmentDetailDrawer({
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-muted-foreground">Ações Rápidas</h4>
             <div className="grid grid-cols-2 gap-2">
-              {appointment.status === 'scheduled' && (
-                <Button variant="outline" size="sm" onClick={() => handleQuickAction('waiting')} className="gap-1">
-                  <Pause className="h-3 w-3" />
-                  Check-in
-                </Button>
-              )}
               {appointment.status === 'confirmed' && (
                 <Button variant="outline" size="sm" onClick={() => handleQuickAction('waiting')} className="gap-1">
                   <Pause className="h-3 w-3" />
