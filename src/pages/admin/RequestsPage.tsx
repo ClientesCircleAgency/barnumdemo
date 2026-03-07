@@ -754,7 +754,6 @@ export default function RequestsPage() {
         open={showAlternativesModal}
         onOpenChange={setShowAlternativesModal}
         request={selectedRequest}
-        onSendWhatsApp={handleSendWhatsApp}
       />
     </div>
   );

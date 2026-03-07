@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format, addDays, parse, isSameDay } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Calendar, Clock, MessageCircle, Send, User } from 'lucide-react';
 import {
@@ -14,7 +14,6 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useAppointments } from '@/hooks/useAppointments';
-import { useProfessionals } from '@/hooks/useProfessionals';
 import { useAddAppointmentSuggestion } from '@/hooks/useAppointmentSuggestions';
 import { toast } from 'sonner';
 import type { AppointmentRequest } from '@/hooks/useAppointmentRequests';
@@ -23,7 +22,6 @@ interface SuggestAlternativesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   request: AppointmentRequest | null;
-  onSendWhatsApp: (message: string, phone: string) => void;
 }
 
 interface TimeSlot {
@@ -42,16 +40,13 @@ export function SuggestAlternativesModal({
   open,
   onOpenChange,
   request,
-  onSendWhatsApp,
 }: SuggestAlternativesModalProps) {
   const { data: appointments = [] } = useAppointments();
-  const { data: professionals = [] } = useProfessionals();
   const addSuggestion = useAddAppointmentSuggestion();
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'same-time' | 'same-day'>('same-time');
   const [isSending, setIsSending] = useState(false);
 
-  // Find available slots at the same time on different days
   const sameTimeSlots = useMemo(() => {
     if (!request) return [];
 
@@ -62,7 +57,6 @@ export function SuggestAlternativesModal({
       const date = addDays(new Date(), i);
       const dateStr = format(date, 'yyyy-MM-dd');
 
-      // Check if this time slot is available
       const hasAppointment = appointments.some(
         apt => apt.date === dateStr && apt.time === requestedTime
       );
@@ -77,7 +71,6 @@ export function SuggestAlternativesModal({
     return slots.filter(s => s.isAvailable);
   }, [request, appointments]);
 
-  // Find available slots on the same day at different times
   const sameDaySlots = useMemo(() => {
     if (!request) return [];
 
@@ -107,62 +100,29 @@ export function SuggestAlternativesModal({
     );
   };
 
-  const generateWhatsAppMessage = () => {
-    if (!request || selectedSlots.length === 0) return '';
-
-    const slotsText = selectedSlots.map(slotKey => {
-      const [dateStr, time] = slotKey.split('|');
-      const date = new Date(dateStr);
-      return `• ${format(date, "EEEE, d 'de' MMMM", { locale: pt })} às ${time}`;
-    }).join('\n');
-
-    return `Olá ${request.name.split(' ')[0]}! 👋
-
-Obrigado pelo seu pedido de marcação.
-
-Infelizmente, o horário que solicitou (${format(new Date(request.preferred_date), "d 'de' MMMM", { locale: pt })} às ${request.preferred_time}) não está disponível.
-
-Temos disponibilidade nos seguintes horários:
-${slotsText}
-
-Para confirmar, responda com o número da opção pretendida ou contacte-nos.
-
-Clínica Barnun`;
-  };
-
   const handleSend = async () => {
     if (!request) return;
     setIsSending(true);
     
     try {
-      // Build slots array with date/time objects
       const slots = selectedSlots.map(slotKey => {
         const [dateStr, time] = slotKey.split('|');
-        return {
-          date: dateStr,
-          time: time,
-        };
+        return { date: dateStr, time };
       });
 
-      // Persist to appointment_suggestions table
-      // This will trigger the WhatsApp workflow via DB trigger (trigger_send_appointment_suggestion)
       await addSuggestion.mutateAsync({
         appointment_request_id: request.id,
-        patient_id: request.id, // TODO: This should be actual patient_id when request is linked to patient
-        suggested_slots: slots, // JSONB array of {date, time} objects
+        patient_id: request.id,
+        suggested_slots: slots,
         status: 'pending',
       });
-
-      // Also send WhatsApp message via the external handler
-      const message = generateWhatsAppMessage();
-      onSendWhatsApp(message, request.phone);
       
-      toast.success('Sugestões enviadas com sucesso');
+      toast.success('Sugestões guardadas com sucesso');
       onOpenChange(false);
       setSelectedSlots([]);
     } catch (error) {
       console.error('Error saving appointment suggestions:', error);
-      toast.error('Erro ao enviar sugestões');
+      toast.error('Erro ao guardar sugestões');
     } finally {
       setIsSending(false);
     }
@@ -177,13 +137,12 @@ Clínica Barnun`;
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-green-600" />
+            <MessageCircle className="h-5 w-5 text-primary" />
             Sugerir Horários Alternativos
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Request Info */}
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -198,7 +157,6 @@ Clínica Barnun`;
             </div>
           </div>
 
-          {/* Tabs for different suggestion types */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'same-time' | 'same-day')}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="same-time" className="gap-2">
@@ -223,7 +181,6 @@ Clínica Barnun`;
             </TabsContent>
           </Tabs>
 
-          {/* Available Slots */}
           {currentSlots.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Não há horários disponíveis nesta opção
@@ -267,16 +224,6 @@ Clínica Barnun`;
               })}
             </div>
           )}
-
-          {/* Message Preview */}
-          {selectedSlots.length > 0 && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-xs font-medium text-green-800 mb-2">Pré-visualização da mensagem:</p>
-              <p className="text-xs text-green-700 whitespace-pre-line line-clamp-4">
-                {generateWhatsAppMessage()}
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
@@ -286,10 +233,10 @@ Clínica Barnun`;
           <Button
             onClick={handleSend}
             disabled={selectedSlots.length === 0 || isSending}
-            className="gap-2 bg-green-600 hover:bg-green-700"
+            className="gap-2"
           >
             <Send className="h-4 w-4" />
-            {isSending ? 'A enviar...' : 'Enviar WhatsApp'}
+            {isSending ? 'A enviar...' : 'Enviar Sugestões'}
           </Button>
         </DialogFooter>
       </DialogContent>
