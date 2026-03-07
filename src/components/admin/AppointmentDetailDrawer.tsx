@@ -1,21 +1,12 @@
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
-  X,
   User,
   Calendar,
   Clock,
   FileText,
   Phone,
   Mail,
-  Edit,
-  Trash2,
-  Bell,
-  UserX,
-  CheckCircle,
-  PlayCircle,
-  Pause,
-  CalendarClock,
   ClipboardCheck,
   Star,
 } from 'lucide-react';
@@ -25,59 +16,28 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import { StatusBadge } from './StatusBadge';
-import { useToast } from '@/hooks/use-toast';
-import type { ClinicAppointment, AppointmentStatus } from '@/types/clinic';
-import { appointmentStatusLabels } from '@/types/clinic';
-import { useState } from 'react';
+import type { ClinicAppointment } from '@/types/clinic';
 
 interface AppointmentDetailDrawerProps {
   appointment: ClinicAppointment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit?: (appointment: ClinicAppointment) => void;
 }
 
 export function AppointmentDetailDrawer({
   appointment,
   open,
   onOpenChange,
-  onEdit,
 }: AppointmentDetailDrawerProps) {
-  const { toast } = useToast();
   const {
     getPatientById,
     getProfessionalById,
     getConsultationTypeById,
     getSpecialtyById,
-    updateAppointment,
-    updateAppointmentStatus,
-    deleteAppointment,
   } = useClinic();
-
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
 
   if (!appointment) return null;
 
@@ -85,73 +45,6 @@ export function AppointmentDetailDrawer({
   const professional = getProfessionalById(appointment.professionalId);
   const consultationType = getConsultationTypeById(appointment.consultationTypeId);
   const specialty = getSpecialtyById(appointment.specialtyId);
-  const handleStatusChange = (newStatus: AppointmentStatus) => {
-    updateAppointmentStatus(appointment.id, newStatus);
-    toast({
-      title: 'Estado atualizado',
-      description: `Consulta marcada como "${appointmentStatusLabels[newStatus]}"`,
-    });
-  };
-
-  const handleQuickAction = (action: 'cancel' | 'no_show' | 'complete' | 'start' | 'waiting' | 'reschedule') => {
-    if (action === 'cancel') {
-      setShowCancelDialog(true);
-      return;
-    }
-    if (action === 'reschedule') {
-      setShowRescheduleDialog(true);
-      return;
-    }
-    
-    const statusMap: Record<string, AppointmentStatus> = {
-      no_show: 'no_show',
-      complete: 'completed',
-      start: 'in_progress',
-      waiting: 'waiting',
-    };
-    handleStatusChange(statusMap[action]);
-  };
-
-  const handleCancelWithReason = () => {
-    if (!cancellationReason.trim()) {
-      toast({
-        title: 'Motivo obrigatório',
-        description: 'Por favor indique o motivo do cancelamento',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Save cancellation reason + update status
-    updateAppointment(appointment.id, {
-      status: 'cancelled',
-      cancellationReason: cancellationReason.trim(),
-    });
-    
-    toast({
-      title: 'Consulta cancelada',
-      description: `Motivo: ${cancellationReason}`,
-    });
-    
-    setShowCancelDialog(false);
-    setCancellationReason('');
-  };
-
-  const handleDelete = () => {
-    deleteAppointment(appointment.id);
-    onOpenChange(false);
-    toast({
-      title: 'Consulta eliminada',
-      description: 'A consulta foi removida do sistema.',
-    });
-  };
-
-  const handleSendReminder = () => {
-    toast({
-      title: 'Lembrete enviado',
-      description: 'O paciente foi notificado por SMS/Email.',
-    });
-  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -280,167 +173,18 @@ export function AppointmentDetailDrawer({
             </>
           )}
 
-          <Separator />
-
-          {/* Alterar estado */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Alterar Estado</h4>
-            <Select value={appointment.status} onValueChange={handleStatusChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50">
-                {Object.entries(appointmentStatusLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Ações rápidas */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Ações Rápidas</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {appointment.status === 'confirmed' && (
-                <Button variant="outline" size="sm" onClick={() => handleQuickAction('waiting')} className="gap-1">
-                  <Pause className="h-3 w-3" />
-                  Check-in
-                </Button>
-              )}
-              {appointment.status === 'waiting' && (
-                <Button variant="outline" size="sm" onClick={() => handleQuickAction('start')} className="gap-1">
-                  <PlayCircle className="h-3 w-3" />
-                  Iniciar
-                </Button>
-              )}
-              {appointment.status === 'in_progress' && (
-                <Button variant="outline" size="sm" onClick={() => handleQuickAction('complete')} className="gap-1">
-                  <CheckCircle className="h-3 w-3" />
-                  Concluir
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={handleSendReminder} className="gap-1">
-                <Bell className="h-3 w-3" />
-                Lembrete
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleQuickAction('reschedule')} className="gap-1">
-                <CalendarClock className="h-3 w-3" />
-                Reagendar
-              </Button>
-              {onEdit && (
-                <Button variant="outline" size="sm" onClick={() => onEdit(appointment)} className="gap-1">
-                  <Edit className="h-3 w-3" />
-                  Editar
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Ações destrutivas */}
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-start text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"
-              onClick={() => handleQuickAction('no_show')}
-            >
-              <UserX className="h-4 w-4 mr-2" />
-              Marcar como Não Compareceu
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={() => handleQuickAction('cancel')}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Cancelar Consulta
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-destructive hover:text-destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar Definitivamente
-            </Button>
-          </div>
+          {/* Cancellation reason */}
+          {appointment.status === 'cancelled' && appointment.cancellationReason && (
+            <>
+              <Separator />
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Motivo do Cancelamento</h4>
+                <p className="text-sm p-3 bg-red-50 rounded-lg text-red-700">{appointment.cancellationReason}</p>
+              </div>
+            </>
+          )}
         </div>
       </SheetContent>
-
-      {/* Cancellation Reason Dialog */}
-      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cancelar Consulta</DialogTitle>
-            <DialogDescription>
-              Por favor indique o motivo do cancelamento (obrigatório)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cancellation-reason">Motivo do Cancelamento <span className="text-destructive">*</span></Label>
-              <Textarea
-                id="cancellation-reason"
-                value={cancellationReason}
-                onChange={(e) => setCancellationReason(e.target.value)}
-                placeholder="Ex: Paciente solicitou cancelamento, conflito de agenda, etc."
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>
-              Voltar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleCancelWithReason}
-              disabled={!cancellationReason.trim()}
-            >
-              Confirmar Cancelamento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Reschedule Dialog */}
-      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reagendar Consulta</DialogTitle>
-            <DialogDescription>
-              Oferecer novas opções de horário ao paciente via WhatsApp
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Esta ação irá:
-              <br />• Marcar a consulta atual como "cancelada"
-              <br />• Enviar sugestões de horários alternativos ao paciente
-              <br />• Aguardar resposta do paciente para confirmar novo horário
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>
-              Voltar
-            </Button>
-            <Button onClick={() => {
-              handleQuickAction('cancel');
-              setShowRescheduleDialog(false);
-              toast({
-                title: 'Reagendamento iniciado',
-                description: 'Consulta cancelada. Use "Sugerir Alternativas" para enviar horários ao paciente.',
-              });
-            }}>
-              Continuar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Sheet>
   );
 }
