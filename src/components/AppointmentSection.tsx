@@ -4,10 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { CalendarIcon, Clock, Send, Smile, Sparkles } from 'lucide-react';
-import * as Icons from 'lucide-react';
+import { CalendarIcon, Clock, Send, Smile, Sparkles, Loader2 } from 'lucide-react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useAddAppointmentRequest } from '@/hooks/useAppointmentRequests';
+import { useSpecialties } from '@/hooks/useSpecialties';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +41,7 @@ const appointmentSchema = z.object({
   countryCode: z.enum(['PT', 'BR'] as const),
   phone: z.string().min(1, 'Telefone obrigatório').max(20),
   nif: z.string().length(9, 'NIF deve ter 9 dígitos').regex(/^\d+$/, 'NIF deve conter apenas números'),
-  serviceType: z.enum(['dentaria', 'rejuvenescimento'], { required_error: 'Selecione o tipo de consulta' }),
+  serviceType: z.string({ required_error: 'Selecione o tipo de consulta' }).uuid('Selecione o tipo de consulta'),
   reason: z.string().min(10, 'Por favor descreva o motivo da consulta (mínimo 10 caracteres)'),
   preferredDate: z.string().min(1, 'Selecione uma data'),
   preferredTime: z.string().min(1, 'Selecione uma hora'),
@@ -63,9 +63,15 @@ const timeSlots = [
   '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
 ];
 
+const SPECIALTY_ICONS: Record<string, React.ElementType> = {
+  'Rejuvenescimento Facial': Sparkles,
+  'Medicina Dentária': Smile,
+};
+
 export function AppointmentSection() {
   const { ref, isVisible } = useIntersectionObserver({ threshold: 0.1 });
   const addRequest = useAddAppointmentRequest();
+  const { data: specialties, isLoading: loadingSpecialties } = useSpecialties();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedCountry, setSelectedCountry] = useState<CountryKey>('PT');
   const { toast } = useToast();
@@ -84,12 +90,6 @@ export function AppointmentSection() {
 
   const watchServiceType = watch('serviceType');
 
-  // IDs retrieved from Supabase audit/migration logs
-  const SPECIALTY_IDS = {
-    dentaria: '22222222-2222-2222-2222-222222222222',
-    rejuvenescimento: '11111111-1111-1111-1111-111111111111', // Repurposed/New ID
-  };
-
   const onSubmit = async (data: AppointmentFormData) => {
     try {
       const cleanDigits = data.phone.replace(/\s/g, '');
@@ -101,7 +101,7 @@ export function AppointmentSection() {
         phone: fullPhone,
         nif: data.nif,
         reason: data.reason,
-        specialty_id: SPECIALTY_IDS[data.serviceType],
+        specialty_id: data.serviceType,
         preferred_date: data.preferredDate,
         preferred_time: data.preferredTime,
       });
@@ -160,46 +160,41 @@ export function AppointmentSection() {
             {/* Service Type Selection */}
             <div className="mb-8">
               <Label className="text-base font-medium mb-4 block">Tipo de Consulta</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setValue('serviceType', 'rejuvenescimento' as any)}
-                  className={cn(
-                    "p-6 rounded-2xl border-2 transition-all text-center",
-                    watchServiceType === 'rejuvenescimento' as any
-                      ? "border-primary bg-accent"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <Icons.Sparkles className={cn(
-                    "w-8 h-8 mx-auto mb-3",
-                    watchServiceType === 'rejuvenescimento' as any ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "font-medium",
-                    watchServiceType === 'rejuvenescimento' as any ? "text-primary" : "text-foreground"
-                  )}>Rejuvenescimento</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setValue('serviceType', 'dentaria')}
-                  className={cn(
-                    "p-6 rounded-2xl border-2 transition-all text-center",
-                    watchServiceType === 'dentaria'
-                      ? "border-primary bg-accent"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <Smile className={cn(
-                    "w-8 h-8 mx-auto mb-3",
-                    watchServiceType === 'dentaria' ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "font-medium",
-                    watchServiceType === 'dentaria' ? "text-primary" : "text-foreground"
-                  )}>Medicina Dentária</span>
-                </button>
-              </div>
+              {loadingSpecialties ? (
+                <div className="flex items-center justify-center py-8 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <span>A carregar especialidades...</span>
+                </div>
+              ) : (
+                <div className={cn("grid gap-4", (specialties?.length ?? 0) <= 3 ? `grid-cols-${specialties?.length ?? 2}` : "grid-cols-2 md:grid-cols-3")}>
+                  {specialties?.map((spec) => {
+                    const Icon = SPECIALTY_ICONS[spec.name] ?? Sparkles;
+                    const isSelected = watchServiceType === spec.id;
+                    return (
+                      <button
+                        key={spec.id}
+                        type="button"
+                        onClick={() => setValue('serviceType', spec.id, { shouldValidate: true })}
+                        className={cn(
+                          "p-6 rounded-2xl border-2 transition-all text-center",
+                          isSelected
+                            ? "border-primary bg-accent"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <Icon className={cn(
+                          "w-8 h-8 mx-auto mb-3",
+                          isSelected ? "text-primary" : "text-muted-foreground"
+                        )} />
+                        <span className={cn(
+                          "font-medium",
+                          isSelected ? "text-primary" : "text-foreground"
+                        )}>{spec.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {errors.serviceType && (
                 <p className="text-sm text-destructive mt-2">{errors.serviceType.message}</p>
               )}
