@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/admin/PageHeader';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClinic } from '@/context/ClinicContext';
+import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
 import {
   format,
   startOfWeek,
@@ -26,6 +27,7 @@ const ACTIVE_STATUSES = ['confirmed', 'waiting', 'in_progress', 'completed'] as 
 
 export default function StatisticsPage() {
   const { appointments } = useClinic();
+  const { data: allRequests = [] } = useAppointmentRequests();
   const [activePeriod, setActivePeriod] = useState<Period>('month');
 
   // Filter to only active statuses (Barnum logic)
@@ -79,15 +81,30 @@ export default function StatisticsPage() {
     });
   }, [activeAppointments, activePeriod, periodBounds]);
 
-  // KPI Calculations (Barnum logic)
+  // Filter pending requests by period (using preferred_date)
+  const periodPendingRequests = useMemo(() => {
+    const pending = allRequests.filter(r => r.status === 'pending');
+
+    if (activePeriod === 'today') {
+      return pending.filter(r => r.preferred_date === periodBounds.compareStr);
+    }
+
+    return pending.filter(r => {
+      if (!r.preferred_date) return false;
+      const reqDate = parseISO(r.preferred_date);
+      return isWithinInterval(reqDate, { start: periodBounds.start, end: periodBounds.end });
+    });
+  }, [allRequests, activePeriod, periodBounds]);
+
+  // KPI Calculations
   const kpis = useMemo(() => {
     return {
-      total: periodAppointments.length,
-      pending: periodAppointments.filter(apt => apt.status === 'confirmed').length,
+      total: periodAppointments.length + periodPendingRequests.length,
+      pending: periodPendingRequests.length,
       confirmed: periodAppointments.filter(apt => apt.status === 'confirmed').length,
       completed: periodAppointments.filter(apt => apt.status === 'completed').length,
     };
-  }, [periodAppointments]);
+  }, [periodAppointments, periodPendingRequests]);
 
   // Chart 1: Tendência (Últimos 7 Dias)
   const trendData = useMemo(() => {
@@ -111,13 +128,19 @@ export default function StatisticsPage() {
 
   // Chart 2: Por Estado
   const statusData = useMemo(() => {
-    const completed = periodAppointments.filter(apt => apt.status === 'completed').length;
+    const pending = periodPendingRequests.length;
     const confirmed = periodAppointments.filter(apt => apt.status === 'confirmed').length;
+    const waiting = periodAppointments.filter(apt => apt.status === 'waiting').length;
+    const inProgress = periodAppointments.filter(apt => apt.status === 'in_progress').length;
+    const completed = periodAppointments.filter(apt => apt.status === 'completed').length;
     return [
-      { label: 'Concluídas', value: completed, color: 'hsl(var(--chart-1))' },
+      { label: 'Pendentes', value: pending, color: 'hsl(var(--chart-3))' },
       { label: 'Confirmadas', value: confirmed, color: 'hsl(var(--chart-2))' },
-    ];
-  }, [periodAppointments]);
+      { label: 'Em Espera', value: waiting, color: 'hsl(var(--chart-4))' },
+      { label: 'Em Atendimento', value: inProgress, color: 'hsl(var(--chart-5))' },
+      { label: 'Concluídas', value: completed, color: 'hsl(var(--chart-1))' },
+    ].filter(s => s.value > 0);
+  }, [periodAppointments, periodPendingRequests]);
 
   // Chart 3: Por Dia da Semana
   const weekdayData = useMemo(() => {
