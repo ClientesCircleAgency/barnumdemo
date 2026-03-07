@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useClinic } from '@/context/ClinicContext';
 import { AppointmentWizard } from '@/components/admin/AppointmentWizard';
+import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
 import { appointmentStatusLabels } from '@/types/clinic';
+import type { ClinicAppointment } from '@/types/clinic';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -17,6 +19,8 @@ export default function PatientDetailPage() {
   const { getPatientById, getAppointmentsByPatient, getProfessionalById, getConsultationTypeById } = useClinic();
 
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<ClinicAppointment | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const patient = getPatientById(id || '');
   const appointments = getAppointmentsByPatient(id || '').sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
@@ -95,7 +99,7 @@ export default function PatientDetailPage() {
                   const professional = getProfessionalById(apt.professionalId);
                   const consultationType = getConsultationTypeById(apt.consultationTypeId);
                   return (
-                    <div key={apt.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer">
+                    <div key={apt.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => { setSelectedAppointment(apt); setDrawerOpen(true); }}>
                       <div className="text-center min-w-20"><p className="text-lg font-bold">{format(new Date(apt.date), 'dd', { locale: pt })}</p><p className="text-xs text-muted-foreground uppercase">{format(new Date(apt.date), 'MMM yyyy', { locale: pt })}</p></div>
                       <div className="flex-1"><div className="flex items-center gap-2"><span className="font-medium">{apt.time}</span><span className="text-muted-foreground">•</span><span>{consultationType?.name || 'Consulta'}</span></div><p className="text-sm text-muted-foreground">{professional?.name}</p></div>
                       <Badge className={getStatusColor(apt.status)}>{appointmentStatusLabels[apt.status]}</Badge>
@@ -109,6 +113,11 @@ export default function PatientDetailPage() {
       </div>
 
       <AppointmentWizard open={wizardOpen} onOpenChange={setWizardOpen} preselectedPatient={patient} />
+      <AppointmentDetailDrawer
+        appointment={selectedAppointment}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
     </div>
   );
 }

@@ -16,6 +16,8 @@ import {
   PlayCircle,
   Pause,
   CalendarClock,
+  ClipboardCheck,
+  Star,
 } from 'lucide-react';
 import {
   Sheet,
@@ -238,6 +240,42 @@ export function AppointmentDetailDrawer({
                   Observações
                 </h4>
                 <p className="text-sm p-3 bg-muted/50 rounded-lg">{appointment.notes}</p>
+              </div>
+            </>
+          )}
+
+          {/* Finalization details */}
+          {appointment.finalizedAt && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  Finalização
+                </h4>
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Finalizada em</span>
+                    <span className="font-medium">
+                      {format(new Date(appointment.finalizedAt), "d MMM yyyy, HH:mm", { locale: pt })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Star className="h-3 w-3" />
+                      Review
+                    </span>
+                    <span className={`text-sm font-medium ${appointment.reviewOptOut ? 'text-muted-foreground' : 'text-green-600'}`}>
+                      {appointment.reviewOptOut ? 'Não enviado' : 'Enviado ao paciente'}
+                    </span>
+                  </div>
+                </div>
+                {appointment.finalNotes && (
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-muted-foreground">Notas Finais</h5>
+                    <p className="text-sm p-3 bg-muted/50 rounded-lg whitespace-pre-wrap">{appointment.finalNotes}</p>
+                  </div>
+                )}
               </div>
             </>
           )}
