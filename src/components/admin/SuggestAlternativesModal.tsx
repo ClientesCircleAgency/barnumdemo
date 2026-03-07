@@ -35,7 +35,7 @@ interface TimeSlot {
 const WORKING_HOURS = [
   '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
   '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-  '16:00', '16:30', '17:00', '17:30', '18:00'
+  '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
 ];
 
 export function SuggestAlternativesModal({
@@ -74,7 +74,7 @@ export function SuggestAlternativesModal({
       });
     }
 
-    return slots.filter(s => s.isAvailable).slice(0, 6);
+    return slots.filter(s => s.isAvailable);
   }, [request, appointments]);
 
   // Find available slots on the same day at different times
@@ -96,7 +96,7 @@ export function SuggestAlternativesModal({
       };
     });
 
-    return slots.filter(s => s.isAvailable).slice(0, 8);
+    return slots.filter(s => s.isAvailable);
   }, [request, appointments]);
 
   const toggleSlot = (slotKey: string) => {
@@ -229,7 +229,7 @@ Clínica Barnun`;
               Não há horários disponíveis nesta opção
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
               {currentSlots.map((slot) => {
                 const slotKey = `${format(slot.date, 'yyyy-MM-dd')}|${slot.time}`;
                 const isSelected = selectedSlots.includes(slotKey);
