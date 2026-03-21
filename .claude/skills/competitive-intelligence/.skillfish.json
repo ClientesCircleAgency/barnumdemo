@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "competitive-intelligence",
+  "owner": "anthropics",
+  "repo": "knowledge-work-plugins",
+  "path": "sales/skills/competitive-intelligence",
+  "branch": "main",
+  "sha": "72f4c7c2ca58ba29398fa4e36d70cfa466155c36",
+  "source": "manual"
+}

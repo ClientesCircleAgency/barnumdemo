@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "account-research",
+  "owner": "anthropics",
+  "repo": "knowledge-work-plugins",
+  "path": "partner-built/common-room/skills/account-research",
+  "branch": "main",
+  "sha": "7bae52a5063d76715dc926ebf44ae666e15aca44",
+  "source": "manual"
+}

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "campaign-planning",
+  "owner": "anthropics",
+  "repo": "knowledge-work-plugins",
+  "path": "marketing/skills/campaign-planning",
+  "branch": "main",
+  "sha": "a39da767740121a8b4d0d927918a1b7bb9b5959a",
+  "source": "manual"
+}

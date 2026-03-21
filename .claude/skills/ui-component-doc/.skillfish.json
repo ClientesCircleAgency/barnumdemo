@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "ui-component-doc",
+  "owner": "medusajs",
+  "repo": "medusa",
+  "path": ".claude/skills/ui-component-doc",
+  "branch": "develop",
+  "sha": "3b3e6f0f9e022c984f4c2fc539668a34fc8bcc8a",
+  "source": "manual"
+}

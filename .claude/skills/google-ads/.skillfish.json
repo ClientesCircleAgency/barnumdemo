@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "google-ads",
+  "owner": "jdrhyne",
+  "repo": "agent-skills",
+  "path": "skills/google-ads",
+  "branch": "main",
+  "sha": "94470efe5149bdc2d7d33cefa056af43e9605376",
+  "source": "manual"
+}
