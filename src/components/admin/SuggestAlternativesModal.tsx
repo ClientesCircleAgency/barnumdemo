@@ -156,6 +156,8 @@ export function SuggestAlternativesModal({
         preferred_date: request.preferred_date,
         preferred_time: request.preferred_time,
         reason: request.reason,
+        estimated_duration: request.estimated_duration,
+        professional_name: request.professional_name,
       });
 
       toast.success('Sugestões guardadas com sucesso');

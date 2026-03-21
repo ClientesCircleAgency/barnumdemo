@@ -8,10 +8,16 @@ export interface AppointmentRequest {
   phone: string;
   nif: string;
   specialty_id: string;
+  specialty_name: string | null;
   reason: string;
   preferred_date: string;
   preferred_time: string;
+  estimated_duration: number | null;
+  assigned_professional_id: string | null;
+  professional_name: string | null;
   status: 'pending' | 'approved' | 'rejected' | 'converted';
+  rejection_reason: string | null;
+  cancel_reason: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
