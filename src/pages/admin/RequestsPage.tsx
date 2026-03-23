@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useContactMessages, useUpdateContactMessageStatus, type ContactMessage } from '@/hooks/useContactMessages';
 import { useAppointments } from '@/hooks/useAppointments';
-
+import { usePatients } from '@/hooks/usePatients';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
 import { useProfessionals } from '@/hooks/useProfessionals';
