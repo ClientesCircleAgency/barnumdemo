@@ -25,10 +25,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAppointmentRequests, useUpdateAppointmentRequestStatus, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
+import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useContactMessages, useUpdateContactMessageStatus, type ContactMessage } from '@/hooks/useContactMessages';
-import { usePatients, useAddPatient } from '@/hooks/usePatients';
-import { useAddAppointment, useAppointments } from '@/hooks/useAppointments';
+import { useAppointments } from '@/hooks/useAppointments';
 
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
@@ -50,9 +49,8 @@ export default function RequestsPage() {
   const { data: allAppointments = [] } = useAppointments();
 
   const updateRequestStatus = useUpdateAppointmentRequestStatus();
+  const convertRequest = useConvertRequestToAppointment();
   const updateMessageStatus = useUpdateContactMessageStatus();
-  const addPatient = useAddPatient();
-  const addAppointment = useAddAppointment();
 
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,7 +129,7 @@ export default function RequestsPage() {
 
   const hasAvailableDoctors = availableProfessionalIds.length > 0;
 
-  // Convert request to confirmed appointment
+  // Convert request to confirmed appointment via RPC
   const handleConvertToAppointment = async () => {
     if (!selectedRequest) return;
     if (!selectedConsultationTypeId) {
@@ -149,53 +147,17 @@ export default function RequestsPage() {
 
     setIsConverting(true);
     try {
-      // 1. Find or create patient
-      let patient = patients.find(p => p.nif === selectedRequest.nif);
-
-      if (!patient) {
-        const newPatient = await addPatient.mutateAsync({
-          nif: selectedRequest.nif,
-          name: selectedRequest.name,
-          phone: selectedRequest.phone,
-          email: selectedRequest.email,
-        });
-        patient = newPatient;
-      }
-
-      // 2. Validate professional and consultation type
-      const professional = professionals.find(p => p.id === selectedProfessionalId);
-      if (!professional) {
-        toast.error('Profissional não encontrado.');
-        return;
-      }
-
-      const specialtyId = selectedRequest.specialty_id || professional.specialty_id;
-      if (!specialtyId) {
-        toast.error('Especialidade não encontrada. Verifique a configuração do pedido.');
-        return;
-      }
-
-      // 3. Create confirmed appointment with MANUAL duration
-      await addAppointment.mutateAsync({
-        patient_id: patient.id,
-        professional_id: professional.id,
-        specialty_id: specialtyId,
+      await convertRequest.mutateAsync({
+        request_id: selectedRequest.id,
+        professional_id: selectedProfessionalId,
         consultation_type_id: selectedConsultationTypeId,
-        date: selectedRequest.preferred_date,
-        time: selectedRequest.preferred_time,
-        duration: duration,
-        status: 'confirmed',
-        notes: `Convertido de pedido online. NIF: ${selectedRequest.nif} | Motivo: ${selectedRequest.reason}`,
+        duration,
       });
-
-      // 4. Update request status
-      await updateRequestStatus.mutateAsync({ id: selectedRequest.id, status: 'converted' });
 
       toast.success('Consulta confirmada criada com sucesso.');
       setSelectedRequest(null);
     } catch (error: any) {
-      console.error('Error converting request:', error);
-      const msg = error?.message || error?.error_description || JSON.stringify(error) || 'Erro desconhecido';
+      const msg = error?.message || 'Erro desconhecido';
       toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);

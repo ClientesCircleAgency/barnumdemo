@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       appointment_requests: {
         Row: {
+          accepted_slot: Json | null
           assigned_professional_id: string | null
           cancel_reason: string | null
           created_at: string
@@ -33,9 +34,12 @@ export type Database = {
           specialty_id: string
           specialty_name: string | null
           status: Database["public"]["Enums"]["request_status"]
+          suggested_slots: Json
+          suggestion_expires_at: string | null
           updated_at: string
         }
         Insert: {
+          accepted_slot?: Json | null
           assigned_professional_id?: string | null
           cancel_reason?: string | null
           created_at?: string
@@ -53,9 +57,12 @@ export type Database = {
           specialty_id: string
           specialty_name?: string | null
           status?: Database["public"]["Enums"]["request_status"]
+          suggested_slots?: Json
+          suggestion_expires_at?: string | null
           updated_at?: string
         }
         Update: {
+          accepted_slot?: Json | null
           assigned_professional_id?: string | null
           cancel_reason?: string | null
           created_at?: string
@@ -73,6 +80,8 @@ export type Database = {
           specialty_id?: string
           specialty_name?: string | null
           status?: Database["public"]["Enums"]["request_status"]
+          suggested_slots?: Json
+          suggestion_expires_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -85,83 +94,6 @@ export type Database = {
           },
           {
             foreignKeyName: "appointment_requests_specialty_id_fkey"
-            columns: ["specialty_id"]
-            isOneToOne: false
-            referencedRelation: "specialties"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      appointment_suggestions: {
-        Row: {
-          accepted_slot: Json | null
-          appointment_request_id: string | null
-          created_at: string | null
-          estimated_duration: number | null
-          expires_at: string | null
-          id: string
-          patient_email: string | null
-          patient_id: string | null
-          patient_name: string | null
-          patient_nif: string | null
-          patient_phone: string | null
-          preferred_date: string | null
-          preferred_time: string | null
-          professional_name: string | null
-          reason: string | null
-          specialty_id: string | null
-          specialty_name: string | null
-          status: string | null
-          suggested_slots: Json
-          updated_at: string | null
-        }
-        Insert: {
-          accepted_slot?: Json | null
-          appointment_request_id?: string | null
-          created_at?: string | null
-          estimated_duration?: number | null
-          expires_at?: string | null
-          id?: string
-          patient_email?: string | null
-          patient_id?: string | null
-          patient_name?: string | null
-          patient_nif?: string | null
-          patient_phone?: string | null
-          preferred_date?: string | null
-          preferred_time?: string | null
-          professional_name?: string | null
-          reason?: string | null
-          specialty_id?: string | null
-          specialty_name?: string | null
-          status?: string | null
-          suggested_slots?: Json
-          updated_at?: string | null
-        }
-        Update: {
-          accepted_slot?: Json | null
-          appointment_request_id?: string | null
-          created_at?: string | null
-          estimated_duration?: number | null
-          expires_at?: string | null
-          id?: string
-          patient_email?: string | null
-          patient_id?: string | null
-          patient_name?: string | null
-          patient_nif?: string | null
-          patient_phone?: string | null
-          preferred_date?: string | null
-          preferred_time?: string | null
-          professional_name?: string | null
-          reason?: string | null
-          specialty_id?: string | null
-          specialty_name?: string | null
-          status?: string | null
-          suggested_slots?: Json
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "appointment_suggestions_specialty_id_fkey"
             columns: ["specialty_id"]
             isOneToOne: false
             referencedRelation: "specialties"

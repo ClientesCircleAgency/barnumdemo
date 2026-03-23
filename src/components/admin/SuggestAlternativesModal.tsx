@@ -16,8 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
-import { useSpecialties } from '@/hooks/useSpecialties';
-import { useAddAppointmentSuggestion } from '@/hooks/useAppointmentSuggestions';
+import { useUpdateAppointmentRequestSuggestions } from '@/hooks/useAppointmentRequests';
 import { toast } from 'sonner';
 import type { AppointmentRequest } from '@/hooks/useAppointmentRequests';
 
@@ -47,8 +46,7 @@ export function SuggestAlternativesModal({
   const { data: appointments = [] } = useAppointments();
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
-  const { data: specialties = [] } = useSpecialties();
-  const addSuggestion = useAddAppointmentSuggestion();
+  const updateSuggestions = useUpdateAppointmentRequestSuggestions();
   const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'same-time' | 'same-day'>('same-time');
   const [isSending, setIsSending] = useState(false);
@@ -141,23 +139,10 @@ export function SuggestAlternativesModal({
         return { date: dateStr, time };
       });
 
-      const specialtyName = specialties.find(s => s.id === request.specialty_id)?.name ?? null;
-
-      await addSuggestion.mutateAsync({
-        appointment_request_id: request.id,
+      await updateSuggestions.mutateAsync({
+        id: request.id,
         suggested_slots: slots,
-        status: 'pending',
-        patient_name: request.name,
-        patient_email: request.email,
-        patient_phone: request.phone,
-        patient_nif: request.nif,
-        specialty_id: request.specialty_id,
-        specialty_name: specialtyName,
-        preferred_date: request.preferred_date,
-        preferred_time: request.preferred_time,
-        reason: request.reason,
-        estimated_duration: request.estimated_duration,
-        professional_name: request.professional_name,
+        suggestion_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       });
 
       toast.success('Sugestões guardadas com sucesso');
