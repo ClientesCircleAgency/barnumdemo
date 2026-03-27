@@ -36,6 +36,7 @@ function mapAppointment(row: any): ClinicAppointment {
     professionalId: row.professional_id,
     specialtyId: row.specialty_id,
     consultationTypeId: row.consultation_type_id,
+    consultationTypeName: row.consultation_type_name || undefined,
     date: row.date,
     time: row.time,
     duration: row.duration,

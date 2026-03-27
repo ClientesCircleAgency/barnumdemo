@@ -56,6 +56,7 @@ export interface ClinicAppointment {
   professionalId: string;
   specialtyId: string;
   consultationTypeId: string;
+  consultationTypeName?: string | null;
   date: string;
   time: string;
   duration: number;

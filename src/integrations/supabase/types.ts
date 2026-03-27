@@ -105,6 +105,7 @@ export type Database = {
         Row: {
           cancellation_reason: string | null
           consultation_type_id: string | null
+          consultation_type_name: string | null
           created_at: string
           date: string
           duration: number
@@ -126,6 +127,7 @@ export type Database = {
         Insert: {
           cancellation_reason?: string | null
           consultation_type_id?: string | null
+          consultation_type_name?: string | null
           created_at?: string
           date: string
           duration?: number
@@ -147,6 +149,7 @@ export type Database = {
         Update: {
           cancellation_reason?: string | null
           consultation_type_id?: string | null
+          consultation_type_name?: string | null
           created_at?: string
           date?: string
           duration?: number

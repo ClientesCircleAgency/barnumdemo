@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, addDays, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Calendar, Clock, MessageCircle, Send, User } from 'lucide-react';
+import { Calendar, Clock, MessageCircle, Send, User, ChevronDown } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,20 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
 import { useUpdateAppointmentRequestSuggestions } from '@/hooks/useAppointmentRequests';
 import { toast } from 'sonner';
 import type { AppointmentRequest } from '@/hooks/useAppointmentRequests';
+import type { ProfessionalRow } from '@/types/database';
 
 interface SuggestAlternativesModalProps {
   open: boolean;
@@ -26,10 +34,10 @@ interface SuggestAlternativesModalProps {
   request: AppointmentRequest | null;
 }
 
-interface TimeSlot {
+interface ProfessionalSlot {
   date: Date;
   time: string;
-  isAvailable: boolean;
+  professional: ProfessionalRow;
 }
 
 const WORKING_HOURS = [
@@ -37,6 +45,13 @@ const WORKING_HOURS = [
   '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
   '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
 ];
+
+const SLOT_DURATION = 30;
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
 
 export function SuggestAlternativesModal({
   open,
@@ -47,86 +62,99 @@ export function SuggestAlternativesModal({
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
   const updateSuggestions = useUpdateAppointmentRequestSuggestions();
-  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'same-time' | 'same-day'>('same-time');
+
+  // slotKey = "yyyy-MM-dd|HH:mm", value = professional id
+  const [selectedSlots, setSelectedSlots] = useState<Map<string, string>>(new Map());
+  const [activeTab, setActiveTab] = useState<'by-professional' | 'same-day'>('by-professional');
   const [isSending, setIsSending] = useState(false);
 
-  // Get professional IDs that serve this request's specialty
-  const specialtyProfIds = useMemo(() => {
-    if (!request) return new Set<string>();
-    const ids = new Set<string>();
-
-    for (const p of professionals) {
+  // Professionals that serve this request's specialty
+  const specialtyProfessionals = useMemo(() => {
+    if (!request) return [];
+    return professionals.filter(p => {
       const pSpecIds = profSpecialties
         .filter(ps => ps.professional_id === p.id)
         .map(ps => ps.specialty_id);
       const allIds = pSpecIds.length > 0 ? pSpecIds : (p.specialty_id ? [p.specialty_id] : []);
-      if (allIds.includes(request.specialty_id)) ids.add(p.id);
-    }
-
-    return ids;
+      return allIds.includes(request.specialty_id);
+    });
   }, [request, professionals, profSpecialties]);
 
-  // Only count appointments from professionals of this specialty as blocking
-  const specialtyAppointments = useMemo(() =>
-    appointments.filter(apt => specialtyProfIds.has(apt.professional_id)),
-    [appointments, specialtyProfIds]
+  // Active appointments (exclude cancelled/completed/no_show)
+  const activeAppointments = useMemo(() =>
+    appointments.filter(apt =>
+      !['cancelled', 'completed', 'no_show'].includes(apt.status)
+    ),
+    [appointments]
   );
 
-  // A slot is unavailable only if ALL professionals of this specialty are busy
-  const isSlotFullyBooked = (dateStr: string, time: string): boolean => {
-    if (specialtyProfIds.size === 0) return true;
+  // Check if a specific professional is free at a given date/time
+  const isProfFree = (profId: string, dateStr: string, time: string): boolean => {
+    const slotStart = timeToMinutes(time);
+    const slotEnd = slotStart + SLOT_DURATION;
 
-    for (const profId of specialtyProfIds) {
-      const profBusy = specialtyAppointments.some(
-        apt => apt.professional_id === profId && apt.date === dateStr && apt.time === time
-      );
-      if (!profBusy) return false; // At least one professional is free
-    }
-    return true; // All professionals are busy
+    return !activeAppointments.some(apt => {
+      if (apt.professional_id !== profId || apt.date !== dateStr) return false;
+      const aptStart = timeToMinutes(apt.time);
+      const aptEnd = aptStart + apt.duration;
+      return aptStart < slotEnd && aptEnd > slotStart;
+    });
   };
 
-  const sameTimeSlots = useMemo(() => {
+  // TAB 1: By professional — next 14 days, grouped by professional
+  const byProfessionalData = useMemo(() => {
     if (!request) return [];
 
-    const requestedTime = request.preferred_time;
-    const slots: TimeSlot[] = [];
+    return specialtyProfessionals.map(prof => {
+      const slots: ProfessionalSlot[] = [];
 
-    for (let i = 1; i <= 14; i++) {
-      const date = addDays(new Date(), i);
-      const dateStr = format(date, 'yyyy-MM-dd');
+      for (let i = 0; i <= 14; i++) {
+        const date = addDays(new Date(), i);
+        const dateStr = format(date, 'yyyy-MM-dd');
 
-      slots.push({
-        date,
-        time: requestedTime,
-        isAvailable: !isSlotFullyBooked(dateStr, requestedTime),
-      });
-    }
+        for (const time of WORKING_HOURS) {
+          if (isProfFree(prof.id, dateStr, time)) {
+            slots.push({ date, time, professional: prof });
+          }
+        }
+      }
 
-    return slots.filter(s => s.isAvailable);
-  }, [request, specialtyAppointments, specialtyProfIds]);
+      return { professional: prof, slots };
+    });
+  }, [request, specialtyProfessionals, activeAppointments]);
 
-  const sameDaySlots = useMemo(() => {
+  // TAB 2: Same day — all professionals' availability on the requested date
+  const sameDayData = useMemo(() => {
     if (!request) return [];
 
     const requestedDate = parseISO(request.preferred_date);
     const dateStr = format(requestedDate, 'yyyy-MM-dd');
 
-    const slots: TimeSlot[] = WORKING_HOURS.map(time => ({
-      date: requestedDate,
-      time,
-      isAvailable: !isSlotFullyBooked(dateStr, time) && time !== request.preferred_time,
-    }));
+    return specialtyProfessionals.map(prof => {
+      const slots: ProfessionalSlot[] = [];
 
-    return slots.filter(s => s.isAvailable);
-  }, [request, specialtyAppointments, specialtyProfIds]);
+      for (const time of WORKING_HOURS) {
+        if (time !== request.preferred_time && isProfFree(prof.id, dateStr, time)) {
+          slots.push({ date: requestedDate, time, professional: prof });
+        }
+      }
 
-  const toggleSlot = (slotKey: string) => {
-    setSelectedSlots(prev =>
-      prev.includes(slotKey)
-        ? prev.filter(s => s !== slotKey)
-        : [...prev, slotKey]
-    );
+      return { professional: prof, slots };
+    });
+  }, [request, specialtyProfessionals, activeAppointments]);
+
+  const currentData = activeTab === 'by-professional' ? byProfessionalData : sameDayData;
+
+  const toggleSlot = (slotKey: string, profId: string) => {
+    setSelectedSlots(prev => {
+      const next = new Map(prev);
+      if (next.get(slotKey) === profId) {
+        next.delete(slotKey);
+      } else {
+        next.set(slotKey, profId);
+      }
+      return next;
+    });
   };
 
   const handleSend = async () => {
@@ -134,9 +162,10 @@ export function SuggestAlternativesModal({
     setIsSending(true);
 
     try {
-      const slots = selectedSlots.map(slotKey => {
+      const slots = Array.from(selectedSlots.entries()).map(([slotKey, profId]) => {
         const [dateStr, time] = slotKey.split('|');
-        return { date: dateStr, time };
+        const prof = professionals.find(p => p.id === profId);
+        return { date: dateStr, time, professional_id: profId, professional_name: prof?.name || '' };
       });
 
       await updateSuggestions.mutateAsync({
@@ -147,7 +176,7 @@ export function SuggestAlternativesModal({
 
       toast.success('Sugestões guardadas com sucesso');
       onOpenChange(false);
-      setSelectedSlots([]);
+      setSelectedSlots(new Map());
     } catch {
       toast.error('Erro ao guardar sugestões');
     } finally {
@@ -155,13 +184,13 @@ export function SuggestAlternativesModal({
     }
   };
 
-  const currentSlots = activeTab === 'same-time' ? sameTimeSlots : sameDaySlots;
-
   if (!request) return null;
+
+  const totalAvailable = currentData.reduce((sum, d) => sum + d.slots.length, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
@@ -169,8 +198,9 @@ export function SuggestAlternativesModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="p-3 bg-muted/50 rounded-lg">
+        <div className="space-y-4 overflow-hidden flex flex-col min-h-0">
+          {/* Patient info */}
+          <div className="p-3 bg-muted/50 rounded-lg shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <User className="h-5 w-5 text-primary" />
@@ -184,89 +214,187 @@ export function SuggestAlternativesModal({
             </div>
           </div>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'same-time' | 'same-day')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="same-time" className="gap-2">
-                <Clock className="h-4 w-4" />
-                Mesmo horário
+          {/* Tabs */}
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as 'by-professional' | 'same-day')}
+            className="flex flex-col min-h-0 overflow-hidden"
+          >
+            <TabsList className="grid w-full grid-cols-2 shrink-0">
+              <TabsTrigger value="by-professional" className="gap-2">
+                <User className="h-4 w-4" />
+                Por Profissional
               </TabsTrigger>
               <TabsTrigger value="same-day" className="gap-2">
                 <Calendar className="h-4 w-4" />
-                Mesmo dia
+                Mesmo Dia
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="same-time" className="mt-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                Próximos dias com disponibilidade às {request.preferred_time}:
-              </p>
-            </TabsContent>
-            <TabsContent value="same-day" className="mt-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                Horários disponíveis em {format(parseISO(request.preferred_date), "d 'de' MMMM", { locale: pt })}:
-              </p>
-            </TabsContent>
+            <div className="mt-4 overflow-y-auto min-h-0 pr-1">
+              <TabsContent value="by-professional" className="mt-0">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Disponibilidade dos próximos 14 dias por profissional:
+                </p>
+              </TabsContent>
+              <TabsContent value="same-day" className="mt-0">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Disponibilidade em {format(parseISO(request.preferred_date), "d 'de' MMMM", { locale: pt })} por profissional:
+                </p>
+              </TabsContent>
+
+              {totalAvailable === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Não há horários disponíveis nesta opção
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {currentData.map(({ professional, slots }) => (
+                    <ProfessionalSlotsSection
+                      key={professional.id}
+                      professional={professional}
+                      slots={slots}
+                      selectedSlots={selectedSlots}
+                      onToggleSlot={toggleSlot}
+                      activeTab={activeTab}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </Tabs>
-
-          {currentSlots.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Não há horários disponíveis nesta opção
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
-              {currentSlots.map((slot) => {
-                const slotKey = `${format(slot.date, 'yyyy-MM-dd')}|${slot.time}`;
-                const isSelected = selectedSlots.includes(slotKey);
-
-                return (
-                  <Card
-                    key={slotKey}
-                    className={`p-3 cursor-pointer transition-all ${isSelected
-                        ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                        : 'hover:border-primary/50'
-                      }`}
-                    onClick={() => toggleSlot(slotKey)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-sm">
-                          {activeTab === 'same-time'
-                            ? format(slot.date, "EEE, d MMM", { locale: pt })
-                            : slot.time
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activeTab === 'same-time'
-                            ? slot.time
-                            : format(slot.date, "d MMM", { locale: pt })
-                          }
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <Badge className="bg-primary text-primary-foreground">✓</Badge>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button
             onClick={handleSend}
-            disabled={selectedSlots.length === 0 || isSending}
+            disabled={selectedSlots.size === 0 || isSending}
             className="gap-2"
           >
             <Send className="h-4 w-4" />
-            {isSending ? 'A enviar...' : 'Enviar Sugestões'}
+            {isSending ? 'A enviar...' : `Enviar ${selectedSlots.size > 0 ? `(${selectedSlots.size})` : 'Sugestões'}`}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ProfessionalSlotsSection({
+  professional,
+  slots,
+  selectedSlots,
+  onToggleSlot,
+  activeTab,
+}: {
+  professional: ProfessionalRow;
+  slots: ProfessionalSlot[];
+  selectedSlots: Map<string, string>;
+  onToggleSlot: (slotKey: string, profId: string) => void;
+  activeTab: string;
+}) {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  if (slots.length === 0) return null;
+
+  // Group slots by date for the "by-professional" tab
+  const slotsByDate = useMemo(() => {
+    const grouped = new Map<string, ProfessionalSlot[]>();
+    for (const slot of slots) {
+      const dateStr = format(slot.date, 'yyyy-MM-dd');
+      const existing = grouped.get(dateStr) || [];
+      existing.push(slot);
+      grouped.set(dateStr, existing);
+    }
+    return grouped;
+  }, [slots]);
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* Professional header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+            style={{ backgroundColor: professional.color || '#6366f1' }}
+          >
+            {professional.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="text-left">
+            <p className="font-medium text-sm">{professional.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {slots.length} horário{slots.length !== 1 ? 's' : ''} disponíve{slots.length !== 1 ? 'is' : 'l'}
+            </p>
+          </div>
+        </div>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Slots */}
+      {isExpanded && (
+        <div className="p-3 space-y-3">
+          {activeTab === 'by-professional' ? (
+            // Group by date
+            Array.from(slotsByDate.entries()).map(([dateStr, dateSlots]) => (
+              <div key={dateStr}>
+                <p className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
+                  {format(parseISO(dateStr), "EEE, d MMM", { locale: pt })}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dateSlots.map((slot) => {
+                    const slotKey = `${dateStr}|${slot.time}`;
+                    const isSelected = selectedSlots.get(slotKey) === professional.id;
+
+                    return (
+                      <button
+                        key={slotKey}
+                        onClick={() => onToggleSlot(slotKey, professional.id)}
+                        className={`px-2.5 py-1 rounded-md text-sm font-medium transition-all ${
+                          isSelected
+                            ? 'text-white shadow-sm'
+                            : 'bg-muted/50 text-foreground hover:bg-muted'
+                        }`}
+                        style={isSelected ? { backgroundColor: professional.color || '#6366f1' } : undefined}
+                      >
+                        {slot.time}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          ) : (
+            // Same day — flat list
+            <div className="flex flex-wrap gap-1.5">
+              {slots.map((slot) => {
+                const slotKey = `${format(slot.date, 'yyyy-MM-dd')}|${slot.time}`;
+                const isSelected = selectedSlots.get(slotKey) === professional.id;
+
+                return (
+                  <button
+                    key={slotKey}
+                    onClick={() => onToggleSlot(slotKey, professional.id)}
+                    className={`px-2.5 py-1 rounded-md text-sm font-medium transition-all ${
+                      isSelected
+                        ? 'text-white shadow-sm'
+                        : 'bg-muted/50 text-foreground hover:bg-muted'
+                    }`}
+                    style={isSelected ? { backgroundColor: professional.color || '#6366f1' } : undefined}
+                  >
+                    {slot.time}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
