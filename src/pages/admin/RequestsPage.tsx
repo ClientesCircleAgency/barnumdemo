@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
+import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useContactMessages, useUpdateContactMessageStatus, type ContactMessage } from '@/hooks/useContactMessages';
 import { useAppointments } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
@@ -51,6 +51,7 @@ export default function RequestsPage() {
   const updateRequestStatus = useUpdateAppointmentRequestStatus();
   const convertRequest = useConvertRequestToAppointment();
   const updateMessageStatus = useUpdateContactMessageStatus();
+  const updateSuggestions = useUpdateAppointmentRequestSuggestions();
 
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -729,7 +730,16 @@ export default function RequestsPage() {
       <SuggestAlternativesModal
         open={showAlternativesModal}
         onOpenChange={setShowAlternativesModal}
-        request={selectedRequest}
+        source={selectedRequest}
+        onSubmit={async (slots) => {
+          if (!selectedRequest) return;
+          await updateSuggestions.mutateAsync({
+            id: selectedRequest.id,
+            suggested_slots: slots,
+            suggestion_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+          toast.success('Sugestões guardadas com sucesso');
+        }}
       />
     </div>
   );

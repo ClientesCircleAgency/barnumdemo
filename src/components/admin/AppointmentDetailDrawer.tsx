@@ -34,6 +34,8 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useClinic } from '@/context/ClinicContext';
 import { useUpdateAppointment, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
+import { SuggestAlternativesModal } from './SuggestAlternativesModal';
+import type { SlotSelection } from './SuggestAlternativesModal';
 import { StatusBadge } from './StatusBadge';
 import { toast } from 'sonner';
 import type { ClinicAppointment } from '@/types/clinic';
@@ -63,6 +65,7 @@ export function AppointmentDetailDrawer({
 
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [reason, setReason] = useState('');
+  const [showReschedule, setShowReschedule] = useState(false);
 
   if (!appointment) return null;
 
@@ -108,8 +111,26 @@ export function AppointmentDetailDrawer({
   };
 
   const handleReschedule = () => {
-    // TODO: open reschedule flow
-    toast.info('Funcionalidade de reagendamento em desenvolvimento');
+    setShowReschedule(true);
+  };
+
+  const handleRescheduleSubmit = async (slots: SlotSelection[]) => {
+    const slot = slots[0];
+    if (!slot) return;
+
+    await updateAppointment.mutateAsync({
+      id: appointment.id,
+      data: {
+        date: slot.date,
+        time: slot.time,
+        professional_id: slot.professional_id,
+        professional_name: slot.professional_name,
+        status: 'confirmed',
+      },
+    });
+    toast.success('Consulta reagendada com sucesso');
+    setShowReschedule(false);
+    onOpenChange(false);
   };
 
   const closeAction = () => {
@@ -369,6 +390,22 @@ export function AppointmentDetailDrawer({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reschedule modal */}
+      <SuggestAlternativesModal
+        open={showReschedule}
+        onOpenChange={setShowReschedule}
+        source={appointment ? {
+          name: patient?.name || 'Paciente',
+          specialty_id: appointment.specialtyId,
+          preferred_date: appointment.date,
+          preferred_time: appointment.time,
+        } : null}
+        onSubmit={handleRescheduleSubmit}
+        title="Reagendar Consulta"
+        submitLabel="Confirmar Reagendamento"
+        singleSelect
+      />
     </>
   );
 }

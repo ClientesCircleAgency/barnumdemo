@@ -23,15 +23,31 @@ import {
 import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
-import { useUpdateAppointmentRequestSuggestions } from '@/hooks/useAppointmentRequests';
 import { toast } from 'sonner';
-import type { AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import type { ProfessionalRow } from '@/types/database';
+
+export interface SlotSelection {
+  date: string;
+  time: string;
+  professional_id: string;
+  professional_name: string;
+}
+
+export interface SuggestSlotsSource {
+  name: string;
+  specialty_id: string;
+  preferred_date: string;
+  preferred_time: string;
+}
 
 interface SuggestAlternativesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  request: AppointmentRequest | null;
+  source: SuggestSlotsSource | null;
+  onSubmit: (slots: SlotSelection[]) => Promise<void>;
+  title?: string;
+  submitLabel?: string;
+  singleSelect?: boolean;
 }
 
 interface ProfessionalSlot {
@@ -56,29 +72,32 @@ function timeToMinutes(t: string) {
 export function SuggestAlternativesModal({
   open,
   onOpenChange,
-  request,
+  source,
+  onSubmit,
+  title = 'Sugerir Horários Alternativos',
+  submitLabel = 'Enviar Sugestões',
+  singleSelect = false,
 }: SuggestAlternativesModalProps) {
   const { data: appointments = [] } = useAppointments();
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
-  const updateSuggestions = useUpdateAppointmentRequestSuggestions();
 
   // slotKey = "yyyy-MM-dd|HH:mm", value = professional id
   const [selectedSlots, setSelectedSlots] = useState<Map<string, string>>(new Map());
   const [activeTab, setActiveTab] = useState<'by-professional' | 'same-day'>('by-professional');
   const [isSending, setIsSending] = useState(false);
 
-  // Professionals that serve this request's specialty
+  // Professionals that serve this source's specialty
   const specialtyProfessionals = useMemo(() => {
-    if (!request) return [];
+    if (!source) return [];
     return professionals.filter(p => {
       const pSpecIds = profSpecialties
         .filter(ps => ps.professional_id === p.id)
         .map(ps => ps.specialty_id);
       const allIds = pSpecIds.length > 0 ? pSpecIds : (p.specialty_id ? [p.specialty_id] : []);
-      return allIds.includes(request.specialty_id);
+      return allIds.includes(source.specialty_id);
     });
-  }, [request, professionals, profSpecialties]);
+  }, [source, professionals, profSpecialties]);
 
   // Active appointments (exclude cancelled/completed/no_show)
   const activeAppointments = useMemo(() =>
@@ -103,7 +122,7 @@ export function SuggestAlternativesModal({
 
   // TAB 1: By professional — next 14 days, grouped by professional
   const byProfessionalData = useMemo(() => {
-    if (!request) return [];
+    if (!source) return [];
 
     return specialtyProfessionals.map(prof => {
       const slots: ProfessionalSlot[] = [];
@@ -121,34 +140,34 @@ export function SuggestAlternativesModal({
 
       return { professional: prof, slots };
     });
-  }, [request, specialtyProfessionals, activeAppointments]);
+  }, [source, specialtyProfessionals, activeAppointments]);
 
   // TAB 2: Same day — all professionals' availability on the requested date
   const sameDayData = useMemo(() => {
-    if (!request) return [];
+    if (!source) return [];
 
-    const requestedDate = parseISO(request.preferred_date);
+    const requestedDate = parseISO(source.preferred_date);
     const dateStr = format(requestedDate, 'yyyy-MM-dd');
 
     return specialtyProfessionals.map(prof => {
       const slots: ProfessionalSlot[] = [];
 
       for (const time of WORKING_HOURS) {
-        if (time !== request.preferred_time && isProfFree(prof.id, dateStr, time)) {
+        if (time !== source.preferred_time && isProfFree(prof.id, dateStr, time)) {
           slots.push({ date: requestedDate, time, professional: prof });
         }
       }
 
       return { professional: prof, slots };
     });
-  }, [request, specialtyProfessionals, activeAppointments]);
+  }, [source, specialtyProfessionals, activeAppointments]);
 
   const currentData = activeTab === 'by-professional' ? byProfessionalData : sameDayData;
 
   const toggleSlot = (slotKey: string, profId: string) => {
     setSelectedSlots(prev => {
-      const next = new Map(prev);
-      if (next.get(slotKey) === profId) {
+      const next = singleSelect ? new Map<string, string>() : new Map(prev);
+      if (prev.get(slotKey) === profId) {
         next.delete(slotKey);
       } else {
         next.set(slotKey, profId);
@@ -158,7 +177,7 @@ export function SuggestAlternativesModal({
   };
 
   const handleSend = async () => {
-    if (!request) return;
+    if (!source) return;
     setIsSending(true);
 
     try {
@@ -168,23 +187,17 @@ export function SuggestAlternativesModal({
         return { date: dateStr, time, professional_id: profId, professional_name: prof?.name || '' };
       });
 
-      await updateSuggestions.mutateAsync({
-        id: request.id,
-        suggested_slots: slots,
-        suggestion_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-
-      toast.success('Sugestões guardadas com sucesso');
+      await onSubmit(slots);
       onOpenChange(false);
       setSelectedSlots(new Map());
     } catch {
-      toast.error('Erro ao guardar sugestões');
+      toast.error('Erro ao processar');
     } finally {
       setIsSending(false);
     }
   };
 
-  if (!request) return null;
+  if (!source) return null;
 
   const totalAvailable = currentData.reduce((sum, d) => sum + d.slots.length, 0);
 
@@ -194,7 +207,7 @@ export function SuggestAlternativesModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-primary" />
-            Sugerir Horários Alternativos
+            {title}
           </DialogTitle>
         </DialogHeader>
 
@@ -206,9 +219,9 @@ export function SuggestAlternativesModal({
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium">{request.name}</p>
+                <p className="font-medium">{source.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  Pediu: {format(parseISO(request.preferred_date), "d MMM", { locale: pt })} às {request.preferred_time}
+                  Atual: {format(parseISO(source.preferred_date), "d MMM", { locale: pt })} às {source.preferred_time}
                 </p>
               </div>
             </div>
@@ -239,7 +252,7 @@ export function SuggestAlternativesModal({
               </TabsContent>
               <TabsContent value="same-day" className="mt-0">
                 <p className="text-sm text-muted-foreground mb-3">
-                  Disponibilidade em {format(parseISO(request.preferred_date), "d 'de' MMMM", { locale: pt })} por profissional:
+                  Disponibilidade em {format(parseISO(source.preferred_date), "d 'de' MMMM", { locale: pt })} por profissional:
                 </p>
               </TabsContent>
 
@@ -275,7 +288,7 @@ export function SuggestAlternativesModal({
             className="gap-2"
           >
             <Send className="h-4 w-4" />
-            {isSending ? 'A enviar...' : `Enviar ${selectedSlots.size > 0 ? `(${selectedSlots.size})` : 'Sugestões'}`}
+            {isSending ? 'A processar...' : `${submitLabel}${selectedSlots.size > 0 && !singleSelect ? ` (${selectedSlots.size})` : ''}`}
           </Button>
         </DialogFooter>
       </DialogContent>
