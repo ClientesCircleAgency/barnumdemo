@@ -230,8 +230,8 @@ export function AppointmentDetailDrawer({
               </>
             )}
 
-            {/* Observações internas */}
-            {appointment.notes && (
+            {/* Observações internas (hide auto-generated conversion notes) */}
+            {appointment.notes && !appointment.notes.startsWith('Convertido de pedido online') && (
               <>
                 <Separator />
                 <div className="space-y-2">
