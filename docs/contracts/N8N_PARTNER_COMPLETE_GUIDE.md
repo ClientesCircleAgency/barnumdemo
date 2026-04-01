@@ -1,6 +1,6 @@
 # Guia Completo para o Parceiro n8n — Barnum
 
-> **Versão:** 3.1 — 2026-02-04
+> **Versão:** 3.2 — 2026-04-02
 > **Destinatário:** Parceiro técnico responsável pelas automações WhatsApp via n8n
 > **Idioma:** Português (Portugal) com termos técnicos em inglês quando necessário
 
@@ -141,6 +141,7 @@ O n8n recebe dados em tempo real via **3 DB Webhooks** configurados no Supabase 
 | `type == UPDATE` AND `old_record.status != cancelled` AND `record.status == cancelled` | AUT-5: Cancelamento |
 | `type == UPDATE` AND `old_record.status != no_show` AND `record.status == no_show` | AUT-3: No-show |
 | `type == UPDATE` AND `old_record.finalized_at == null` AND `record.finalized_at != null` AND `record.review_opt_out == false` | AUT-6: Review (enviar 2h depois) |
+| `type == UPDATE` AND `record.is_rescheduled == true` AND `record.status == confirmed` | AUT-7: Reagendamento |
 
 ### Webhook 2: `appointment_requests` (UPDATE)
 
@@ -319,6 +320,43 @@ Todas as automações enviam mensagens **one-way** — o paciente NÃO responde.
 
 ---
 
+### Automação 7: Reagendamento
+
+**Trigger:** DB Webhook — `appointments` UPDATE
+**Condição:** `record.is_rescheduled == true` AND `record.status == confirmed`
+
+**O que o n8n deve fazer:**
+1. Receber webhook
+2. Lookup do paciente: `GET /rest/v1/patients?id=eq.{record.patient_id}`
+3. O profissional está no payload: `record.professional_name`
+4. Enviar WhatsApp:
+   > "Olá [nome], a sua consulta foi reagendada para [nova data] às [nova hora] com [Dr. X]. Se precisar de cancelar ou reagendar, contacte-nos pelo [telefone da clínica]."
+
+**Payload relevante:**
+```json
+{
+  "type": "UPDATE",
+  "record": {
+    "date": "2026-04-10",
+    "time": "15:00",
+    "professional_id": "uuid",
+    "professional_name": "Dra. Sofia Costa",
+    "status": "confirmed",
+    "is_rescheduled": true,
+    "consultation_type_name": "Check-up"
+  },
+  "old_record": {
+    "date": "2026-04-05",
+    "time": "10:00",
+    "is_rescheduled": false
+  }
+}
+```
+
+**Nota:** `is_rescheduled` fica `true` permanentemente após reagendamento. O Switch Node deve verificar esta condição **depois** das condições de `cancelled`, `no_show` e `finalized_at`, para que esses estados tenham prioridade.
+
+---
+
 ## 6. Sugestão de Horários Alternativos
 
 Este é o **único fluxo com interação do paciente**. Quando a secretária rejeita um pedido e sugere horários alternativos:
@@ -389,6 +427,7 @@ Este é o **único fluxo com interação do paciente**. Quando a secretária rej
 | `finalized_at` | TIMESTAMPTZ | Quando foi finalizada (NULL = não finalizada) |
 | `cancellation_reason` | TEXT | Motivo do cancelamento |
 | `review_opt_out` | BOOLEAN | Se `true`, NÃO enviar pedido de review (default: `false`) |
+| `is_rescheduled` | BOOLEAN | Se `true`, a consulta foi reagendada (default: `false`). Usado pelo n8n para detectar reagendamentos |
 | `created_at` | TIMESTAMPTZ | Data de criação |
 | `updated_at` | TIMESTAMPTZ | Última atualização |
 
@@ -519,7 +558,8 @@ Para sugestão de slots, há um passo adicional:
         ├─ type==INSERT → [Lookup paciente] → [Enviar notificação nova consulta]
         ├─ status changed to "cancelled" → [Lookup paciente] → [Enviar cancelamento]
         ├─ status changed to "no_show" → [Lookup paciente] → [Enviar no-show]
-        └─ finalized_at changed AND review_opt_out==false → [Wait 2h] → [Lookup paciente] → [Enviar review]
+        ├─ finalized_at changed AND review_opt_out==false → [Wait 2h] → [Lookup paciente] → [Enviar review]
+        └─ is_rescheduled==true AND status==confirmed → [Lookup paciente] → [Enviar reagendamento]
 ```
 
 ### Workflow 2: Lembrete 24h (diário às 08:00)
@@ -579,7 +619,7 @@ Para sugestão de slots, há um passo adicional:
 - [ ] Webhook 3: `appointment_suggestions` → INSERT → URL do Webhook Node n8n
 
 ### Implementar Workflows
-- [ ] Workflow 1: Eventos de appointments (AUT-1, AUT-3, AUT-5, AUT-6)
+- [ ] Workflow 1: Eventos de appointments (AUT-1, AUT-3, AUT-5, AUT-6, AUT-7)
 - [ ] Workflow 2: CRON lembrete 24h (AUT-2)
 - [ ] Workflow 3: Eventos de appointment_requests (AUT-4)
 - [ ] Workflow 4: Sugestão de horários (enviar WhatsApp com links)
@@ -593,6 +633,7 @@ Para sugestão de slots, há um passo adicional:
 - [ ] Finalizar consulta → mensagem de review enviada (2h depois)
 - [ ] CRON lembrete 24h → consultas de amanhã recebem lembrete
 - [ ] Rejeitar pedido → mensagem de rejeição enviada
+- [ ] Reagendar consulta → mensagem de reagendamento enviada com nova data/hora
 - [ ] Sugerir slots → paciente recebe WhatsApp com links → clicar cria consulta
 
 ### Produção

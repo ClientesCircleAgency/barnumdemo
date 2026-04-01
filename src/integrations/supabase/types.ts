@@ -112,6 +112,7 @@ export type Database = {
           final_notes: string | null
           finalized_at: string | null
           id: string
+          is_rescheduled: boolean
           notes: string | null
           patient_id: string
           professional_id: string
@@ -134,6 +135,7 @@ export type Database = {
           final_notes?: string | null
           finalized_at?: string | null
           id?: string
+          is_rescheduled?: boolean
           notes?: string | null
           patient_id: string
           professional_id: string
@@ -156,6 +158,7 @@ export type Database = {
           final_notes?: string | null
           finalized_at?: string | null
           id?: string
+          is_rescheduled?: boolean
           notes?: string | null
           patient_id?: string
           professional_id?: string

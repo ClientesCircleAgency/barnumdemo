@@ -126,6 +126,7 @@ export function AppointmentDetailDrawer({
         professional_id: slot.professional_id,
         professional_name: slot.professional_name,
         status: 'confirmed',
+        is_rescheduled: true,
       },
     });
     toast.success('Consulta reagendada com sucesso');
