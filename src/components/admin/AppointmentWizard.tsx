@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -516,23 +517,24 @@ export function AppointmentWizard({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Duracao</FormLabel>
-                      <Select
-                        value={field.value.toString()}
-                        onValueChange={(value) => field.onChange(parseInt(value, 10))}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-popover z-50">
-                          <SelectItem value="15">15 minutos</SelectItem>
-                          <SelectItem value="30">30 minutos</SelectItem>
-                          <SelectItem value="45">45 minutos</SelectItem>
-                          <SelectItem value="60">60 minutos</SelectItem>
-                          <SelectItem value="90">90 minutos</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={5}
+                          max={1440}
+                          step={5}
+                          inputMode="numeric"
+                          value={Number.isFinite(field.value) ? field.value : ''}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            field.onChange(value === '' ? NaN : Number.parseInt(value, 10));
+                          }}
+                          placeholder="Ex: 180"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Introduza a duracao real da consulta em minutos.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
