@@ -397,10 +397,12 @@ export function AppointmentDetailDrawer({
         open={showReschedule}
         onOpenChange={setShowReschedule}
         source={appointment ? {
+          appointment_id: appointment.id,
           name: patient?.name || 'Paciente',
           specialty_id: appointment.specialtyId,
           preferred_date: appointment.date,
           preferred_time: appointment.time,
+          duration_minutes: appointment.duration,
         } : null}
         onSubmit={handleRescheduleSubmit}
         title="Reagendar Consulta"

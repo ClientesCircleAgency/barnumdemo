@@ -34,10 +34,12 @@ export interface SlotSelection {
 }
 
 export interface SuggestSlotsSource {
+  appointment_id: string;
   name: string;
   specialty_id: string;
   preferred_date: string;
   preferred_time: string;
+  duration_minutes: number;
 }
 
 interface SuggestAlternativesModalProps {
@@ -62,11 +64,25 @@ const WORKING_HOURS = [
   '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
 ];
 
-const SLOT_DURATION = 30;
+const WORKING_WINDOWS = [
+  { start: '09:00', end: '13:00' },
+  { start: '14:00', end: '19:00' },
+];
 
 function timeToMinutes(t: string) {
   const [h, m] = t.split(':').map(Number);
   return h * 60 + m;
+}
+
+function slotFitsWorkingWindows(time: string, durationMinutes: number) {
+  const slotStart = timeToMinutes(time);
+  const slotEnd = slotStart + durationMinutes;
+
+  return WORKING_WINDOWS.some((window) => {
+    const windowStart = timeToMinutes(window.start);
+    const windowEnd = timeToMinutes(window.end);
+    return slotStart >= windowStart && slotEnd <= windowEnd;
+  });
 }
 
 export function SuggestAlternativesModal({
@@ -109,11 +125,25 @@ export function SuggestAlternativesModal({
 
   // Check if a specific professional is free at a given date/time
   const isProfFree = (profId: string, dateStr: string, time: string): boolean => {
+    if (!slotFitsWorkingWindows(time, source.duration_minutes)) {
+      return false;
+    }
+
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (dateStr === todayStr) {
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      if (timeToMinutes(time) <= nowMinutes) {
+        return false;
+      }
+    }
+
     const slotStart = timeToMinutes(time);
-    const slotEnd = slotStart + SLOT_DURATION;
+    const slotEnd = slotStart + source.duration_minutes;
 
     return !activeAppointments.some(apt => {
       if (apt.professional_id !== profId || apt.date !== dateStr) return false;
+      if (apt.id === source.appointment_id) return false;
       const aptStart = timeToMinutes(apt.time);
       const aptEnd = aptStart + apt.duration;
       return aptStart < slotEnd && aptEnd > slotStart;
