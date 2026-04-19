@@ -16,6 +16,7 @@ interface Collaborator {
   color?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
+  professional_specialty_id?: string | null;
   professional_specialty?: string | null;
   professional_color?: string | null;
 }
@@ -24,6 +25,31 @@ interface ListResponse {
   success: boolean;
   collaborators?: Collaborator[];
   error?: string;
+}
+
+async function fetchProfileColor(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
+    .from("user_profiles")
+    .select("color")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!error) {
+    return data?.color || null;
+  }
+
+  if (
+    error.code === "PGRST204" ||
+    error.message?.includes("color") ||
+    error.message?.includes("schema cache")
+  ) {
+    return null;
+  }
+
+  throw error;
 }
 
 // Decode JWT payload without verification (gateway already validated the request)
@@ -145,11 +171,7 @@ serve(async (req: Request): Promise<Response> => {
       if (!authUser.user) continue;
 
       // Fetch user profile (color)
-      const { data: profile } = await supabaseAdmin
-        .from("user_profiles")
-        .select("color")
-        .eq("user_id", userRole.user_id)
-        .maybeSingle();
+      const profileColor = await fetchProfileColor(supabaseAdmin, userRole.user_id);
 
       // Fetch professional data if exists
       const { data: professional } = await supabaseAdmin
@@ -173,9 +195,10 @@ serve(async (req: Request): Promise<Response> => {
         user_id: userRole.user_id,
         email: authUser.user.email || "",
         role: userRole.role,
-        color: profile?.color || null,
+        color: profileColor,
         professional_id: professional?.id || null,
         professional_name: professional?.name || null,
+        professional_specialty_id: professional?.specialty_id || null,
         professional_specialty: specialtyName,
         professional_color: professional?.color || null,
       });

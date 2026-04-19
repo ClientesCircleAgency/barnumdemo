@@ -64,6 +64,7 @@ function mapProfessional(row: any, profSpecialties: ProfessionalSpecialtyRow[]):
     specialtyIds: specialtyIds.length > 0 ? specialtyIds : (row.specialty_id ? [row.specialty_id] : []),
     color: row.color,
     avatar: row.avatar_url || undefined,
+    userId: row.user_id || null,
   };
 }
 
@@ -115,9 +116,9 @@ interface ClinicContextType {
   removeProfessional: (id: string) => void;
 
   // Ações - Tipos de Consulta
-  addConsultationType: (type: Omit<ConsultationType, 'id'>) => void;
-  updateConsultationType: (id: string, data: Partial<ConsultationType>) => void;
-  removeConsultationType: (id: string) => void;
+  addConsultationType: (type: Omit<ConsultationType, 'id'>) => Promise<void>;
+  updateConsultationType: (id: string, data: Partial<ConsultationType>) => Promise<void>;
+  removeConsultationType: (id: string) => Promise<void>;
 
   // Helpers
   getProfessionalById: (id: string) => Professional | undefined;
@@ -277,16 +278,16 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     },
 
     // Consultation type actions
-    addConsultationType: (data: Omit<ConsultationType, 'id'>) => {
-      addConsultationTypeMutation.mutate({
+    addConsultationType: async (data: Omit<ConsultationType, 'id'>) => {
+      await addConsultationTypeMutation.mutateAsync({
         name: data.name,
         default_duration: data.defaultDuration,
         color: data.color,
         specialty_id: data.specialtyId || null,
       });
     },
-    updateConsultationType: (id: string, data: Partial<ConsultationType>) => {
-      updateConsultationTypeMutation.mutate({ 
+    updateConsultationType: async (id: string, data: Partial<ConsultationType>) => {
+      await updateConsultationTypeMutation.mutateAsync({ 
         id, 
         data: {
           name: data.name,
@@ -296,8 +297,8 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         }
       });
     },
-    removeConsultationType: (id: string) => {
-      deleteConsultationTypeMutation.mutate(id);
+    removeConsultationType: async (id: string) => {
+      await deleteConsultationTypeMutation.mutateAsync(id);
     },
 
     // Helpers

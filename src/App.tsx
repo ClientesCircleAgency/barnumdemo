@@ -34,7 +34,14 @@ const App = () => (
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="agenda" element={<AgendaPage />} />
-            <Route path="pedidos" element={<RequestsPage />} />
+            <Route 
+              path="pedidos" 
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'secretary']}>
+                  <RequestsPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="pacientes" element={<PatientsPage />} />
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
             <Route path="sala-espera" element={<WaitingRoomPage />} />

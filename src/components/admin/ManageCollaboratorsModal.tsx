@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import {
 import { supabase, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
 import { useClinic } from '@/context/ClinicContext';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Collaborator,
   useUpdateCollaborator,
@@ -45,6 +46,7 @@ export function ManageCollaboratorsModal({
   editTarget,
 }: ManageCollaboratorsModalProps) {
   const { specialties } = useClinic();
+  const queryClient = useQueryClient();
   const updateMutation = useUpdateCollaborator();
   const deleteMutation = useDeleteCollaborator();
 
@@ -59,22 +61,24 @@ export function ManageCollaboratorsModal({
 
   const isEditMode = !!editTarget;
 
-  // Derive effective role: in edit mode use editTarget's role unless user changed it
   const effectiveRole = isEditMode ? (editTarget?.role === 'admin' ? 'admin' : role) : role;
-
-  // Populate color from editTarget when opening in edit mode
   const effectiveColor = isEditMode ? (color !== '#6366f1' ? color : (editTarget?.color || '#6366f1')) : color;
 
-  // Sync form state when editTarget changes
-  const prevEditRef = useState<string | null>(null);
-  if (isEditMode && editTarget && prevEditRef[0] !== editTarget.user_id) {
-    prevEditRef[1](editTarget.user_id);
-    if (editTarget.role !== 'admin') {
-      setRole(editTarget.role as Role);
+  useEffect(() => {
+    if (!open) return;
+
+    if (editTarget) {
+      setEmail(editTarget.email);
+      if (editTarget.role !== 'admin') {
+        setRole(editTarget.role as Role);
+      }
+      setColor(editTarget.color || editTarget.professional_color || '#6366f1');
+      setSpecialtyId(editTarget.professional_specialty_id || '');
+      return;
     }
-  } else if (!isEditMode && prevEditRef[0] !== null) {
-    prevEditRef[1](null);
-  }
+
+    resetForm();
+  }, [open, editTarget]);
 
   const resetForm = () => {
     setEmail('');
@@ -133,6 +137,7 @@ export function ManageCollaboratorsModal({
 
       if (!data?.success) throw new Error(data?.error || 'Erro desconhecido');
 
+      await queryClient.invalidateQueries({ queryKey: ['professionals'] });
       toast.success(
         `Convite enviado para ${email}. O utilizador receberá um email para criar a sua password.`
       );
@@ -149,6 +154,10 @@ export function ManageCollaboratorsModal({
   // ─── UPDATE (edit existing collaborator) ──────────
   const handleUpdate = async () => {
     if (!editTarget) return;
+    if (role === 'doctor' && !specialtyId) {
+      toast.error('Selecione a especialidade do médico');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -162,7 +171,18 @@ export function ManageCollaboratorsModal({
       // Always send color
       params.color = effectiveColor;
 
+      if (role === 'doctor') {
+        params.professional = {
+          action: 'update',
+          specialty_id: specialtyId,
+          color: effectiveColor,
+        };
+      } else if (editTarget.role === 'doctor') {
+        params.professional = { action: 'unlink' };
+      }
+
       await updateMutation.mutateAsync(params);
+      await queryClient.invalidateQueries({ queryKey: ['professionals'] });
       toast.success('Colaborador atualizado com sucesso.');
       resetForm();
       onOpenChange(false);
@@ -181,6 +201,7 @@ export function ManageCollaboratorsModal({
     setIsSubmitting(true);
     try {
       await deleteMutation.mutateAsync({ user_id: editTarget.user_id });
+      await queryClient.invalidateQueries({ queryKey: ['professionals'] });
       toast.success(`Colaborador ${editTarget.email} removido com sucesso.`);
       resetForm();
       onOpenChange(false);
@@ -276,7 +297,7 @@ export function ManageCollaboratorsModal({
                 </p>
               ) : (
                 <Select
-                  value={isEditMode ? (editTarget?.role === 'admin' ? 'secretary' : (editTarget?.role as Role) || role) : role}
+                  value={role}
                   onValueChange={(value) => setRole(value as Role)}
                   disabled={isSubmitting}
                 >
@@ -292,7 +313,7 @@ export function ManageCollaboratorsModal({
             </div>
 
             {/* Specialty — for doctors */}
-            {effectiveRole === 'doctor' && !isEditMode && (
+            {effectiveRole === 'doctor' && (
               <div className="space-y-2">
                 <Label>Especialidade *</Label>
                 <Select
@@ -309,14 +330,6 @@ export function ManageCollaboratorsModal({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
-            {effectiveRole === 'doctor' && isEditMode && editTarget?.professional_specialty && (
-              <div className="space-y-2">
-                <Label>Especialidade</Label>
-                <p className="text-sm p-2 bg-muted rounded text-foreground">
-                  {editTarget.professional_specialty}
-                </p>
               </div>
             )}
 

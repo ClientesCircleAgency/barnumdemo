@@ -54,7 +54,7 @@ export function ManageConsultationTypesModal({
     setEditForm({ name: type.name, color: type.color || '#6366f1', specialtyId: type.specialtyId || '' });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId || !editForm.name.trim()) {
       toast.error('Preencha o nome');
       return;
@@ -63,16 +63,20 @@ export function ManageConsultationTypesModal({
       toast.error('Selecione a especialidade');
       return;
     }
-    updateConsultationType(editingId, {
-      name: editForm.name.trim(),
-      color: editForm.color || undefined,
-      specialtyId: editForm.specialtyId,
-    });
-    toast.success('Tipo de consulta atualizado');
-    setEditingId(null);
+    try {
+      await updateConsultationType(editingId, {
+        name: editForm.name.trim(),
+        color: editForm.color || undefined,
+        specialtyId: editForm.specialtyId,
+      });
+      toast.success('Tipo de consulta atualizado');
+      setEditingId(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar tipo de consulta');
+    }
   };
 
-  const handleAddNew = () => {
+  const handleAddNew = async () => {
     if (!newForm.name.trim()) {
       toast.error('Preencha o nome');
       return;
@@ -81,18 +85,22 @@ export function ManageConsultationTypesModal({
       toast.error('Selecione a especialidade');
       return;
     }
-    addConsultationType({
-      name: newForm.name.trim(),
-      defaultDuration: 30, // kept for DB compatibility, not shown in UI
-      color: newForm.color || undefined,
-      specialtyId: newForm.specialtyId,
-    });
-    toast.success('Tipo de consulta adicionado');
-    setNewForm({ name: '', color: '#6366f1', specialtyId: '' });
-    setIsAdding(false);
+    try {
+      await addConsultationType({
+        name: newForm.name.trim(),
+        defaultDuration: 30, // kept for DB compatibility, not shown in UI
+        color: newForm.color || undefined,
+        specialtyId: newForm.specialtyId,
+      });
+      toast.success('Tipo de consulta adicionado');
+      setNewForm({ name: '', color: '#6366f1', specialtyId: '' });
+      setIsAdding(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao adicionar tipo de consulta');
+    }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const inUse = appointments.some(
       (a) => a.consultationTypeId === id && (a.status === 'confirmed' || a.status === 'waiting' || a.status === 'in_progress')
     );
@@ -101,9 +109,13 @@ export function ManageConsultationTypesModal({
       setDeleteConfirm(null);
       return;
     }
-    removeConsultationType(id);
-    toast.success('Tipo de consulta removido');
-    setDeleteConfirm(null);
+    try {
+      await removeConsultationType(id);
+      toast.success('Tipo de consulta removido');
+      setDeleteConfirm(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao remover tipo de consulta');
+    }
   };
 
   return (

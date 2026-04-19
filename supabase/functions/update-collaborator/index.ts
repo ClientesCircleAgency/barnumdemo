@@ -36,6 +36,35 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
   });
 }
 
+async function upsertUserProfile(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  payload: { user_id: string; full_name: string; color?: string | null }
+) {
+  const { error } = await supabaseAdmin
+    .from("user_profiles")
+    .upsert(payload, { onConflict: "user_id" });
+
+  if (!error) return;
+
+  if (
+    error.code === "PGRST204" ||
+    error.message?.includes("color") ||
+    error.message?.includes("schema cache")
+  ) {
+    const { error: fallbackError } = await supabaseAdmin
+      .from("user_profiles")
+      .upsert(
+        { user_id: payload.user_id, full_name: payload.full_name },
+        { onConflict: "user_id" }
+      );
+
+    if (fallbackError) throw fallbackError;
+    return;
+  }
+
+  throw error;
+}
+
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -144,12 +173,11 @@ serve(async (req: Request): Promise<Response> => {
 
     // Update color in user_profiles if provided
     if (body.color !== undefined) {
-      await supabaseAdmin
-        .from("user_profiles")
-        .upsert(
-          { user_id: body.user_id, full_name: targetUser.user.email?.split("@")[0] || "", color: body.color },
-          { onConflict: "user_id" }
-        );
+      await upsertUserProfile(supabaseAdmin, {
+        user_id: body.user_id,
+        full_name: targetUser.user.email?.split("@")[0] || "",
+        color: body.color,
+      });
     }
 
     // Handle professional operations
@@ -198,26 +226,74 @@ serve(async (req: Request): Promise<Response> => {
           .update({ user_id: null })
           .eq("user_id", body.user_id);
       } else if (action === "update") {
-        // Update professional fields for the linked professional
         const updates: Record<string, unknown> = {};
         if (body.professional.name !== undefined) updates.name = body.professional.name;
         if (body.professional.specialty_id !== undefined) updates.specialty_id = body.professional.specialty_id;
         if (body.professional.color !== undefined) updates.color = body.professional.color;
 
         if (Object.keys(updates).length > 0) {
-          const { error: updateError } = await supabaseAdmin
+          const { data: existingProfessional, error: fetchProfessionalError } = await supabaseAdmin
             .from("professionals")
-            .update(updates)
-            .eq("user_id", body.user_id);
+            .select("id")
+            .eq("user_id", body.user_id)
+            .maybeSingle();
 
-          if (updateError) {
+          if (fetchProfessionalError) {
             return jsonResponse({
               success: false,
-              error: `Failed to update professional: ${updateError.message}`,
+              error: `Failed to fetch professional: ${fetchProfessionalError.message}`,
             }, 500);
+          }
+
+          if (existingProfessional) {
+            const { error: updateError } = await supabaseAdmin
+              .from("professionals")
+              .update(updates)
+              .eq("user_id", body.user_id);
+
+            if (updateError) {
+              return jsonResponse({
+                success: false,
+                error: `Failed to update professional: ${updateError.message}`,
+              }, 500);
+            }
+          } else {
+            if (!body.professional.specialty_id) {
+              return jsonResponse({
+                success: false,
+                error: "Doctor collaborators require a specialty",
+              }, 400);
+            }
+
+            const { error: insertError } = await supabaseAdmin
+              .from("professionals")
+              .insert({
+                user_id: body.user_id,
+                name:
+                  body.professional.name ||
+                  targetUser.user.email?.split("@")[0] ||
+                  "Profissional",
+                specialty_id: body.professional.specialty_id,
+                color: body.professional.color || body.color || "#6366f1",
+              });
+
+            if (insertError) {
+              return jsonResponse({
+                success: false,
+                error: `Failed to create professional: ${insertError.message}`,
+              }, 500);
+            }
           }
         }
       }
+    }
+
+    if (body.professional?.color !== undefined && body.color === undefined) {
+      await upsertUserProfile(supabaseAdmin, {
+        user_id: body.user_id,
+        full_name: targetUser.user.email?.split("@")[0] || "",
+        color: body.professional.color,
+      });
     }
 
     return jsonResponse({ success: true }, 200);

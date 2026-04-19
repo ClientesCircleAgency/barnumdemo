@@ -8,6 +8,7 @@ export interface Collaborator {
   color?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
+  professional_specialty_id?: string | null;
   professional_specialty?: string | null;
   professional_color?: string | null;
 }
