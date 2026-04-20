@@ -459,6 +459,8 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          active_consultation_type_ids: string[]
+          active_specialty_ids: string[]
           color: string | null
           created_at: string
           full_name: string
@@ -467,6 +469,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_consultation_type_ids?: string[]
+          active_specialty_ids?: string[]
           color?: string | null
           created_at?: string
           full_name: string
@@ -475,6 +479,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_consultation_type_ids?: string[]
+          active_specialty_ids?: string[]
           color?: string | null
           created_at?: string
           full_name?: string
