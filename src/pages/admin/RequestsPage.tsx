@@ -246,8 +246,8 @@ export default function RequestsPage() {
       />
 
       <Tabs defaultValue="appointments" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="appointments" className="gap-2">
+        <TabsList className="grid h-12 w-full max-w-md grid-cols-2 rounded-2xl bg-secondary p-1">
+          <TabsTrigger value="appointments" className="h-10 gap-2 rounded-xl data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
             <Calendar className="w-4 h-4" />
             Marcações
             {pendingRequests.length > 0 && (
@@ -256,7 +256,7 @@ export default function RequestsPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="messages" className="gap-2">
+          <TabsTrigger value="messages" className="h-10 gap-2 rounded-xl data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
             <Mail className="w-4 h-4" />
             Mensagens
             {newMessages.length > 0 && (
@@ -276,13 +276,13 @@ export default function RequestsPage() {
               placeholder="Pesquisar por nome, NIF ou telefone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="h-11 rounded-2xl border-primary/10 bg-secondary/45 pl-10"
             />
           </div>
 
           {/* Pending Requests */}
           {filteredRequests.length === 0 ? (
-            <Card className="p-8 text-center">
+            <Card className="rounded-[1.75rem] border-primary/10 p-8 text-center">
               <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Nenhum pedido de marcação pendente</p>
             </Card>
@@ -291,7 +291,7 @@ export default function RequestsPage() {
               {filteredRequests.map((request) => (
                 <Card
                   key={request.id}
-                  className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  className="cursor-pointer rounded-[1.35rem] border-primary/10 p-4 transition-all hover:border-primary/20 hover:bg-secondary/35 hover:shadow-md"
                   onClick={() => setSelectedRequest(request)}
                 >
                   <div className="flex items-center justify-between gap-4">
@@ -335,7 +335,7 @@ export default function RequestsPage() {
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Processados ({processedRequests.length})</h3>
               <div className="grid gap-2 opacity-60">
                 {processedRequests.slice(0, 5).map((request) => (
-                  <Card key={request.id} className="p-3">
+                  <Card key={request.id} className="rounded-2xl border-primary/10 p-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="font-medium text-sm">{request.name}</span>
@@ -355,7 +355,7 @@ export default function RequestsPage() {
         {/* Contact Messages */}
         <TabsContent value="messages" className="space-y-4">
           {messages.length === 0 ? (
-            <Card className="p-8 text-center">
+            <Card className="rounded-[1.75rem] border-primary/10 p-8 text-center">
               <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Nenhuma mensagem recebida</p>
             </Card>
@@ -365,7 +365,7 @@ export default function RequestsPage() {
                 <Card
                   key={message.id}
                   className={cn(
-                    "p-4 hover:shadow-md transition-shadow cursor-pointer",
+                    "cursor-pointer rounded-[1.35rem] border-primary/10 p-4 transition-all hover:border-primary/20 hover:bg-secondary/35 hover:shadow-md",
                     message.status === 'new' && "border-l-4 border-l-primary"
                   )}
                   onClick={() => {

@@ -148,7 +148,7 @@ export default function AgendaPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
       <PageHeader
         title={viewMode === 'day' ? 'Agenda do Dia' : viewMode === 'week' ? 'Semana' : 'Mês'}
@@ -162,16 +162,16 @@ export default function AgendaPage() {
       />
 
       {/* Controls - Stacked on mobile */}
-      <div className="space-y-3">
+      <div className="space-y-3 rounded-[1.75rem] border border-primary/10 bg-card p-4 shadow-sm">
         {/* Row 1: Navigation */}
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={goPrevious} className="h-8 w-8 shrink-0">
+          <Button variant="outline" size="icon" onClick={goPrevious} className="h-10 w-10 shrink-0 rounded-xl border-primary/15 bg-card">
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
           <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1 justify-start gap-2 text-xs lg:text-sm h-8">
+              <Button variant="outline" size="sm" className="h-10 flex-1 justify-start gap-2 rounded-xl border-primary/15 bg-secondary/45 text-xs lg:text-sm">
                 <CalendarDays className="h-3.5 w-3.5" />
                 {format(currentDate, 'd MMM', { locale: pt })}
               </Button>
@@ -192,11 +192,11 @@ export default function AgendaPage() {
             </PopoverContent>
           </Popover>
 
-          <Button variant="outline" size="icon" onClick={goNext} className="h-8 w-8 shrink-0">
+          <Button variant="outline" size="icon" onClick={goNext} className="h-10 w-10 shrink-0 rounded-xl border-primary/15 bg-card">
             <ChevronRight className="h-4 w-4" />
           </Button>
 
-          <Button variant="ghost" size="sm" onClick={goToToday} className="h-8 text-xs shrink-0">
+          <Button variant="ghost" size="sm" onClick={goToToday} className="h-10 shrink-0 rounded-xl text-xs text-primary hover:bg-primary/10">
             Hoje
           </Button>
         </div>
@@ -204,16 +204,16 @@ export default function AgendaPage() {
         {/* Row 2: View Mode + Filter */}
         <div className="flex items-center gap-2">
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)} className="flex-1">
-            <TabsList className="grid w-full grid-cols-3 h-8">
-              <TabsTrigger value="day" className="text-xs h-7">Dia</TabsTrigger>
-              <TabsTrigger value="week" className="text-xs h-7">Sem</TabsTrigger>
+            <TabsList className="grid h-10 w-full grid-cols-3 rounded-xl bg-secondary">
+              <TabsTrigger value="day" className="h-8 rounded-lg text-xs data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">Dia</TabsTrigger>
+              <TabsTrigger value="week" className="h-8 rounded-lg text-xs data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">Sem</TabsTrigger>
               <TabsTrigger value="month" className="text-xs h-7">Mês</TabsTrigger>
             </TabsList>
           </Tabs>
 
           {!isDoctor && (
             <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-              <SelectTrigger className="w-auto min-w-[100px] max-w-[200px] h-8 text-xs">
+              <SelectTrigger className="h-10 w-auto min-w-[120px] max-w-[220px] rounded-xl border-primary/15 bg-card text-xs">
                 <SelectValue placeholder="Médico" />
               </SelectTrigger>
               <SelectContent>

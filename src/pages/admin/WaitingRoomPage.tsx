@@ -26,7 +26,7 @@ const columns = [
     title: 'Confirmadas',
     dotColor: 'bg-primary',
     bgColor: 'bg-card',
-    borderColor: 'border-border',
+    borderColor: 'border-primary/10',
     emptyIcon: CheckCircle,
     emptyIconColor: 'text-primary',
     emptyIconBg: 'bg-primary/10',
@@ -37,8 +37,8 @@ const columns = [
     id: 'waiting' as AppointmentStatus,
     title: 'Em Sala de Espera',
     dotColor: 'bg-yellow-500',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
+    bgColor: 'bg-primary/5',
+    borderColor: 'border-primary/20',
     emptyIcon: Clock,
     emptyIconColor: 'text-yellow-600',
     emptyIconBg: 'bg-yellow-100',
@@ -51,7 +51,7 @@ const columns = [
     title: 'Em Atendimento',
     dotColor: 'bg-orange-500',
     bgColor: 'bg-card',
-    borderColor: 'border-border',
+    borderColor: 'border-primary/10',
     emptyIcon: Stethoscope,
     emptyIconColor: 'text-orange-600',
     emptyIconBg: 'bg-orange-100',
@@ -63,7 +63,7 @@ const columns = [
     title: 'Concluídas',
     dotColor: 'bg-muted-foreground',
     bgColor: 'bg-card',
-    borderColor: 'border-border',
+    borderColor: 'border-primary/10',
     emptyIcon: UserCheck,
     emptyIconColor: 'text-muted-foreground',
     emptyIconBg: 'bg-muted',
@@ -88,14 +88,14 @@ const DroppableColumnContent = forwardRef<HTMLDivElement, DroppableColumnProps>(
       <div
         ref={ref}
         className={cn(
-          'flex flex-col rounded-xl lg:rounded-2xl border transition-all min-h-[200px] sm:min-h-[300px] lg:min-h-[400px]',
+          'flex flex-col rounded-[1.75rem] border shadow-sm transition-all min-h-[200px] sm:min-h-[300px] lg:min-h-[400px]',
           column.bgColor,
           column.borderColor,
           isOver && 'ring-2 ring-primary ring-offset-2'
         )}
       >
         {/* Header */}
-        <div className="p-3 lg:p-4 flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-primary/10 p-3 lg:p-4">
           <div className="flex items-center gap-2">
             <div className={cn('w-2 h-2 lg:w-2.5 lg:h-2.5 rounded-full', column.dotColor)} />
             <span className="font-medium text-foreground text-xs lg:text-sm">{column.title}</span>

@@ -221,29 +221,29 @@ export function AppointmentsChart() {
   const percentageChange = 8.3;
 
   return (
-    <Card className="p-6 bg-card border border-border shadow-sm">
+    <Card className="rounded-[1.75rem] border-primary/10 bg-card p-6 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
             <CalendarCheck className="h-6 w-6 text-primary" />
           </div>
           <div>
             <h3 className="font-sans font-semibold text-foreground text-lg">
               Consultas Marcadas
             </h3>
-            <p className="font-mono text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Total de agendamentos
             </p>
           </div>
         </div>
-        <Badge variant="secondary" className="font-mono text-sm px-3 py-1 flex items-center gap-1 w-fit">
+        <Badge className="flex w-fit items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/10">
           <TrendingUp className="h-3 w-3 text-primary" />
           +{percentageChange}%
         </Badge>
       </div>
 
       {/* Period Toggle */}
-      <div className="flex gap-1 p-1 bg-muted rounded-lg mb-6">
+      <div className="mb-6 flex gap-1 rounded-2xl bg-secondary p-1">
         {(Object.keys(periodLabels) as Period[]).map((period) => (
           <Button
             key={period}
@@ -252,7 +252,7 @@ export function AppointmentsChart() {
             onClick={() => setActivePeriod(period)}
             className={`flex-1 font-sans text-sm ${
               activePeriod === period
-                ? 'bg-card text-foreground shadow-sm'
+                ? 'bg-primary-gradient text-primary-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -262,8 +262,8 @@ export function AppointmentsChart() {
       </div>
 
       {/* Stats Grid */}
-      <div className="p-4 rounded-lg bg-muted/50 border border-border/50 mb-6">
-        <p className="font-mono text-3xl lg:text-4xl font-semibold text-primary">
+      <div className="mb-6 rounded-2xl border border-primary/10 bg-secondary/50 p-4">
+        <p className="font-mono text-3xl font-semibold text-primary lg:text-4xl">
           {activeData.count}
         </p>
         <p className="font-sans text-sm text-muted-foreground mt-1">
@@ -272,7 +272,7 @@ export function AppointmentsChart() {
       </div>
 
       {/* Futuristic Chart */}
-      <div className="h-48 bg-muted/30 rounded-lg p-4 border border-border/50">
+      <div className="h-48 rounded-2xl border border-primary/10 bg-gradient-to-b from-card to-secondary/40 p-4">
         <ChartContainer config={chartConfig} className="h-full w-full">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>

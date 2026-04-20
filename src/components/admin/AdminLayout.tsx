@@ -78,7 +78,7 @@ export function AdminLayout() {
     <ClinicProvider>
       <div className="min-h-screen bg-background pt-24 lg:pt-28">
         {/* Top Header - Fixed Full Width */}
-        <header className="fixed top-0 left-0 right-0 h-24 lg:h-28 border-b border-border bg-card px-4 lg:px-6 flex items-center justify-between z-50 shadow-sm">
+        <header className="fixed top-0 left-0 right-0 h-24 lg:h-28 border-b border-primary/10 bg-card/95 px-4 lg:px-6 flex items-center justify-between z-50 shadow-sm backdrop-blur-xl">
 
           {/* Left: Mobile Menu Trigger */}
           <div className="flex items-center z-10 w-20">
@@ -148,7 +148,7 @@ export function AdminLayout() {
         >
           {/* Main Content */}
           <main className={cn(
-            'flex-1 overflow-auto',
+            'flex-1 overflow-auto bg-gradient-to-b from-background via-background to-secondary/50',
             isMessagesPage ? '' : 'p-4 lg:p-6'
           )}>
             <Outlet />

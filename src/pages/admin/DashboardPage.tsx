@@ -1,4 +1,5 @@
 import { CalendarDays, Users, TrendingUp, Clock, Inbox, ArrowUpRight, Star, MessageCircle } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
@@ -9,7 +10,7 @@ import { pt } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { AppointmentsChart } from '@/components/admin/AppointmentsChart';
-import { PageHeader } from '@/components/admin/PageHeader';
+import { AdminMetricCard, AdminPageShell, AdminSectionCard } from '@/components/admin/AdminSurface';
 import type { AppointmentStatus } from '@/types/clinic';
 
 export default function DashboardPage() {
@@ -20,219 +21,123 @@ export default function DashboardPage() {
 
   const todayDate = format(new Date(), 'yyyy-MM-dd');
   const todayAppointments = appointments.filter(
-    (a) => a.date === todayDate && !['cancelled', 'no_show'].includes(a.status)
+    (appointment) => appointment.date === todayDate && !['cancelled', 'no_show'].includes(appointment.status),
   );
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const newMessages = contactMessages.filter(m => !m.is_read);
-
+  const pendingRequests = requests.filter((request) => request.status === 'pending');
+  const newMessages = contactMessages.filter((message) => !message.is_read);
   const currentDate = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt });
 
-  // Mock data for Google rating (would come from API)
   const googleRating = 4.8;
   const totalReviews = 127;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Page Header */}
-      <PageHeader
-        title="Dashboard"
-        subtitle="Visão geral da clínica"
-      />
-
-      {/* KPI Cards Grid - Aligned with content below */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* Consultas Hoje */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="h-4 w-4 text-primary" />
-            </div>
-          </div>
-          <p className="font-mono text-2xl font-bold text-primary leading-none">
-            {todayAppointments.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Consultas hoje
-          </p>
+    <AdminPageShell
+      title="Dashboard"
+      subtitle={`Visão geral da clínica para ${currentDate}.`}
+      badge={<span className="text-sm text-primary-dark">Operação em tempo real</span>}
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          <AdminMetricCard icon={CalendarDays} title="Hoje" value={todayAppointments.length} caption="Consultas" accent />
+          <MetricLink to="/admin/pedidos">
+            <AdminMetricCard icon={Inbox} title="Pedidos" value={pendingRequests.length} caption="Pendentes" />
+          </MetricLink>
+          <AdminMetricCard icon={Users} title="Pacientes" value={patients.length} caption="Registados" />
+          <AdminMetricCard icon={TrendingUp} title="Consultas" value={appointments.length} caption="Total" />
+          <AdminMetricCard icon={Star} title="Google" value={googleRating} caption={`${totalReviews} avaliações`} />
+          <AdminMetricCard icon={MessageCircle} title="Mensagens" value={newMessages.length} caption="Novas" />
         </div>
 
-        {/* Pedidos Pendentes */}
-        <Link to="/admin/pedidos" className="block group">
-          <div className="bg-card border border-border rounded-xl p-4 shadow-sm h-full hover:border-primary/50 hover:shadow-md transition-all">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Inbox className="h-4 w-4 text-primary" />
-              </div>
-              {pendingRequests.length > 0 && (
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+        <AppointmentsChart />
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <AdminSectionCard className="overflow-hidden">
+            <SectionHeader
+              icon={Clock}
+              title="Consultas de Hoje"
+              href="/admin/agenda"
+            />
+            <div className="space-y-2 p-4 lg:p-5">
+              {todayAppointments.slice(0, 5).map((appointment) => (
+                <div key={appointment.id} className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/45 p-3">
+                  <div className="w-14 shrink-0 font-mono text-sm font-semibold text-primary-dark">
+                    {appointment.time.slice(0, 5)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">Consulta</p>
+                    <p className="text-xs text-muted-foreground">{appointment.duration} min</p>
+                  </div>
+                  <StatusBadge status={appointment.status as AppointmentStatus} size="sm" className="shrink-0" />
+                </div>
+              ))}
+              {todayAppointments.length === 0 && (
+                <EmptyPanel icon={Clock} label="Nenhuma consulta para hoje" />
               )}
             </div>
-            <p className="font-mono text-2xl font-bold text-primary leading-none">
-              {pendingRequests.length}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Pedidos pendentes
-            </p>
-          </div>
-        </Link>
+          </AdminSectionCard>
 
-        {/* Pacientes Registados */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <AdminSectionCard className="overflow-hidden">
+            <SectionHeader
+              icon={Inbox}
+              title="Pedidos Recentes"
+              href="/admin/pedidos"
+            />
+            <div className="space-y-2 p-4 lg:p-5">
+              {pendingRequests.slice(0, 5).map((request) => (
+                <div key={request.id} className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/45 p-3">
+                  <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-foreground">{request.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {specialties.find((specialty) => specialty.id === request.specialty_id)?.name || 'Especialidade desconhecida'} · {format(parseISO(request.preferred_date), 'd MMM', { locale: pt })}
+                    </p>
+                  </div>
+                  <Badge className="shrink-0 rounded-full bg-primary/10 text-primary hover:bg-primary/10">
+                    Pendente
+                  </Badge>
+                </div>
+              ))}
+              {pendingRequests.length === 0 && (
+                <EmptyPanel icon={Inbox} label="Nenhum pedido pendente" />
+              )}
             </div>
-          </div>
-          <p className="font-mono text-2xl font-bold text-foreground leading-none">
-            {patients.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Pacientes registados
-          </p>
-        </div>
-
-        {/* Total Consultas */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-          <p className="font-mono text-2xl font-bold text-foreground leading-none">
-            {appointments.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Total consultas
-          </p>
-        </div>
-
-        {/* Google Rating */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-0.5">
-            <p className="font-mono text-2xl font-bold text-foreground leading-none">
-              {googleRating}
-            </p>
-            <span className="text-xs text-muted-foreground">/5</span>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Avaliação Google
-          </p>
-        </div>
-
-        {/* Mensagens Novas */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <MessageCircle className="h-4 w-4 text-primary" />
-            </div>
-          </div>
-          <p className="font-mono text-2xl font-bold text-primary leading-none">
-            {newMessages.length}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Mensagens novas
-          </p>
+          </AdminSectionCard>
         </div>
       </div>
+    </AdminPageShell>
+  );
+}
 
-      {/* Appointments Chart */}
-      <AppointmentsChart />
+function MetricLink({ to, children }: { to: string; children: ReactNode }) {
+  return (
+    <Link to={to} className="block transition-transform hover:-translate-y-0.5">
+      {children}
+    </Link>
+  );
+}
 
-      {/* Bottom Cards Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:gap-6">
-        {/* Consultas de Hoje */}
-        <div className="bg-card border border-border rounded-xl p-4 lg:p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-accent flex items-center justify-center">
-                <Clock className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
-              </div>
-              <h3 className="font-medium text-sm lg:text-base text-foreground">
-                Consultas de Hoje
-              </h3>
-            </div>
-            <Link to="/admin/agenda" className="text-xs text-primary hover:underline flex items-center gap-1">
-              Ver
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {todayAppointments.slice(0, 4).map((apt) => (
-              <div key={apt.id} className="flex items-center gap-3 p-2.5 lg:p-3 rounded-lg bg-muted/50 border border-border/50">
-                <div className="font-mono text-xs lg:text-sm font-medium text-primary shrink-0 w-10 lg:w-12">
-                  {apt.time.slice(0, 5)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground text-xs lg:text-sm truncate">
-                    Consulta
-                  </p>
-                  <p className="font-mono text-[10px] lg:text-xs text-muted-foreground">
-                    {apt.duration} min
-                  </p>
-                </div>
-                <StatusBadge status={apt.status as AppointmentStatus} size="sm" className="shrink-0" />
-              </div>
-            ))}
-            {todayAppointments.length === 0 && (
-              <div className="py-6 lg:py-8 text-center bg-muted/30 rounded-lg border border-border/50">
-                <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground text-xs lg:text-sm">
-                  Nenhuma consulta para hoje
-                </p>
-              </div>
-            )}
-          </div>
+function SectionHeader({ icon: Icon, title, href }: { icon: typeof Clock; title: string; href: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-primary/10 p-4 lg:p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
         </div>
-
-        {/* Pedidos Recentes */}
-        <div className="bg-card border border-border rounded-xl p-4 lg:p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-accent flex items-center justify-center">
-                <Inbox className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
-              </div>
-              <h3 className="font-medium text-sm lg:text-base text-foreground">
-                Pedidos Recentes
-              </h3>
-            </div>
-            <Link to="/admin/pedidos" className="text-xs text-primary hover:underline flex items-center gap-1">
-              Ver
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {pendingRequests.slice(0, 4).map((req) => (
-              <div key={req.id} className="flex items-center gap-3 p-2.5 lg:p-3 rounded-lg bg-muted/50 border border-border/50">
-                <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs lg:text-sm font-medium text-foreground truncate">
-                    {req.name}
-                  </p>
-                  <p className="font-mono text-[10px] lg:text-xs text-muted-foreground">
-                    {specialties.find(s => s.id === req.specialty_id)?.name || 'Especialidade desconhecida'} • {format(parseISO(req.preferred_date), "d MMM", { locale: pt })}
-                  </p>
-                </div>
-                <Badge variant="secondary" className="shrink-0 font-mono text-[10px] lg:text-xs px-1.5">
-                  Pendente
-                </Badge>
-              </div>
-            ))}
-            {pendingRequests.length === 0 && (
-              <div className="py-6 lg:py-8 text-center bg-muted/30 rounded-lg border border-border/50">
-                <Inbox className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground text-xs lg:text-sm">
-                  Nenhum pedido pendente
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <h3 className="font-semibold text-foreground">{title}</h3>
       </div>
+      <Link to={href} className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+        Ver
+        <ArrowUpRight className="h-4 w-4" />
+      </Link>
+    </div>
+  );
+}
+
+function EmptyPanel({ icon: Icon, label }: { icon: typeof Clock; label: string }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-primary/20 bg-secondary/35 py-10 text-center">
+      <Icon className="mx-auto mb-2 h-8 w-8 text-primary/60" />
+      <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );
 }

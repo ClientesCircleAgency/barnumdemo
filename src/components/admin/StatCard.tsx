@@ -14,11 +14,11 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon: Icon, iconColor, trend }: StatCardProps) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+    <div className="rounded-[1.35rem] border border-primary/10 bg-secondary/60 p-5 shadow-sm transition-all hover:border-primary/20 hover:bg-secondary/80">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-muted-foreground font-medium">{label}</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
           {trend && (
             <p className={cn(
               "text-xs mt-2",
@@ -30,8 +30,8 @@ export function StatCard({ label, value, icon: Icon, iconColor, trend }: StatCar
         </div>
         {Icon && (
           <div className={cn(
-            "h-10 w-10 rounded-xl flex items-center justify-center",
-            iconColor || "bg-primary/10"
+            "flex h-10 w-10 items-center justify-center rounded-xl",
+            iconColor || "bg-primary/10 text-primary"
           )}>
             <Icon className={cn(
               "h-5 w-5",

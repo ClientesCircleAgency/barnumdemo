@@ -86,10 +86,10 @@ export default function SettingsPage() {
         {/* Coluna esquerda */}
         <div className="space-y-4">
           {/* Horário de Funcionamento */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
               <div className="flex items-start gap-3 mb-4">
-                <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
                   <Clock className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
                 </div>
                 <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Horário</h3>
@@ -137,12 +137,12 @@ export default function SettingsPage() {
         {/* Coluna direita */}
         <div className="space-y-4">
           {/* Colaboradores - Admin Only */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 lg:gap-3">
-                  <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <Users className="h-4 w-4 lg:h-5 lg:w-5 text-emerald-600" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
+                    <Users className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   </div>
                   <h3 className="font-semibold text-sm lg:text-base text-foreground">Colaboradores</h3>
                 </div>
@@ -193,7 +193,7 @@ export default function SettingsPage() {
                     const bgColor = collab.color || collab.professional_color || (isSecretary ? '#10b981' : isAdminUser ? '#8b5cf6' : '#6366f1');
 
                     return (
-                      <div key={collab.user_id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                      <div key={collab.user_id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-secondary/40 p-2">
                         <div className="flex items-center gap-2">
                           <div
                             className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
@@ -247,12 +247,12 @@ export default function SettingsPage() {
           </div>
 
           {/* Tipos de Consulta - Admin Only */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 lg:gap-3">
-                  <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                    <Tag className="h-4 w-4 lg:h-5 lg:w-5 text-purple-600" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
+                    <Tag className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   </div>
                   <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
                 </div>
@@ -265,7 +265,7 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {consultationTypes.map((type) => (
-                  <div key={type.id} className="flex items-center gap-2 p-2.5 rounded-lg border border-border">
+                  <div key={type.id} className="flex items-center gap-2 rounded-2xl border border-primary/10 bg-secondary/40 p-2.5">
                     <div
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: type.color || '#6366f1' }}
