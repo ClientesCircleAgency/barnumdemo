@@ -27,18 +27,12 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { normalizePortuguesePhone } from '@/lib/phone';
-
-const COUNTRY_CONFIGS = {
-  PT: { code: '+351', flag: '\u{1F1F5}\u{1F1F9}', placeholder: '912 345 678', regex: /^[923]\d{8}$/, label: 'Portugal' },
-} as const;
-
-type CountryKey = keyof typeof COUNTRY_CONFIGS;
+import { normalizePhone, PHONE_COUNTRIES, type PhoneCountry } from '@/lib/phone';
 
 const appointmentSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   email: z.string().email('Email inválido').max(255),
-  countryCode: z.enum(['PT'] as const),
+  countryCode: z.enum(['PT', 'BR'] as const),
   phone: z.string().min(1, 'Telefone obrigatório').max(20),
   nif: z.string().length(9, 'NIF deve ter 9 dígitos').regex(/^\d+$/, 'NIF deve conter apenas números'),
   serviceType: z.string({ required_error: 'Selecione o tipo de consulta' }).uuid('Selecione o tipo de consulta'),
@@ -46,13 +40,10 @@ const appointmentSchema = z.object({
   preferredDate: z.string().min(1, 'Selecione uma data'),
   preferredTime: z.string().min(1, 'Selecione uma hora'),
 }).superRefine((data, ctx) => {
-  const digits = data.phone.replace(/\s/g, '');
-  const config = COUNTRY_CONFIGS[data.countryCode];
+  const digits = data.phone.replace(/\D/g, '');
+  const config = PHONE_COUNTRIES[data.countryCode];
   if (!config.regex.test(digits)) {
-    const msg = data.countryCode === 'PT'
-      ? 'Número PT inválido (9 dígitos, começar por 9, 2 ou 3)'
-      : 'Número BR inválido (10-11 dígitos: DDD + número)';
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: msg, path: ['phone'] });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: config.invalidMessage, path: ['phone'] });
   }
 });
 
@@ -73,7 +64,7 @@ export function AppointmentSection() {
   const addRequest = useAddAppointmentRequest();
   const { data: specialties, isLoading: loadingSpecialties } = useSpecialties();
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedCountry, setSelectedCountry] = useState<CountryKey>('PT');
+  const [selectedCountry, setSelectedCountry] = useState<PhoneCountry>('PT');
   const { toast } = useToast();
 
   const {
@@ -92,7 +83,7 @@ export function AppointmentSection() {
 
   const onSubmit = async (data: AppointmentFormData) => {
     try {
-      const fullPhone = normalizePortuguesePhone(data.phone);
+      const fullPhone = normalizePhone(data.phone, data.countryCode);
 
       await addRequest.mutateAsync({
         name: data.name,
@@ -250,18 +241,19 @@ export function AppointmentSection() {
                 <div className="flex gap-2">
                   <Select
                     value={selectedCountry}
-                    onValueChange={(v: CountryKey) => {
+                    onValueChange={(v: PhoneCountry) => {
                       setSelectedCountry(v);
                       setValue('countryCode', v);
+                      setValue('phone', '', { shouldValidate: true });
                     }}
                   >
                     <SelectTrigger className={cn("rounded-xl h-12 w-[130px] shrink-0", errors.phone && 'border-destructive')}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
-                      {(Object.keys(COUNTRY_CONFIGS) as CountryKey[]).map((key) => (
+                      {(Object.keys(PHONE_COUNTRIES) as PhoneCountry[]).map((key) => (
                         <SelectItem key={key} value={key} className="rounded-lg">
-                          <span className="mr-1">{COUNTRY_CONFIGS[key].flag}</span> {COUNTRY_CONFIGS[key].code}
+                          <span className="mr-1">{PHONE_COUNTRIES[key].flag}</span> {PHONE_COUNTRIES[key].code}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -269,8 +261,15 @@ export function AppointmentSection() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder={COUNTRY_CONFIGS[selectedCountry].placeholder}
+                    placeholder={PHONE_COUNTRIES[selectedCountry].placeholder}
+                    maxLength={PHONE_COUNTRIES[selectedCountry].maxLength}
                     {...register('phone')}
+                    onChange={(event) => {
+                      const cleaned = event.target.value
+                        .replace(/\D/g, '')
+                        .slice(0, PHONE_COUNTRIES[selectedCountry].maxLength);
+                      setValue('phone', cleaned, { shouldValidate: true });
+                    }}
                     className={cn("rounded-xl h-12 flex-1", errors.phone && 'border-destructive')}
                   />
                 </div>

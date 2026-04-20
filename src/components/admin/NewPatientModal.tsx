@@ -11,10 +11,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { patientFormSchema, type PatientFormData } from '@/lib/validations/patient';
+import { normalizePhone, PHONE_COUNTRIES, type PhoneCountry } from '@/lib/phone';
 import {
   Form,
   FormControl,
@@ -39,6 +47,7 @@ export const NewPatientModal = React.forwardRef<HTMLDivElement, NewPatientModalP
     defaultValues: {
       nif: '',
       name: '',
+      countryCode: 'PT',
       phone: '',
       email: '',
       birthDate: '',
@@ -63,7 +72,7 @@ export const NewPatientModal = React.forwardRef<HTMLDivElement, NewPatientModalP
       const newPatient = await addPatient({
         nif: data.nif,
         name: data.name.trim(),
-        phone: data.phone,
+        phone: normalizePhone(data.phone, data.countryCode),
         email: data.email?.trim() || undefined,
         birthDate: data.birthDate || undefined,
         notes: data.notes?.trim() || undefined,
@@ -146,16 +155,46 @@ export const NewPatientModal = React.forwardRef<HTMLDivElement, NewPatientModalP
                 <FormItem>
                   <FormLabel>Telefone *</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="912 345 678"
-                      type="tel"
-                      maxLength={9}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 9);
-                        field.onChange(cleaned);
-                      }}
-                    />
+                    <div className="flex gap-2">
+                      <FormField
+                        control={form.control}
+                        name="countryCode"
+                        render={({ field: countryField }) => (
+                          <Select
+                            value={countryField.value}
+                            onValueChange={(value: PhoneCountry) => {
+                              countryField.onChange(value);
+                              form.setValue('phone', '', { shouldValidate: true });
+                            }}
+                          >
+                            <SelectTrigger className="w-[120px] shrink-0">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(PHONE_COUNTRIES) as PhoneCountry[]).map((key) => (
+                                <SelectItem key={key} value={key}>
+                                  <span className="mr-1">{PHONE_COUNTRIES[key].flag}</span>
+                                  {PHONE_COUNTRIES[key].code}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <Input
+                        {...field}
+                        placeholder={PHONE_COUNTRIES[form.watch('countryCode')].placeholder}
+                        type="tel"
+                        maxLength={PHONE_COUNTRIES[form.watch('countryCode')].maxLength}
+                        onChange={(e) => {
+                          const country = form.getValues('countryCode');
+                          const cleaned = e.target.value
+                            .replace(/\D/g, '')
+                            .slice(0, PHONE_COUNTRIES[country].maxLength);
+                          field.onChange(cleaned);
+                        }}
+                      />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

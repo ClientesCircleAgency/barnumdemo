@@ -6,11 +6,19 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import type { Patient } from '@/types/clinic';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { inlinePatientFormSchema, type InlinePatientFormData } from '@/lib/validations/patient';
+import { normalizePhone, PHONE_COUNTRIES, type PhoneCountry } from '@/lib/phone';
 import {
   Form,
   FormControl,
@@ -38,6 +46,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
     resolver: zodResolver(inlinePatientFormSchema),
     defaultValues: {
       name: '',
+      countryCode: 'PT',
       phone: '',
       email: '',
       birthDate: '',
@@ -85,7 +94,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
       const patient = await addPatient({
         nif,
         name: data.name.trim(),
-        phone: data.phone,
+        phone: normalizePhone(data.phone, data.countryCode),
         email: data.email?.trim() || undefined,
         birthDate: data.birthDate || undefined,
         notes: data.notes?.trim() || undefined,
@@ -248,15 +257,45 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
                     <FormItem>
                       <FormLabel>Telemóvel *</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="912345678"
-                          maxLength={9}
-                          onChange={(e) => {
-                            const cleaned = e.target.value.replace(/\D/g, '').slice(0, 9);
-                            field.onChange(cleaned);
-                          }}
-                        />
+                        <div className="flex gap-2">
+                          <FormField
+                            control={form.control}
+                            name="countryCode"
+                            render={({ field: countryField }) => (
+                              <Select
+                                value={countryField.value}
+                                onValueChange={(value: PhoneCountry) => {
+                                  countryField.onChange(value);
+                                  form.setValue('phone', '', { shouldValidate: true });
+                                }}
+                              >
+                                <SelectTrigger className="w-[120px] shrink-0">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(Object.keys(PHONE_COUNTRIES) as PhoneCountry[]).map((key) => (
+                                    <SelectItem key={key} value={key}>
+                                      <span className="mr-1">{PHONE_COUNTRIES[key].flag}</span>
+                                      {PHONE_COUNTRIES[key].code}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                          <Input
+                            {...field}
+                            placeholder={PHONE_COUNTRIES[form.watch('countryCode')].placeholder}
+                            maxLength={PHONE_COUNTRIES[form.watch('countryCode')].maxLength}
+                            onChange={(e) => {
+                              const country = form.getValues('countryCode');
+                              const cleaned = e.target.value
+                                .replace(/\D/g, '')
+                                .slice(0, PHONE_COUNTRIES[country].maxLength);
+                              field.onChange(cleaned);
+                            }}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
