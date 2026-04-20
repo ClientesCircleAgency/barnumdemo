@@ -16,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { useAuth } from '@/hooks/useAuth';
@@ -294,6 +293,10 @@ export default function AccountPage() {
 
   const selectedTypeCount = selectedConsultationTypeIds.length;
   const serviceOptionsLoading = loadingSpecialties || loadingConsultationTypes || !availabilityLoaded;
+  const inactiveTypeCount = consultationTypes.length - selectedTypeCount;
+  const hasAllServicesActive =
+    selectedSpecialtyIds.length === specialties.length &&
+    selectedConsultationTypeIds.length === consultationTypes.length;
 
   const roleLabelMap: Record<string, string> = {
     admin: 'Administrador',
@@ -323,40 +326,71 @@ export default function AccountPage() {
         </div>
 
         {/* Service preferences */}
-        <div className="relative overflow-hidden bg-card border border-border rounded-2xl p-4 lg:p-6">
+        <div className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-emerald-400 to-sky-400" />
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-5">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-primary" />
-                <h3 className="text-base font-semibold text-foreground">Serviços ativos para mim</h3>
+          <div className="p-4 lg:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl space-y-2">
+                <div className="inline-flex h-10 items-center gap-2 rounded-full bg-primary/10 px-3 text-sm font-medium text-primary">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Servicos ativos
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight text-foreground">O que esta conta atende</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    Escolha onde esta conta fica ativa. Para medicos, as especialidades guardadas
+                    tambem entram na disponibilidade usada em marcacoes e sugestoes.
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground max-w-2xl">
-                Escolha as especialidades e tipos de consulta onde quer aparecer ativo. Nos médicos,
-                as especialidades também controlam a disponibilidade para marcações e sugestões.
-              </p>
+              <Button
+                type="button"
+                variant={hasAllServicesActive ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={handleSelectAllServices}
+                className="min-h-11 gap-2 rounded-full px-4"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {hasAllServicesActive ? 'Tudo ativo' : 'Ativar tudo'}
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary" className="rounded-full">
-                {selectedSpecialtyIds.length}/{specialties.length} especialidades
-              </Badge>
-              <Badge variant="secondary" className="rounded-full">
-                {selectedTypeCount}/{consultationTypes.length} tipos
-              </Badge>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Especialidades</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {selectedSpecialtyIds.length}
+                  <span className="text-sm font-normal text-muted-foreground">/{specialties.length}</span>
+                </p>
+              </div>
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tipos ativos</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">
+                  {selectedTypeCount}
+                  <span className="text-sm font-normal text-muted-foreground">/{consultationTypes.length}</span>
+                </p>
+              </div>
+              <div className="rounded-xl border bg-background p-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Inativos</p>
+                <p className="mt-1 text-2xl font-semibold text-foreground">{inactiveTypeCount}</p>
+              </div>
             </div>
           </div>
 
           {serviceOptionsLoading ? (
-            <div className="flex items-center justify-center rounded-xl border border-dashed py-10 text-sm text-muted-foreground">
+            <div className="mx-4 mb-4 flex min-h-44 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground lg:mx-6 lg:mb-6">
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               A carregar preferências...
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6 border-t bg-muted/20 p-4 lg:p-6">
               <section className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-sm font-semibold">Especialidades</Label>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-semibold">Especialidades</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Clique no cartao ou no interruptor para alternar.</p>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
                   {specialties.map((specialty) => {
@@ -366,6 +400,8 @@ export default function AccountPage() {
                         key={specialty.id}
                         role="button"
                         tabIndex={0}
+                        aria-pressed={active}
+                        aria-label={`${active ? 'Desativar' : 'Ativar'} ${specialty.name}`}
                         onClick={() => toggleSpecialty(specialty.id)}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
@@ -374,20 +410,27 @@ export default function AccountPage() {
                           }
                         }}
                         className={cn(
-                          'group flex items-center justify-between rounded-xl border p-4 text-left transition-all',
+                          'group flex min-h-20 cursor-pointer items-center justify-between gap-4 rounded-xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                           active
                             ? 'border-primary/50 bg-primary/5 shadow-sm'
-                            : 'border-border bg-background hover:border-primary/30 hover:bg-muted/40'
+                            : 'border-border bg-background hover:border-primary/30 hover:bg-background/80'
                         )}
                       >
                         <div>
                           <p className="font-medium text-foreground">{specialty.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {active ? 'Ativa no meu perfil' : 'Inativa para mim'}
-                          </p>
+                          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span
+                              className={cn(
+                                'h-2 w-2 rounded-full',
+                                active ? 'bg-emerald-500' : 'bg-muted-foreground/40'
+                              )}
+                            />
+                            <span>{active ? 'Ativa no meu perfil' : 'Inativa para mim'}</span>
+                          </div>
                         </div>
                         <Switch
                           checked={active}
+                          aria-label={`${active ? 'Desativar' : 'Ativar'} ${specialty.name}`}
                           onClick={(event) => event.stopPropagation()}
                           onCheckedChange={() => toggleSpecialty(specialty.id)}
                         />
@@ -403,9 +446,9 @@ export default function AccountPage() {
                     <ClipboardList className="h-4 w-4 text-muted-foreground" />
                     <Label className="text-sm font-semibold">Tipos de consulta</Label>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={handleSelectAllServices}>
-                    Ativar tudo
-                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {inactiveTypeCount === 0 ? 'Tudo pronto' : `${inactiveTypeCount} inativo${inactiveTypeCount !== 1 ? 's' : ''}`}
+                  </span>
                 </div>
 
                 <div className="grid gap-2 md:grid-cols-2">
@@ -419,17 +462,18 @@ export default function AccountPage() {
                         key={type.id}
                         type="button"
                         disabled={!specialtyActive}
+                        aria-pressed={active && specialtyActive}
                         onClick={() => toggleConsultationType(type.id)}
                         className={cn(
-                          'flex items-center gap-3 rounded-xl border p-3 text-left transition-all',
+                          'flex min-h-16 items-center gap-3 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                           active && specialtyActive
-                            ? 'border-emerald-400/60 bg-emerald-50'
-                            : 'border-border bg-background hover:bg-muted/40',
+                            ? 'border-primary/45 bg-background shadow-sm'
+                            : 'border-border bg-background hover:border-primary/30 hover:bg-background/80',
                           !specialtyActive && 'cursor-not-allowed opacity-45'
                         )}
                       >
                         <span
-                          className="h-3 w-3 rounded-full shrink-0"
+                          className="h-3 w-3 rounded-full shrink-0 ring-2 ring-background"
                           style={{ backgroundColor: type.color || '#10b981' }}
                         />
                         <div className="min-w-0 flex-1">
@@ -438,22 +482,34 @@ export default function AccountPage() {
                             {specialtyName || 'Sem especialidade'} · {type.default_duration} min
                           </p>
                         </div>
-                        {active && specialtyActive && <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />}
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-1 text-xs font-medium',
+                            active && specialtyActive
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                          )}
+                        >
+                          {active && specialtyActive ? 'Ativo' : 'Off'}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
               </section>
 
-              <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Dica: desligar uma especialidade também remove os tipos de consulta dessa área.
-                </p>
+              <div className="flex flex-col gap-3 rounded-xl border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Guardar configuracao de atendimento</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    Dica: desligar uma especialidade tambem remove os tipos de consulta dessa area.
+                  </p>
+                </div>
                 <Button
                   size="sm"
                   onClick={handleSaveAvailability}
                   disabled={savingAvailability}
-                  className="gap-2"
+                  className="min-h-11 gap-2"
                 >
                   {savingAvailability ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Guardar serviços
