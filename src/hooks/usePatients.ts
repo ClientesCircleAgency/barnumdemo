@@ -68,7 +68,7 @@ export function useAddPatient() {
 
       const { data, error } = await supabase
         .from('patients')
-        .insert(normalizedPatient)
+        .upsert(normalizedPatient, { onConflict: 'nif' })
         .select()
         .single();
       
