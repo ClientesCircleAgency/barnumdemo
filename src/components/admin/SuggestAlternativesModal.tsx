@@ -74,6 +74,10 @@ function timeToMinutes(t: string) {
   return h * 60 + m;
 }
 
+function normalizeTime(t: string) {
+  return t.slice(0, 5);
+}
+
 function slotFitsWorkingWindows(time: string, durationMinutes: number) {
   const slotStart = timeToMinutes(time);
   const slotEnd = slotStart + durationMinutes;
@@ -187,7 +191,7 @@ export function SuggestAlternativesModal({
       const slots: ProfessionalSlot[] = [];
 
       for (const time of WORKING_HOURS) {
-        if (time !== source.preferred_time && isProfFree(prof.id, dateStr, time)) {
+        if (time !== normalizeTime(source.preferred_time) && isProfFree(prof.id, dateStr, time)) {
           slots.push({ date: requestedDate, time, professional: prof });
         }
       }
@@ -255,7 +259,7 @@ export function SuggestAlternativesModal({
               <div>
                 <p className="font-medium">{source.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  Atual: {format(parseISO(source.preferred_date), "d MMM", { locale: pt })} às {source.preferred_time}
+                  Atual: {format(parseISO(source.preferred_date), "d MMM", { locale: pt })} às {normalizeTime(source.preferred_time)}
                 </p>
               </div>
             </div>
