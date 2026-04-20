@@ -35,6 +35,19 @@
             ]
         }
     ],
+    "redirects": [
+        {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "clinicabarnun.pt"
+                }
+            ],
+            "destination": "https://www.clinicabarnun.pt/$1",
+            "permanent": true
+        }
+    ],
     "rewrites": [
         {
             "source": "/(.*)",
