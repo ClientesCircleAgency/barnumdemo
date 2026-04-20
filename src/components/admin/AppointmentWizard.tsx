@@ -560,11 +560,6 @@ export function AppointmentWizard({
                 )}
               />
 
-              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-                A confirmacao automatica desta consulta continua a ser controlada pelos fluxos do
-                n8n. A opcao visual foi removida para evitar falsas expectativas.
-              </div>
-
               <div className="flex justify-between pt-4 gap-2">
                 <Button type="button" variant="outline" onClick={handlePrevStep}>
                   <ChevronLeft className="h-4 w-4 mr-1" />
