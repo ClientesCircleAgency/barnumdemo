@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { PageHeader } from '@/components/admin/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,7 +29,6 @@ import { pt } from 'date-fns/locale';
 import {
   BarChart3,
   CalendarDays,
-  CheckCircle2,
   Clock3,
   Sparkles,
   TrendingUp,
@@ -117,7 +115,6 @@ export default function StatisticsPage() {
     appointments,
     patients,
     professionals,
-    consultationTypes,
     getPatientById,
     getProfessionalById,
     getConsultationTypeById,
@@ -276,42 +273,37 @@ export default function StatisticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f8f5] pb-10">
+    <div className="min-h-screen bg-background pb-10">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-3 sm:px-6">
-        <PageHeader
-          title="Estatísticas"
-          subtitle="Dados operacionais da clínica, pedidos e consultas registadas."
-        />
-
-        <section className="overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
-          <div className="flex flex-col gap-5 border-b border-slate-100 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+        <section className="overflow-hidden rounded-[2rem] border border-primary/10 bg-card shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
+          <div className="flex flex-col gap-5 border-b border-primary/10 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full bg-lime-300 px-3 py-1 text-slate-950 hover:bg-lime-300">
+                <Badge className="rounded-full bg-primary/10 px-3 py-1 text-primary hover:bg-primary/10">
                   Barnun Analytics
                 </Badge>
-                <span className="text-sm text-emerald-700">Dados em tempo real</span>
+                <span className="text-sm text-primary-dark">Dados em tempo real</span>
               </div>
-              <h2 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                Statistics
+              <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Estatísticas
               </h2>
-              <p className="mt-1 text-slate-500">
-                Consumer data that has been registered.
+              <p className="mt-1 text-muted-foreground">
+                Dados operacionais da clínica, pedidos e consultas registadas.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 shadow-inner">
-                <CalendarDays className="h-4 w-4 text-slate-500" />
+              <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-3 text-sm font-medium text-foreground shadow-inner">
+                <CalendarDays className="h-4 w-4 text-primary" />
                 {periodLabel}
               </div>
               <Tabs value={activePeriod} onValueChange={(value) => setActivePeriod(value as Period)}>
-                <TabsList className="rounded-full bg-slate-100 p-1">
+                <TabsList className="rounded-full bg-secondary p-1">
                   {(Object.keys(periodLabels) as Period[]).map((period) => (
                     <TabsTrigger
                       key={period}
                       value={period}
-                      className="rounded-full px-4 data-[state=active]:bg-slate-950 data-[state=active]:text-white"
+                      className="rounded-full px-4 data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
                     >
                       {periodLabels[period]}
                     </TabsTrigger>
@@ -322,19 +314,19 @@ export default function StatisticsPage() {
           </div>
 
           <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <aside className="border-b border-slate-100 bg-gradient-to-b from-lime-50/80 to-white p-5 lg:border-b-0 lg:border-r">
+            <aside className="border-b border-primary/10 bg-gradient-to-b from-primary/10 via-secondary/70 to-card p-5 lg:border-b-0 lg:border-r">
               <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-lime-300 text-slate-950">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-gradient text-primary-foreground shadow-lg shadow-primary/20">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-slate-950">CRMBarnun</p>
-                  <p className="text-xs text-slate-500">Clinical edge</p>
+                  <p className="text-lg font-semibold text-foreground">CRMBarnun</p>
+                  <p className="text-xs text-muted-foreground">Gestão clínica</p>
                 </div>
               </div>
 
               <nav className="space-y-2">
-                <SidebarPill active icon={BarChart3} label="Statistics" />
+                <SidebarPill active icon={BarChart3} label="Estatísticas" />
                 <SidebarPill icon={Users} label={`${patients.length} pacientes`} />
                 <SidebarPill icon={Clock3} label={`${kpis.pending} pendentes`} />
               </nav>
@@ -348,11 +340,11 @@ export default function StatisticsPage() {
                 <MetricCard title="Conversão" value={`${kpis.conversion}%`} caption="Pedidos para consultas" />
               </div>
 
-              <Card className="rounded-[1.75rem] border-slate-100 bg-white p-5 shadow-none">
+              <Card className="rounded-[1.75rem] border-primary/10 bg-card p-5 shadow-none">
                 <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <h3 className="text-2xl font-semibold tracking-tight text-slate-950">Sales Funnel</h3>
-                    <p className="text-sm text-slate-500">Funil de marcações e movimento clínico.</p>
+                    <h3 className="text-2xl font-semibold tracking-tight text-foreground">Funil de Marcações</h3>
+                    <p className="text-sm text-muted-foreground">Funil de marcações e movimento clínico.</p>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -364,8 +356,8 @@ export default function StatisticsPage() {
                         onClick={() => setFunnelView(view)}
                         className={`rounded-full px-4 ${
                           funnelView === view
-                            ? 'bg-slate-950 text-white hover:bg-slate-900 hover:text-white'
-                            : 'text-slate-500 hover:bg-slate-100'
+                            ? 'bg-primary-gradient text-primary-foreground hover:opacity-90 hover:text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                         }`}
                       >
                         {funnelLabels[view]}
@@ -374,10 +366,10 @@ export default function StatisticsPage() {
                   </div>
                 </div>
 
-                <div className="h-[320px] rounded-[1.4rem] border border-slate-100 bg-gradient-to-b from-white to-slate-50/70 p-4">
+                <div className="h-[320px] rounded-[1.4rem] border border-primary/10 bg-gradient-to-b from-card to-secondary/40 p-4">
                   <ChartContainer config={chartConfig} className="h-full w-full">
                     <LineChart data={chartData} margin={{ left: 8, right: 18, top: 20, bottom: 8 }}>
-                      <CartesianGrid stroke="#e5e7eb" strokeDasharray="0" vertical={false} />
+                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="0" vertical={false} />
                       <XAxis
                         dataKey="label"
                         axisLine={false}
@@ -399,10 +391,10 @@ export default function StatisticsPage() {
                       <Line
                         type="monotone"
                         dataKey={funnelView}
-                        stroke="#111827"
+                        stroke="hsl(var(--primary-dark))"
                         strokeWidth={2}
-                        dot={{ r: 3, fill: '#111827', strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: '#bef264', stroke: '#111827', strokeWidth: 2 }}
+                        dot={{ r: 3, fill: 'hsl(var(--primary-dark))', strokeWidth: 0 }}
+                        activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--primary-dark))', strokeWidth: 2 }}
                       />
                     </LineChart>
                   </ChartContainer>
@@ -410,16 +402,16 @@ export default function StatisticsPage() {
               </Card>
 
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <Card className="overflow-hidden rounded-[1.75rem] border-slate-100 bg-white shadow-none">
-                  <div className="border-b border-slate-100 p-5">
-                    <h3 className="text-2xl font-semibold tracking-tight text-slate-950">Customer Movements</h3>
-                    <p className="text-sm text-slate-500">Últimas consultas do período selecionado.</p>
+                <Card className="overflow-hidden rounded-[1.75rem] border-primary/10 bg-card shadow-none">
+                  <div className="border-b border-primary/10 p-5">
+                    <h3 className="text-2xl font-semibold tracking-tight text-foreground">Movimentos de Pacientes</h3>
+                    <p className="text-sm text-muted-foreground">Últimas consultas do período selecionado.</p>
                   </div>
 
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[720px] text-left">
                       <thead>
-                        <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <tr className="border-b border-primary/10 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           <th className="px-5 py-4">Overview</th>
                           <th className="px-5 py-4">Consulta</th>
                           <th className="px-5 py-4">Profissional</th>
@@ -445,19 +437,19 @@ export default function StatisticsPage() {
                   </div>
 
                   {recentMovements.length === 0 && (
-                    <div className="px-5 py-12 text-center text-sm text-slate-500">
+                    <div className="px-5 py-12 text-center text-sm text-muted-foreground">
                       Sem movimentos para este período.
                     </div>
                   )}
                 </Card>
 
-                <Card className="rounded-[1.75rem] border-slate-100 bg-slate-950 p-5 text-white shadow-none">
+                <Card className="rounded-[1.75rem] border-primary/20 bg-gradient-to-br from-[#2f2618] via-[#463018] to-primary-dark p-5 text-white shadow-none">
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold">Equipa</h3>
                       <p className="text-sm text-white/50">Volume por profissional</p>
                     </div>
-                    <TrendingUp className="h-5 w-5 text-lime-300" />
+                    <TrendingUp className="h-5 w-5 text-primary-light" />
                   </div>
 
                   <div className="space-y-4">
@@ -466,7 +458,7 @@ export default function StatisticsPage() {
                         <div className="mb-3 flex items-center gap-3">
                           <div
                             className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
-                            style={{ backgroundColor: professional.color || '#84cc16' }}
+                            style={{ backgroundColor: professional.color || 'hsl(var(--primary))' }}
                           >
                             {getInitials(professional.name)}
                           </div>
@@ -476,13 +468,13 @@ export default function StatisticsPage() {
                               {total} consulta{total !== 1 ? 's' : ''} · {completed} concluída{completed !== 1 ? 's' : ''}
                             </p>
                           </div>
-                          <span className="rounded-full bg-lime-300 px-2 py-1 text-xs font-bold text-slate-950">
+                          <span className="rounded-full bg-primary-light px-2 py-1 text-xs font-bold text-[#2f2618]">
                             {progress}%
                           </span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-white/10">
                           <div
-                            className="h-full rounded-full bg-lime-300"
+                            className="h-full rounded-full bg-primary-light"
                             style={{ width: `${Math.max(progress, 6)}%` }}
                           />
                         </div>
@@ -517,7 +509,7 @@ function SidebarPill({
   return (
     <div
       className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium ${
-        active ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-white/70'
+        active ? 'bg-primary-gradient text-primary-foreground shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-card/80 hover:text-foreground'
       }`}
     >
       <Icon className="h-4 w-4" />
@@ -528,10 +520,10 @@ function SidebarPill({
 
 function MetricCard({ title, value, caption }: { title: string; value: number | string; caption: string }) {
   return (
-    <div className="rounded-[1.35rem] border border-slate-100 bg-slate-50/80 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{title}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-1 text-sm text-slate-500">{caption}</p>
+    <div className="rounded-[1.35rem] border border-primary/10 bg-secondary/60 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{caption}</p>
     </div>
   );
 }
@@ -550,31 +542,31 @@ function MovementRow({
   const progress = statusProgress[appointment.status] ?? 30;
 
   return (
-    <tr className="border-b border-slate-100 last:border-0">
+    <tr className="border-b border-primary/10 last:border-0">
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-lime-200 text-sm font-bold text-slate-950">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary-dark">
             {getInitials(patientName)}
           </div>
           <div>
-            <p className="font-semibold text-slate-950">{patientName}</p>
-            <p className="text-xs text-slate-500">
+            <p className="font-semibold text-foreground">{patientName}</p>
+            <p className="text-xs text-muted-foreground">
               {format(parseISO(appointment.date), 'dd MMM', { locale: pt })} · {appointment.time.slice(0, 5)}
             </p>
           </div>
         </div>
       </td>
       <td className="px-5 py-4">
-        <p className="font-semibold text-slate-900">{consultationName}</p>
-        <p className="text-xs text-slate-500">{statusLabels[appointment.status] ?? appointment.status}</p>
+        <p className="font-semibold text-foreground">{consultationName}</p>
+        <p className="text-xs text-muted-foreground">{statusLabels[appointment.status] ?? appointment.status}</p>
       </td>
-      <td className="px-5 py-4 text-sm font-medium text-slate-700">{professionalName}</td>
+      <td className="px-5 py-4 text-sm font-medium text-foreground/80">{professionalName}</td>
       <td className="px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="h-2 w-32 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-lime-400" style={{ width: `${progress}%` }} />
+          <div className="h-2 w-32 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary-gradient" style={{ width: `${progress}%` }} />
           </div>
-          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary-dark">
             {progress}%
           </span>
         </div>

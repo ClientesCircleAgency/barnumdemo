@@ -1,58 +1,145 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Phone, Mail, Users, UserPlus, Calendar, Filter } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Calendar,
+  Clock,
+  FileText,
+  Filter,
+  Mail,
+  Phone,
+  Plus,
+  Search,
+  UserPlus,
+  Users,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClinic } from '@/context/ClinicContext';
-import { PageHeader } from '@/components/admin/PageHeader';
-import { StatCard } from '@/components/admin/StatCard';
-import { EmptyState } from '@/components/admin/EmptyState';
 import { NewPatientModal } from '@/components/admin/NewPatientModal';
 import { AppointmentWizard } from '@/components/admin/AppointmentWizard';
-import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { format, isSameMonth, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import type { Patient } from '@/types/clinic';
+import type { ClinicAppointment, Patient } from '@/types/clinic';
+
+type PatientFilter = 'all' | 'today' | 'upcoming' | 'inactive';
+
+interface PatientTimeline {
+  all: ClinicAppointment[];
+  past: ClinicAppointment[];
+  future: ClinicAppointment[];
+  last?: ClinicAppointment;
+  next?: ClinicAppointment;
+}
+
+const filterLabels: Record<PatientFilter, string> = {
+  all: 'Todos',
+  today: 'Hoje',
+  upcoming: 'Com próxima',
+  inactive: 'Sem próxima',
+};
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('');
+}
+
+function formatDate(date?: string) {
+  if (!date) return '—';
+  return format(parseISO(date), 'dd MMM yyyy', { locale: pt });
+}
 
 export default function PatientsPage() {
   const navigate = useNavigate();
-  const { patients, appointments, getPatientById } = useClinic();
+  const { patients, appointments } = useClinic();
   const [search, setSearch] = useState('');
   const [newPatientOpen, setNewPatientOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState<PatientFilter>('all');
 
-  const filteredPatients = patients.filter((p) => {
-    const searchLower = search.toLowerCase();
-    return p.name.toLowerCase().includes(searchLower) || p.nif.includes(search) || p.phone.includes(search);
-  });
+  const todayDate = format(new Date(), 'yyyy-MM-dd');
 
-  // Estatísticas
-  const newThisMonth = patients.filter((p) => {
-    const created = new Date(p.createdAt);
-    const now = new Date();
-    return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-  }).length;
+  const patientTimelines = useMemo(() => {
+    const map = new Map<string, PatientTimeline>();
 
-  const todayDate = new Date().toISOString().split('T')[0];
-  const withAppointmentToday = new Set(
-    appointments.filter((a) => a.date === todayDate).map((a) => a.patientId)
-  ).size;
+    for (const patient of patients) {
+      const patientAppointments = appointments
+        .filter((appointment) => appointment.patientId === patient.id)
+        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+      const past = patientAppointments.filter(
+        (appointment) => appointment.date < todayDate || appointment.status === 'completed',
+      );
+      const future = patientAppointments.filter(
+        (appointment) => appointment.date >= todayDate && !['completed', 'cancelled', 'no_show'].includes(appointment.status),
+      );
 
-  const getPatientAppointments = (patientId: string) => {
-    const patientApts = appointments
-      .filter((a) => a.patientId === patientId)
-      .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
-    const today = todayDate;
-    const past = patientApts.filter((a) => a.date < today || (a.date === today && a.status === 'completed'));
-    const future = patientApts.filter((a) => a.date >= today && a.status !== 'completed' && a.status !== 'cancelled');
-    return { last: past[past.length - 1], next: future[0] };
-  };
+      map.set(patient.id, {
+        all: patientAppointments,
+        past,
+        future,
+        last: past[past.length - 1],
+        next: future[0],
+      });
+    }
 
-  const handleNewAppointment = (patient: Patient, e: React.MouseEvent) => {
-    e.stopPropagation();
+    return map;
+  }, [appointments, patients, todayDate]);
+
+  const stats = useMemo(() => {
+    const newThisMonth = patients.filter((patient) => isSameMonth(parseISO(patient.createdAt), new Date())).length;
+    const withAppointmentToday = new Set(
+      appointments.filter((appointment) => appointment.date === todayDate).map((appointment) => appointment.patientId),
+    ).size;
+    const withFutureAppointment = patients.filter((patient) => patientTimelines.get(patient.id)?.next).length;
+    const withoutFutureAppointment = Math.max(patients.length - withFutureAppointment, 0);
+
+    return {
+      total: patients.length,
+      newThisMonth,
+      withAppointmentToday,
+      withFutureAppointment,
+      withoutFutureAppointment,
+    };
+  }, [appointments, patientTimelines, patients, todayDate]);
+
+  const filteredPatients = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return patients
+      .filter((patient) => {
+        const timeline = patientTimelines.get(patient.id);
+
+        if (activeTab === 'today' && timeline?.next?.date !== todayDate) return false;
+        if (activeTab === 'upcoming' && !timeline?.next) return false;
+        if (activeTab === 'inactive' && timeline?.next) return false;
+
+        if (!normalizedSearch) return true;
+
+        return (
+          patient.name.toLowerCase().includes(normalizedSearch)
+          || patient.nif.includes(search)
+          || patient.phone.includes(search)
+          || patient.email?.toLowerCase().includes(normalizedSearch)
+        );
+      })
+      .sort((a, b) => {
+        const aNext = patientTimelines.get(a.id)?.next?.date ?? '9999-12-31';
+        const bNext = patientTimelines.get(b.id)?.next?.date ?? '9999-12-31';
+        return aNext.localeCompare(bNext) || a.name.localeCompare(b.name);
+      });
+  }, [activeTab, patientTimelines, patients, search, todayDate]);
+
+  const handleNewAppointment = (patient: Patient, event: MouseEvent) => {
+    event.stopPropagation();
     setSelectedPatient(patient);
     setWizardOpen(true);
   };
@@ -62,147 +149,279 @@ export default function PatientsPage() {
   };
 
   return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Pacientes"
-        subtitle={`${patients.length} pacientes registados`}
-      />
+    <div className="min-h-screen bg-background pb-10">
+      <div className="mx-auto w-full max-w-7xl space-y-6 px-3 sm:px-6">
+        <section className="overflow-hidden rounded-[2rem] border border-primary/10 bg-card shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
+          <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-5 py-6 sm:px-7">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge className="rounded-full bg-primary/10 px-3 py-1 text-primary hover:bg-primary/10">
+                    Patient Intelligence
+                  </Badge>
+                  <span className="text-sm text-primary-dark">Base clínica em tempo real</span>
+                </div>
+                <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  Pacientes
+                </h1>
+                <p className="mt-2 max-w-2xl text-muted-foreground">
+                  Uma visão mais completa da relação com cada paciente: contacto, histórico, próxima consulta e estado de acompanhamento.
+                </p>
+              </div>
 
-      {/* Barra de pesquisa */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Pesquisar paciente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-10 bg-card border-border rounded-xl text-sm"
-          />
-        </div>
-        <Button variant="outline" size="sm" className="gap-2 h-10 shrink-0">
-          <Filter className="h-4 w-4" />
-          <span className="hidden sm:inline">Filtros</span>
-        </Button>
-      </div>
-
-      {/* Lista de Pacientes - Cards em mobile, tabela em desktop */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {filteredPatients.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 lg:py-20">
-            <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Users className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
+              <Button
+                onClick={() => setNewPatientOpen(true)}
+                className="h-12 rounded-2xl bg-primary-gradient px-5 shadow-lg shadow-primary/20 hover:opacity-90"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Novo Paciente
+              </Button>
             </div>
-            <h3 className="font-semibold text-foreground text-sm lg:text-base mb-1">Base de Pacientes</h3>
-            <p className="text-xs lg:text-sm text-muted-foreground text-center px-4">
-              {search ? `Nenhum resultado para "${search}"` : 'Comece a digitar para encontrar fichas.'}
-            </p>
           </div>
-        ) : (
-          <>
-            {/* Mobile View - Cards */}
-            <div className="lg:hidden divide-y divide-border">
-              {filteredPatients.map((patient) => {
-                const { last, next } = getPatientAppointments(patient.id);
-                return (
-                  <div
-                    key={patient.id}
-                    className="p-3 active:bg-accent/50 cursor-pointer"
-                    onClick={() => navigate(`/admin/pacientes/${patient.id}`)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="font-medium text-foreground text-sm">{patient.name}</p>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => handleNewAppointment(patient, e)}
-                        className="h-7 w-7 p-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="font-mono">{patient.nif}</span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {patient.phone}
-                      </span>
-                    </div>
-                    {next && (
-                      <p className="text-xs text-primary mt-1.5">
-                        Próx: {format(new Date(next.date), 'dd/MM', { locale: pt })}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
 
-            {/* Desktop View - Table */}
-            <div className="hidden lg:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">NIF</TableHead>
-                    <TableHead className="font-semibold">Contacto</TableHead>
-                    <TableHead className="font-semibold">Última</TableHead>
-                    <TableHead className="font-semibold">Próxima</TableHead>
-                    <TableHead className="text-right font-semibold">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPatients.map((patient) => {
-                    const { last, next } = getPatientAppointments(patient.id);
-                    return (
-                      <TableRow
+          <div className="grid gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <aside className="border-b border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-5 lg:border-b-0 lg:border-r">
+              <div className="mb-6 rounded-[1.5rem] bg-gradient-to-br from-[#2f2618] via-[#463018] to-primary-dark p-5 text-white">
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-light text-[#2f2618]">
+                  <Users className="h-6 w-6" />
+                </div>
+                <p className="text-sm text-white/60">Base de pacientes</p>
+                <p className="mt-1 text-4xl font-semibold">{stats.total}</p>
+                <p className="mt-3 text-sm text-white/65">
+                  {stats.withFutureAppointment} com consulta futura, {stats.withoutFutureAppointment} para reativar.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <InsightPill icon={Calendar} label="Hoje na clínica" value={stats.withAppointmentToday} />
+                <InsightPill icon={UserPlus} label="Novos este mês" value={stats.newThisMonth} />
+                <InsightPill icon={Clock} label="Com próxima consulta" value={stats.withFutureAppointment} />
+              </div>
+            </aside>
+
+            <main className="space-y-6 p-5 sm:p-7">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <PatientMetric title="Total" value={stats.total} caption="Pacientes registados" />
+                <PatientMetric title="Hoje" value={stats.withAppointmentToday} caption="Com consulta marcada" />
+                <PatientMetric title="Acompanhamento" value={stats.withFutureAppointment} caption="Com próxima consulta" />
+                <PatientMetric title="Reativar" value={stats.withoutFutureAppointment} caption="Sem próxima consulta" />
+              </div>
+
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Pesquisar por nome, NIF, telefone ou email..."
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="h-12 rounded-2xl border-primary/10 bg-secondary/50 pl-11 text-base"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PatientFilter)}>
+                    <TabsList className="h-12 rounded-2xl bg-secondary p-1">
+                      {(Object.keys(filterLabels) as PatientFilter[]).map((filter) => (
+                        <TabsTrigger
+                          key={filter}
+                          value={filter}
+                          className="h-10 rounded-xl px-4 data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
+                        >
+                          {filterLabels[filter]}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                  <Button variant="outline" className="h-12 rounded-2xl border-primary/15 bg-card">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filtros
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card">
+                <div className="border-b border-primary/10 px-5 py-4">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-semibold tracking-tight text-foreground">Mapa de Pacientes</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {filteredPatients.length} resultado{filteredPatients.length !== 1 ? 's' : ''} no filtro atual.
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="w-fit rounded-full border-primary/20 bg-primary/5 text-primary">
+                      Clique numa ficha para abrir o histórico
+                    </Badge>
+                  </div>
+                </div>
+
+                {filteredPatients.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                      <Users className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Sem pacientes encontrados</h3>
+                    <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                      Ajuste a pesquisa ou mude o filtro para ver mais fichas.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-primary/10">
+                    {filteredPatients.map((patient) => (
+                      <PatientRow
                         key={patient.id}
-                        className="cursor-pointer hover:bg-accent/30 transition-colors"
-                        onClick={() => navigate(`/admin/pacientes/${patient.id}`)}
-                      >
-                        <TableCell className="font-medium text-foreground">{patient.name}</TableCell>
-                        <TableCell className="font-mono text-muted-foreground text-sm">{patient.nif}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            {patient.phone}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {last ? format(new Date(last.date), 'dd/MM/yy', { locale: pt }) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {next ? (
-                            <span className="text-primary font-medium text-sm">
-                              {format(new Date(next.date), 'dd/MM/yy', { locale: pt })}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => handleNewAppointment(patient, e)}
-                            className="gap-1 h-8"
-                          >
-                            <Plus className="h-3 w-3" />
-                            Consulta
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        )}
+                        patient={patient}
+                        timeline={patientTimelines.get(patient.id)}
+                        onOpen={() => navigate(`/admin/pacientes/${patient.id}`)}
+                        onNewAppointment={handleNewAppointment}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+        </section>
+
+        <NewPatientModal open={newPatientOpen} onOpenChange={setNewPatientOpen} onPatientCreated={handlePatientCreated} />
+        <AppointmentWizard open={wizardOpen} onOpenChange={setWizardOpen} preselectedPatient={selectedPatient} />
+      </div>
+    </div>
+  );
+}
+
+function InsightPill({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-primary/10 bg-card/80 px-4 py-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-sm font-medium text-foreground">{label}</span>
+      </div>
+      <span className="font-mono text-lg font-semibold text-primary-dark">{value}</span>
+    </div>
+  );
+}
+
+function PatientMetric({ title, value, caption }: { title: string; value: number; caption: string }) {
+  return (
+    <div className="rounded-[1.35rem] border border-primary/10 bg-secondary/60 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{caption}</p>
+    </div>
+  );
+}
+
+function PatientRow({
+  patient,
+  timeline,
+  onOpen,
+  onNewAppointment,
+}: {
+  patient: Patient;
+  timeline?: PatientTimeline;
+  onOpen: () => void;
+  onNewAppointment: (patient: Patient, event: MouseEvent) => void;
+}) {
+  const totalAppointments = timeline?.all.length ?? 0;
+  const completedAppointments = timeline?.all.filter((appointment) => appointment.status === 'completed').length ?? 0;
+  const progress = totalAppointments > 0 ? Math.round((completedAppointments / totalAppointments) * 100) : 0;
+  const status = timeline?.next ? 'Acompanhamento ativo' : totalAppointments > 0 ? 'Sem próxima consulta' : 'Novo paciente';
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group grid w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/45 lg:grid-cols-[minmax(240px,1.1fr)_minmax(210px,0.9fr)_minmax(210px,0.8fr)_auto]"
+    >
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-sm font-bold text-primary-dark">
+          {getInitials(patient.name)}
+        </div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="truncate text-base font-semibold text-foreground">{patient.name}</p>
+            <Badge
+              className={cn(
+                'rounded-full px-2 py-0.5 text-[11px]',
+                timeline?.next
+                  ? 'bg-primary/10 text-primary hover:bg-primary/10'
+                  : 'bg-muted text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {status}
+            </Badge>
+          </div>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">NIF {patient.nif}</p>
+        </div>
       </div>
 
-      <NewPatientModal open={newPatientOpen} onOpenChange={setNewPatientOpen} onPatientCreated={handlePatientCreated} />
-      <AppointmentWizard open={wizardOpen} onOpenChange={setWizardOpen} preselectedPatient={selectedPatient} />
+      <div className="space-y-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Phone className="h-4 w-4 text-primary" />
+          <span>{patient.phone || 'Sem telefone'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-primary" />
+          <span className="truncate">{patient.email || 'Sem email'}</span>
+        </div>
+      </div>
+
+      <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-1">
+        <TimelineBadge icon={Clock} label="Última" value={formatDate(timeline?.last?.date)} />
+        <TimelineBadge
+          icon={Calendar}
+          label="Próxima"
+          value={timeline?.next ? `${formatDate(timeline.next.date)} · ${timeline.next.time.slice(0, 5)}` : 'Por marcar'}
+          highlighted={Boolean(timeline?.next)}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3 lg:justify-end">
+        <div className="hidden min-w-[120px] sm:block">
+          <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+            <span>Histórico</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary-gradient" style={{ width: `${Math.max(progress, totalAppointments > 0 ? 8 : 0)}%` }} />
+          </div>
+        </div>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(event) => onNewAppointment(patient, event)}
+          className="h-10 rounded-xl border-primary/20 bg-card text-primary hover:bg-primary/10"
+        >
+          <Plus className="mr-1 h-4 w-4" />
+          Consulta
+        </Button>
+        <ArrowUpRight className="hidden h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary lg:block" />
+      </div>
+    </button>
+  );
+}
+
+function TimelineBadge({
+  icon: Icon,
+  label,
+  value,
+  highlighted = false,
+}: {
+  icon: typeof FileText;
+  label: string;
+  value: string;
+  highlighted?: boolean;
+}) {
+  return (
+    <div className={cn('rounded-2xl border px-3 py-2', highlighted ? 'border-primary/20 bg-primary/8' : 'border-primary/10 bg-secondary/45')}>
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      <p className={cn('text-sm font-medium', highlighted ? 'text-primary-dark' : 'text-foreground')}>{value}</p>
     </div>
   );
 }
