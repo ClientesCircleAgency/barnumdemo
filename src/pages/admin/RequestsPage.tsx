@@ -576,34 +576,21 @@ export default function RequestsPage() {
                 Recebido: {format(new Date(selectedRequest.created_at), "d MMM yyyy 'às' HH:mm", { locale: pt })}
               </div>
 
-              {/* CONDITIONAL ACTION BUTTONS */}
+              {/* ACTION BUTTONS */}
               {selectedRequest.status === 'pending' && isDurationValid && (
                 <DialogFooter className="flex-col gap-2 sm:flex-col">
-                  {/* If doctors available: show Schedule + Reject */}
-                  {hasAvailableDoctors && (
-                    <div className="flex gap-2 w-full">
+                  <div className="flex flex-col gap-2 w-full">
+                    {hasAvailableDoctors && (
                       <Button
-                        className="flex-1 gap-2"
+                        className="w-full gap-2"
                         onClick={handleConvertToAppointment}
                         disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId}
                       >
                         <CalendarPlus className="w-4 h-4" />
                         {isConverting ? 'A converter...' : 'Agendar Consulta'}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => setShowRejectionDialog(true)}
-                        disabled={updateRequestStatus.isPending}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Rejeitar
-                      </Button>
-                    </div>
-                  )}
+                    )}
 
-                  {/* If NO doctors available: show Suggest Alternatives + Reject */}
-                  {!hasAvailableDoctors && (
                     <div className="flex gap-2 w-full">
                       <Button
                         variant="outline"
@@ -623,14 +610,24 @@ export default function RequestsPage() {
                         Rejeitar
                       </Button>
                     </div>
-                  )}
+                  </div>
                 </DialogFooter>
               )}
 
               {/* Show instruction if duration not yet set */}
               {selectedRequest.status === 'pending' && !isDurationValid && (
-                <div className="text-sm text-center text-muted-foreground pt-2 pb-1">
-                  Defina a duração da consulta para ver os profissionais disponíveis
+                <div className="space-y-2 pt-2 pb-1">
+                  <div className="text-sm text-center text-muted-foreground">
+                    Defina a duração da consulta para ver os profissionais disponíveis
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full gap-2 border-green-500 text-green-600"
+                    disabled
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Sugerir Alternativas
+                  </Button>
                 </div>
               )}
             </div>
