@@ -1,4 +1,4 @@
-# Barnum — Local Development Runbook
+# Barnun — Local Development Runbook
 
 > **Last updated:** 2026-02-06
 
@@ -18,8 +18,8 @@
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/ClientesCircleAgency/barnumdemo.git
-cd barnumdemo
+git clone https://github.com/ClientesCircleAgency/barnundemo.git
+cd barnundemo
 
 # 2. Install dependencies
 npm install

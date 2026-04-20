@@ -1,6 +1,6 @@
 # 📖 GLOSSÁRIO DE TERMOS TÉCNICOS
 
-Guia rápido dos termos mais usados na documentação do projeto Barnum.
+Guia rápido dos termos mais usados na documentação do projeto Barnun.
 
 ---
 

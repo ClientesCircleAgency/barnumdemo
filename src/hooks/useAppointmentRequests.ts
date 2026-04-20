@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePortuguesePhone } from '@/lib/phone';
 
 export interface AppointmentRequest {
   id: string;
@@ -54,10 +55,15 @@ export function useAddAppointmentRequest() {
 
   return useMutation({
     mutationFn: async (request: AppointmentRequestInsert) => {
+      const normalizedRequest = {
+        ...request,
+        phone: normalizePortuguesePhone(request.phone),
+      };
+
       // Public users can INSERT but cannot SELECT (PII). Don't return the row.
       const { error } = await supabase
         .from('appointment_requests')
-        .insert(request);
+        .insert(normalizedRequest);
 
       if (error) throw error;
       return null;

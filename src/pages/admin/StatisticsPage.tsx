@@ -30,7 +30,7 @@ export default function StatisticsPage() {
   const { data: allRequests = [] } = useAppointmentRequests();
   const [activePeriod, setActivePeriod] = useState<Period>('month');
 
-  // Filter to only active statuses (Barnum logic)
+  // Filter to only active statuses (Barnun logic)
   const activeAppointments = useMemo(() => {
     return appointments.filter(apt =>
       (ACTIVE_STATUSES as readonly string[]).includes(apt.status)

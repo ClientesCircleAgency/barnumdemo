@@ -4,7 +4,7 @@
 **Date**: 2026-02-06  
 **Status**: Authoritative specification for all WhatsApp automations
 
-This document is the **single source of truth** for WhatsApp automation behaviors in the Barnum clinic management system.
+This document is the **single source of truth** for WhatsApp automation behaviors in the Barnun clinic management system.
 
 **IMPORTANT ARCHITECTURAL NOTE**: 
 - **n8n is the ONLY scheduler** for time-based automation triggers

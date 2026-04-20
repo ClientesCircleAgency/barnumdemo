@@ -34,11 +34,12 @@ export default function AccountPage() {
     // Load profile name
     supabase
       .from('user_profiles')
-      .select('full_name')
+      .select('full_name, color')
       .eq('user_id', user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data?.full_name) setFullName(data.full_name);
+        if (data?.color) setColor(data.color);
       });
 
     // Load professional color (for doctors)
@@ -116,12 +117,21 @@ export default function AccountPage() {
     if (!professionalId) return;
     setSavingColor(true);
     try {
-      const { error } = await supabase
+      const { error: professionalError } = await supabase
         .from('professionals')
         .update({ color })
         .eq('id', professionalId);
 
-      if (error) throw error;
+      if (professionalError) throw professionalError;
+
+      if (user?.id) {
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .upsert({ user_id: user.id, color }, { onConflict: 'user_id' });
+
+        if (profileError) throw profileError;
+      }
+
       toast.success('Cor atualizada');
     } catch (e: any) {
       toast.error(e.message || 'Erro ao atualizar cor');

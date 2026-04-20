@@ -173,7 +173,7 @@ export default function AdminLogin() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="admin@barnum.pt" {...register('email')} className={errors.email ? 'border-destructive' : ''} disabled={isSubmitting} />
+                <Input id="email" type="email" placeholder="admin@barnun.pt" {...register('email')} className={errors.email ? 'border-destructive' : ''} disabled={isSubmitting} />
                 {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
               </div>
 

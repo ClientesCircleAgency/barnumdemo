@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Calendar } from 'lucide-react';
-import logo from '@/assets/logo-barnum-new.png';
+import logo from '@/assets/logo-barnun-new.png';
 export function HeroSection() {
   const scrollToMarcacao = () => {
     document.querySelector('#marcacao')?.scrollIntoView({

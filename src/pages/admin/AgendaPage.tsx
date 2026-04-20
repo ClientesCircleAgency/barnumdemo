@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 type ViewMode = 'day' | 'week' | 'month';
 
 export default function AgendaPage() {
-  const { appointments, professionals } = useClinic();
+  const { appointments, professionals, specialties } = useClinic();
   const { user, userRole, isDoctor } = useAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -73,6 +73,24 @@ export default function AgendaPage() {
   const activeProfessionals = useMemo(() => {
     return professionals.filter(p => p.name && p.name.trim() !== '');
   }, [professionals]);
+
+  const professionalNameCounts = useMemo(() => {
+    return activeProfessionals.reduce<Record<string, number>>((acc, professional) => {
+      acc[professional.name] = (acc[professional.name] || 0) + 1;
+      return acc;
+    }, {});
+  }, [activeProfessionals]);
+
+  const getProfessionalLabel = (professionalId: string) => {
+    const professional = activeProfessionals.find((prof) => prof.id === professionalId);
+    if (!professional) return '';
+
+    const hasDuplicateName = professionalNameCounts[professional.name] > 1;
+    if (!hasDuplicateName) return professional.name;
+
+    const specialtyName = specialties.find((specialty) => specialty.id === professional.specialty)?.name;
+    return specialtyName ? `${professional.name} - ${specialtyName}` : professional.name;
+  };
 
   const handleAppointmentClick = (apt: ClinicAppointment) => {
     setSelectedAppointment(apt);
@@ -207,7 +225,7 @@ export default function AgendaPage() {
                         className="w-2 h-2 rounded-full shrink-0"
                         style={{ backgroundColor: prof.color }}
                       />
-                      <span>{prof.name}</span>
+                      <span>{getProfessionalLabel(prof.id)}</span>
                     </div>
                   </SelectItem>
                 ))}

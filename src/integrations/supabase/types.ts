@@ -105,12 +105,14 @@ export type Database = {
         Row: {
           cancellation_reason: string | null
           consultation_type_id: string | null
+          consultation_type_name: string | null
           created_at: string
           date: string
           duration: number
           final_notes: string | null
           finalized_at: string | null
           id: string
+          is_rescheduled: boolean
           notes: string | null
           patient_id: string
           professional_id: string
@@ -126,12 +128,14 @@ export type Database = {
         Insert: {
           cancellation_reason?: string | null
           consultation_type_id?: string | null
+          consultation_type_name?: string | null
           created_at?: string
           date: string
           duration?: number
           final_notes?: string | null
           finalized_at?: string | null
           id?: string
+          is_rescheduled?: boolean
           notes?: string | null
           patient_id: string
           professional_id: string
@@ -147,12 +151,14 @@ export type Database = {
         Update: {
           cancellation_reason?: string | null
           consultation_type_id?: string | null
+          consultation_type_name?: string | null
           created_at?: string
           date?: string
           duration?: number
           final_notes?: string | null
           finalized_at?: string | null
           id?: string
+          is_rescheduled?: boolean
           notes?: string | null
           patient_id?: string
           professional_id?: string
@@ -453,6 +459,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          color: string | null
           created_at: string
           full_name: string
           photo_url: string | null
@@ -460,6 +467,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           full_name: string
           photo_url?: string | null
@@ -467,6 +475,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           full_name?: string
           photo_url?: string | null

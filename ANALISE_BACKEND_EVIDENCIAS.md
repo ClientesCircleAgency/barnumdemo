@@ -1,7 +1,7 @@
 # Análise Técnica do Backend - Com Evidências Verificáveis
 
 **Data:** 2026-02-04  
-**Repositório:** barnumdemo-main  
+**Repositório:** barnundemo-main  
 **Objetivo:** Análise precisa da arquitetura backend, Supabase, automações e gaps de produção
 
 ---

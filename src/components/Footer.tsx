@@ -1,5 +1,5 @@
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Linkedin } from 'lucide-react';
-import logo from '@/assets/logo-barnum-new.png';
+import logo from '@/assets/logo-barnun-new.png';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -129,8 +129,8 @@ export function Footer() {
                 <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Mail className="w-5 h-5 text-primary" />
                 </div>
-                <a href="mailto:geral@barnum.pt" className="text-background/70 hover:text-primary text-sm">
-                  geral@barnum.pt
+                <a href="mailto:geral@barnun.pt" className="text-background/70 hover:text-primary text-sm">
+                  geral@barnun.pt
                 </a>
               </li>
               <li className="flex items-start gap-3 justify-center md:justify-start">

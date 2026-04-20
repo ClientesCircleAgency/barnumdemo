@@ -1,4 +1,4 @@
-# Barnum — Database Schema Reference
+# Barnun — Database Schema Reference
 
 > **Last updated:** 2026-03-12
 > **Source of truth:** Remote Supabase (`oziejxqmghwmtjufstfp`)

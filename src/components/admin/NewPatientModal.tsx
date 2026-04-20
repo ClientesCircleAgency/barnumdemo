@@ -59,19 +59,23 @@ export const NewPatientModal = React.forwardRef<HTMLDivElement, NewPatientModalP
       return;
     }
 
-    const newPatient = await addPatient({
-      nif: data.nif,
-      name: data.name.trim(),
-      phone: data.phone,
-      email: data.email?.trim() || undefined,
-      birthDate: data.birthDate || undefined,
-      notes: data.notes?.trim() || undefined,
-    });
+    try {
+      const newPatient = await addPatient({
+        nif: data.nif,
+        name: data.name.trim(),
+        phone: data.phone,
+        email: data.email?.trim() || undefined,
+        birthDate: data.birthDate || undefined,
+        notes: data.notes?.trim() || undefined,
+      });
 
-    toast.success('Paciente criado com sucesso');
-    onPatientCreated?.(newPatient.id);
-    form.reset();
-    onOpenChange(false);
+      toast.success('Paciente criado com sucesso');
+      onPatientCreated?.(newPatient.id);
+      form.reset();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao criar paciente');
+    }
   };
 
   const handleOpenChange = (isOpen: boolean) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import logo from '@/assets/logo-barnum-new.png';
+import logo from '@/assets/logo-barnun-new.png';
 const navItems = [{
   label: 'Início',
   href: '#hero'

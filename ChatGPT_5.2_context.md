@@ -1,7 +1,7 @@
-# Barnum — ChatGPT Context File
+# Barnun — ChatGPT Context File
 
 > **Last updated:** 2026-02-06
-> **Purpose:** Give ChatGPT full context about the Barnum project so it can help effectively.
+> **Purpose:** Give ChatGPT full context about the Barnun project so it can help effectively.
 > **Rule:** Update this file after every significant change to the project.
 
 ---
@@ -12,9 +12,9 @@ I'm not a developer. I had an idea for a dental clinic management platform and I
 
 ---
 
-## What Is Barnum
+## What Is Barnun
 
-Barnum is a SaaS platform for dental clinic management. It handles:
+Barnun is a SaaS platform for dental clinic management. It handles:
 - Patient management (CRUD, search, history)
 - Appointment scheduling (calendar, triage, waiting room)
 - Team management (doctors, secretaries, admin roles)
@@ -168,7 +168,7 @@ Barnum is a SaaS platform for dental clinic management. It handles:
 ## Project Structure
 
 ```
-barnumdemo-main/
+barnundemo-main/
 ├── api/                    # Vercel serverless functions
 │   ├── action.ts           # Patient action links
 │   ├── webhook.ts          # n8n callbacks

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -25,9 +26,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useClinic } from '@/context/ClinicContext';
+import { useAuth } from '@/hooks/useAuth';
 import { PatientLookupByNIF } from './PatientLookupByNIF';
 import { useToast } from '@/hooks/use-toast';
 import type { Patient, AppointmentStatus } from '@/types/clinic';
@@ -55,16 +56,24 @@ export function AppointmentWizard({
   preselectedDate,
 }: AppointmentWizardProps) {
   const { toast } = useToast();
+  const { user, isDoctor } = useAuth();
   const {
     professionals,
     specialties,
     consultationTypes,
     addAppointment,
-    getConsultationTypeById,
   } = useClinic();
 
   const [step, setStep] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
+
+  const doctorProfessionalId = useMemo(
+    () =>
+      isDoctor
+        ? professionals.find((professional) => professional.userId === user?.id)?.id || ''
+        : '',
+    [isDoctor, professionals, user?.id]
+  );
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentFormSchema),
@@ -81,30 +90,83 @@ export function AppointmentWizard({
     mode: 'onChange',
   });
 
-  // Reset form when dialog opens with preselected values
+  const selectedSpecialtyId = form.watch('specialtyId');
+  const selectedProfessionalId = form.watch('professionalId');
+
+  const availableConsultationTypes = useMemo(
+    () =>
+      selectedSpecialtyId
+        ? consultationTypes.filter((type) => type.specialtyId === selectedSpecialtyId)
+        : [],
+    [consultationTypes, selectedSpecialtyId]
+  );
+
+  const availableProfessionals = useMemo(
+    () =>
+      professionals.filter((professional) => {
+        if (isDoctor && professional.id !== doctorProfessionalId) {
+          return false;
+        }
+
+        if (!selectedSpecialtyId) {
+          return true;
+        }
+
+        return (
+          professional.specialtyIds.includes(selectedSpecialtyId) ||
+          professional.specialty === selectedSpecialtyId
+        );
+      }),
+    [doctorProfessionalId, isDoctor, professionals, selectedSpecialtyId]
+  );
+
   useEffect(() => {
-    if (open) {
-      setSelectedPatient(preselectedPatient || null);
-      form.reset({
-        consultationTypeId: '',
-        professionalId: '',
-        specialtyId: '',
-        date: preselectedDate || new Date(),
-        time: '09:00',
-        duration: 30,
-        notes: '',
-        sendConfirmation: true,
-      });
-      setStep(1);
+    if (!open) return;
+
+    setSelectedPatient(preselectedPatient || null);
+    form.reset({
+      consultationTypeId: '',
+      professionalId: doctorProfessionalId,
+      specialtyId: '',
+      date: preselectedDate || new Date(),
+      time: '09:00',
+      duration: 30,
+      notes: '',
+      sendConfirmation: true,
+    });
+    setStep(1);
+  }, [open, preselectedPatient, preselectedDate, form, doctorProfessionalId]);
+
+  useEffect(() => {
+    if (!open || !doctorProfessionalId) return;
+    form.setValue('professionalId', doctorProfessionalId, { shouldValidate: true });
+  }, [doctorProfessionalId, form, open]);
+
+  useEffect(() => {
+    if (
+      selectedProfessionalId &&
+      !availableProfessionals.some((professional) => professional.id === selectedProfessionalId)
+    ) {
+      form.setValue('professionalId', doctorProfessionalId, { shouldValidate: true });
     }
-  }, [open, preselectedPatient, preselectedDate, form]);
+  }, [availableProfessionals, doctorProfessionalId, form, selectedProfessionalId]);
+
+  useEffect(() => {
+    const currentConsultationTypeId = form.getValues('consultationTypeId');
+    if (
+      currentConsultationTypeId &&
+      !availableConsultationTypes.some((type) => type.id === currentConsultationTypeId)
+    ) {
+      form.setValue('consultationTypeId', '', { shouldValidate: true });
+    }
+  }, [availableConsultationTypes, form]);
 
   const resetForm = () => {
     setStep(1);
     setSelectedPatient(preselectedPatient || null);
     form.reset({
       consultationTypeId: '',
-      professionalId: '',
+      professionalId: doctorProfessionalId,
       specialtyId: '',
       date: preselectedDate || new Date(),
       time: '09:00',
@@ -136,11 +198,34 @@ export function AppointmentWizard({
   };
 
   const handleConsultationTypeChange = (typeId: string) => {
-    form.setValue('consultationTypeId', typeId);
-    // Duration is NOT auto-filled from consultation type — secretary decides per appointment
+    form.setValue('consultationTypeId', typeId, { shouldValidate: true });
   };
 
-  const handleCreateAppointment = (data: AppointmentFormData, createAnother: boolean = false) => {
+  const handleSpecialtyChange = (specialtyId: string) => {
+    form.setValue('specialtyId', specialtyId, { shouldValidate: true });
+    form.setValue('consultationTypeId', '', { shouldValidate: true });
+
+    const fallbackProfessionalId =
+      isDoctor && doctorProfessionalId ? doctorProfessionalId : '';
+
+    if (
+      selectedProfessionalId &&
+      !professionals.some((professional) => {
+        if (professional.id !== selectedProfessionalId) return false;
+        return (
+          professional.specialtyIds.includes(specialtyId) ||
+          professional.specialty === specialtyId
+        );
+      })
+    ) {
+      form.setValue('professionalId', fallbackProfessionalId, { shouldValidate: true });
+    }
+  };
+
+  const handleCreateAppointment = async (
+    data: AppointmentFormData,
+    createAnother: boolean = false
+  ) => {
     if (!selectedPatient) {
       toast({
         title: 'Erro',
@@ -150,31 +235,52 @@ export function AppointmentWizard({
       return;
     }
 
-    addAppointment({
-      patientId: selectedPatient.id,
-      professionalId: data.professionalId,
-      specialtyId: data.specialtyId || specialties[0]?.id || '',
-      consultationTypeId: data.consultationTypeId,
-      date: format(data.date, 'yyyy-MM-dd'),
-      time: data.time,
-      duration: data.duration,
-      status: 'confirmed' as AppointmentStatus,
-      notes: data.notes?.trim() || undefined,
-    });
+    const specialtyId =
+      data.specialtyId ||
+      consultationTypes.find((type) => type.id === data.consultationTypeId)?.specialtyId ||
+      '';
 
-    toast({
-      title: 'Consulta criada',
-      description: `Consulta agendada para ${format(data.date, "d 'de' MMMM", { locale: pt })} às ${data.time}`,
-    });
+    if (!specialtyId) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione uma especialidade valida para esta consulta.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    if (createAnother) {
-      resetForm();
-    } else {
-      handleClose();
+    try {
+      await addAppointment({
+        patientId: selectedPatient.id,
+        professionalId: data.professionalId,
+        specialtyId,
+        consultationTypeId: data.consultationTypeId,
+        date: format(data.date, 'yyyy-MM-dd'),
+        time: data.time,
+        duration: data.duration,
+        status: 'confirmed' as AppointmentStatus,
+        notes: data.notes?.trim() || undefined,
+      });
+
+      toast({
+        title: 'Consulta criada',
+        description: `Consulta agendada para ${format(data.date, "d 'de' MMMM", { locale: pt })} as ${data.time}`,
+      });
+
+      if (createAnother) {
+        resetForm();
+      } else {
+        handleClose();
+      }
+    } catch (error) {
+      toast({
+        title: 'Erro ao criar consulta',
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
     }
   };
 
-  // Gerar lista de horários
   const timeSlots = [];
   for (let h = 8; h <= 20; h++) {
     for (let m = 0; m < 60; m += 15) {
@@ -201,7 +307,6 @@ export function AppointmentWizard({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Stepper */}
         <div className="flex items-center gap-2 py-2">
           <div
             className={cn(
@@ -222,7 +327,6 @@ export function AppointmentWizard({
           </div>
         </div>
 
-        {/* Passo 1 - Identificar Paciente */}
         {step === 1 && (
           <div className="space-y-4">
             <PatientLookupByNIF
@@ -240,79 +344,24 @@ export function AppointmentWizard({
           </div>
         )}
 
-        {/* Passo 2 - Detalhes da Marcação */}
         {step === 2 && (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => handleCreateAppointment(data, false))} className="space-y-4">
-              {/* Info do paciente selecionado */}
+            <form
+              onSubmit={form.handleSubmit((data) => handleCreateAppointment(data, false))}
+              className="space-y-4"
+            >
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Paciente</p>
                 <p className="font-medium">{selectedPatient?.name}</p>
               </div>
 
-              {/* Tipo de Consulta */}
-              <FormField
-                control={form.control}
-                name="consultationTypeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Consulta *</FormLabel>
-                    <Select value={field.value} onValueChange={handleConsultationTypeChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-popover z-50">
-                        {consultationTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Profissional */}
-              <FormField
-                control={form.control}
-                name="professionalId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Profissional *</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecionar profissional" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-popover z-50">
-                        {professionals.map((prof) => (
-                          <SelectItem key={prof.id} value={prof.id}>
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: prof.color }} />
-                              {prof.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Especialidade */}
               <FormField
                 control={form.control}
                 name="specialtyId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Especialidade</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <FormLabel>Especialidade *</FormLabel>
+                    <Select value={field.value} onValueChange={handleSpecialtyChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecionar especialidade" />
@@ -331,7 +380,76 @@ export function AppointmentWizard({
                 )}
               />
 
-              {/* Data e Hora */}
+              <FormField
+                control={form.control}
+                name="consultationTypeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Consulta *</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={handleConsultationTypeChange}
+                      disabled={!selectedSpecialtyId}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              selectedSpecialtyId
+                                ? 'Selecionar tipo'
+                                : 'Selecione primeiro a especialidade'
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-popover z-50">
+                        {availableConsultationTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="professionalId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Profissional *</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isDoctor && !!doctorProfessionalId}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar profissional" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-popover z-50">
+                        {availableProfessionals.map((prof) => (
+                          <SelectItem key={prof.id} value={prof.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: prof.color }}
+                              />
+                              {prof.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -342,7 +460,10 @@ export function AppointmentWizard({
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
-                            <Button variant="outline" className="w-full justify-start text-left font-normal">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
                               <CalendarIcon className="mr-2 h-4 w-4" />
                               {format(field.value, 'dd/MM/yyyy', { locale: pt })}
                             </Button>
@@ -389,49 +510,47 @@ export function AppointmentWizard({
                 />
               </div>
 
-              {/* Duração e Sala */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="duration"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Duração</FormLabel>
-                      <Select
-                        value={field.value.toString()}
-                        onValueChange={(v) => field.onChange(parseInt(v))}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-popover z-50">
-                          <SelectItem value="15">15 minutos</SelectItem>
-                          <SelectItem value="30">30 minutos</SelectItem>
-                          <SelectItem value="45">45 minutos</SelectItem>
-                          <SelectItem value="60">60 minutos</SelectItem>
-                          <SelectItem value="90">90 minutos</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Duracao</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={5}
+                          max={1440}
+                          step={5}
+                          inputMode="numeric"
+                          value={Number.isFinite(field.value) ? field.value : ''}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            field.onChange(value === '' ? NaN : Number.parseInt(value, 10));
+                          }}
+                          placeholder="Ex: 180"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        Introduza a duracao real da consulta em minutos.
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
               </div>
 
-              {/* Notas */}
               <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Observações</FormLabel>
+                    <FormLabel>Observacoes</FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
-                        placeholder="Notas sobre a marcação..."
+                        placeholder="Notas sobre a marcacao..."
                         rows={3}
                         maxLength={1000}
                       />
@@ -441,26 +560,11 @@ export function AppointmentWizard({
                 )}
               />
 
-              {/* Enviar confirmação */}
-              <FormField
-                control={form.control}
-                name="sendConfirmation"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm font-normal cursor-pointer">
-                      Enviar confirmação ao paciente (SMS/Email)
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                A confirmacao automatica desta consulta continua a ser controlada pelos fluxos do
+                n8n. A opcao visual foi removida para evitar falsas expectativas.
+              </div>
 
-              {/* Botões */}
               <div className="flex justify-between pt-4 gap-2">
                 <Button type="button" variant="outline" onClick={handlePrevStep}>
                   <ChevronLeft className="h-4 w-4 mr-1" />
@@ -474,9 +578,7 @@ export function AppointmentWizard({
                   >
                     Criar e Criar Outra
                   </Button>
-                  <Button type="submit">
-                    Criar Consulta
-                  </Button>
+                  <Button type="submit">Criar Consulta</Button>
                 </div>
               </div>
             </form>

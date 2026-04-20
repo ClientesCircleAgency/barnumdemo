@@ -1,4 +1,4 @@
-# Barnum — Agent Context (Cursor / AI Agents)
+# Barnun — Agent Context (Cursor / AI Agents)
 
 > **Auto-updated after each task.** This file is the fast-reference for any AI agent working on this codebase.
 > **Last updated:** 2026-02-06
@@ -7,7 +7,7 @@
 
 ## Quick Summary
 
-Barnum is a dental clinic management SaaS built with React + Supabase + Vercel. WhatsApp automations are handled by n8n (external). The owner is not a developer — clarity and simplicity matter.
+Barnun is a dental clinic management SaaS built with React + Supabase + Vercel. WhatsApp automations are handled by n8n (external). The owner is not a developer — clarity and simplicity matter.
 
 ---
 

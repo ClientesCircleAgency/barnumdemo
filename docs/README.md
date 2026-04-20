@@ -1,4 +1,4 @@
-# Barnum — Documentation
+# Barnun — Documentation
 
 > **Last updated:** 2026-02-06
 

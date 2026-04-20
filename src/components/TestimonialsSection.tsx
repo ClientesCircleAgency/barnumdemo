@@ -9,7 +9,7 @@ import { Testimonial } from '@/types';
 export function TestimonialsSection() {
   const { ref, isVisible } = useIntersectionObserver({ threshold: 0.1 });
   const [testimonials] = useLocalStorage<Testimonial[]>(
-    'barnum_testimonials',
+    'barnun_testimonials',
     initialTestimonials
   );
 

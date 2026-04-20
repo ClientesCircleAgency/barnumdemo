@@ -27,10 +27,10 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { normalizePortuguesePhone } from '@/lib/phone';
 
 const COUNTRY_CONFIGS = {
   PT: { code: '+351', flag: '\u{1F1F5}\u{1F1F9}', placeholder: '912 345 678', regex: /^[923]\d{8}$/, label: 'Portugal' },
-  BR: { code: '+55', flag: '\u{1F1E7}\u{1F1F7}', placeholder: '11 91234 5678', regex: /^\d{10,11}$/, label: 'Brasil' },
 } as const;
 
 type CountryKey = keyof typeof COUNTRY_CONFIGS;
@@ -38,7 +38,7 @@ type CountryKey = keyof typeof COUNTRY_CONFIGS;
 const appointmentSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
   email: z.string().email('Email inválido').max(255),
-  countryCode: z.enum(['PT', 'BR'] as const),
+  countryCode: z.enum(['PT'] as const),
   phone: z.string().min(1, 'Telefone obrigatório').max(20),
   nif: z.string().length(9, 'NIF deve ter 9 dígitos').regex(/^\d+$/, 'NIF deve conter apenas números'),
   serviceType: z.string({ required_error: 'Selecione o tipo de consulta' }).uuid('Selecione o tipo de consulta'),
@@ -92,8 +92,7 @@ export function AppointmentSection() {
 
   const onSubmit = async (data: AppointmentFormData) => {
     try {
-      const cleanDigits = data.phone.replace(/\s/g, '');
-      const fullPhone = COUNTRY_CONFIGS[data.countryCode].code + cleanDigits;
+      const fullPhone = normalizePortuguesePhone(data.phone);
 
       await addRequest.mutateAsync({
         name: data.name,

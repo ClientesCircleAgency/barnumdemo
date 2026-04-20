@@ -1,4 +1,4 @@
-# Barnum — Production Migration Plan
+# Barnun — Production Migration Plan
 
 > **Last updated:** 2026-02-06
 > **Status:** NOT YET APPLIED — migrations pending production deployment

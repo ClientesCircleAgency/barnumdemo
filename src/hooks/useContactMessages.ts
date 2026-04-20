@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePortuguesePhone } from '@/lib/phone';
 
 export interface ContactMessage {
   id: string;
@@ -38,11 +39,16 @@ export function useAddContactMessage() {
 
   return useMutation({
     mutationFn: async (message: ContactMessageInsert) => {
+      const normalizedMessage = {
+        ...message,
+        phone: normalizePortuguesePhone(message.phone),
+      };
+
       // Note: public users can INSERT but cannot SELECT from this table (PII).
       // Avoid returning the inserted row to prevent RLS SELECT failures.
       const { error } = await supabase
         .from('contact_messages')
-        .insert(message);
+        .insert(normalizedMessage);
 
       if (error) throw error;
       return null;
@@ -113,4 +119,3 @@ export function useDeleteContactMessage() {
     },
   });
 }
-

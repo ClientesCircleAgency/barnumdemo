@@ -26,6 +26,35 @@ interface InviteResponse {
   error?: string;
 }
 
+async function upsertUserProfile(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  payload: { user_id: string; full_name: string; color?: string | null }
+) {
+  const { error } = await supabaseAdmin
+    .from("user_profiles")
+    .upsert(payload, { onConflict: "user_id" });
+
+  if (!error) return;
+
+  if (
+    error.code === "PGRST204" ||
+    error.message?.includes("color") ||
+    error.message?.includes("schema cache")
+  ) {
+    const { error: fallbackError } = await supabaseAdmin
+      .from("user_profiles")
+      .upsert(
+        { user_id: payload.user_id, full_name: payload.full_name },
+        { onConflict: "user_id" }
+      );
+
+    if (fallbackError) throw fallbackError;
+    return;
+  }
+
+  throw error;
+}
+
 // Decode JWT payload without verification (gateway already validated the request)
 function decodeJwtPayload(jwt: string): Record<string, unknown> {
   const parts = jwt.split(".");
@@ -212,12 +241,11 @@ serve(async (req: Request): Promise<Response> => {
 
     // Step 4: Create user_profiles entry with color
     const profileColor = body.color || "#6366f1";
-    await supabaseAdmin
-      .from("user_profiles")
-      .upsert(
-        { user_id: invitedUserId, full_name: body.email.split("@")[0], color: profileColor },
-        { onConflict: "user_id" }
-      );
+    await upsertUserProfile(supabaseAdmin, {
+      user_id: invitedUserId,
+      full_name: body.email.split("@")[0],
+      color: profileColor,
+    });
 
     // Success response
     const response: InviteResponse = {

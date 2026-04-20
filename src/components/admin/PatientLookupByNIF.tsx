@@ -81,20 +81,27 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
   };
 
   const handleCreatePatient = async (data: InlinePatientFormData) => {
-    const patient = await addPatient({
-      nif,
-      name: data.name.trim(),
-      phone: data.phone,
-      email: data.email?.trim() || undefined,
-      birthDate: data.birthDate || undefined,
-      notes: data.notes?.trim() || undefined,
-    });
+    try {
+      const patient = await addPatient({
+        nif,
+        name: data.name.trim(),
+        phone: data.phone,
+        email: data.email?.trim() || undefined,
+        birthDate: data.birthDate || undefined,
+        notes: data.notes?.trim() || undefined,
+      });
 
-    onPatientSelect(patient);
-    setNif('');
-    form.reset();
-    setShowCreateForm(false);
-    setNotFound(false);
+      onPatientSelect(patient);
+      setNif('');
+      form.reset();
+      setShowCreateForm(false);
+      setNotFound(false);
+    } catch (error) {
+      form.setError('name', {
+        type: 'manual',
+        message: error instanceof Error ? error.message : 'Erro ao criar paciente',
+      });
+    }
   };
 
   // Se já tem paciente selecionado, mostrar card

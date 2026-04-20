@@ -1,4 +1,4 @@
-# Barnum — Project Canonical Context
+# Barnun — Project Canonical Context
 
 > **Last updated:** 2026-02-06
 > **Role:** Single source of truth. Only updated after verified changes.
@@ -8,7 +8,7 @@
 
 ## 1. Project Overview
 
-**Name:** Barnum (dental clinic management SaaS)
+**Name:** Barnun (dental clinic management SaaS)
 **Goal:** Full-featured clinic management platform for dental clinics, with WhatsApp automations via n8n. Designed to be sold and customized per clinic.
 
 **Business model:** Sell to dental clinics → customize branding, specialties, professionals per client.

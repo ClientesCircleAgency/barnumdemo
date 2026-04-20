@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizePortuguesePhone } from '@/lib/phone';
 import type { PatientRow, PatientInsert, PatientUpdate } from '@/types/database';
 
 export function usePatients() {
@@ -60,9 +61,14 @@ export function useAddPatient() {
   
   return useMutation({
     mutationFn: async (patient: PatientInsert) => {
+      const normalizedPatient = {
+        ...patient,
+        phone: normalizePortuguesePhone(patient.phone),
+      };
+
       const { data, error } = await supabase
         .from('patients')
-        .insert(patient)
+        .insert(normalizedPatient)
         .select()
         .single();
       
@@ -80,9 +86,14 @@ export function useUpdatePatient() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: PatientUpdate }) => {
+      const normalizedData = {
+        ...data,
+        ...(data.phone ? { phone: normalizePortuguesePhone(data.phone) } : {}),
+      };
+
       const { data: updated, error } = await supabase
         .from('patients')
-        .update(data)
+        .update(normalizedData)
         .eq('id', id)
         .select()
         .single();

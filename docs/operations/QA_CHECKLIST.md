@@ -1,4 +1,4 @@
-# Barnum — QA Checklist
+# Barnun — QA Checklist
 
 > **Last updated:** 2026-02-06
 

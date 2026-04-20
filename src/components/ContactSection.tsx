@@ -34,7 +34,7 @@ const contactInfo = [
   {
     icon: Mail,
     label: 'Email',
-    value: 'geral@barnum.pt',
+    value: 'geral@barnun.pt',
   },
   {
     icon: Clock,
@@ -133,7 +133,7 @@ export function ContactSection() {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Localização Barnum"
+                  title="Localização Barnun"
                 />
               </div>
             </div>
