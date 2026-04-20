@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePatients, useAddPatient, useUpdatePatient } from '@/hooks/usePatients';
 import { useAppointments, useAddAppointment, useUpdateAppointment, useUpdateAppointmentStatus, useDeleteAppointment } from '@/hooks/useAppointments';
 import { useProfessionals, useAddProfessional, useUpdateProfessional, useDeleteProfessional } from '@/hooks/useProfessionals';
 import { useConsultationTypes, useAddConsultationType, useUpdateConsultationType, useDeleteConsultationType } from '@/hooks/useConsultationTypes';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useProfessionalSpecialties, useSetProfessionalSpecialties, type ProfessionalSpecialtyRow } from '@/hooks/useProfessionalSpecialties';
+import { supabase } from '@/integrations/supabase/client';
 import type { 
   Patient, 
   ClinicAppointment, 
@@ -129,6 +131,8 @@ interface ClinicContextType {
 const ClinicContext = createContext<ClinicContextType | undefined>(undefined);
 
 export function ClinicProvider({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+
   // Fetch data from Supabase
   const { data: patientsData = [], isLoading: loadingPatients } = usePatients();
   const { data: appointmentsData = [], isLoading: loadingAppointments } = useAppointments();
@@ -163,6 +167,28 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
   const deleteConsultationTypeMutation = useDeleteConsultationType();
   
   const isLoading = loadingPatients || loadingAppointments || loadingProfessionals || loadingTypes;
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('clinic-data-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'patients' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointment_requests' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['appointment_requests'] });
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const value = useMemo(() => ({
     // Data
