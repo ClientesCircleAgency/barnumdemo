@@ -443,18 +443,20 @@ export default function StatisticsPage() {
                   )}
                 </Card>
 
-                <Card className="rounded-[1.75rem] border-primary/20 bg-gradient-to-br from-[#2f2618] via-[#463018] to-primary-dark p-5 text-white shadow-none">
+                <Card className="rounded-[1.75rem] border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-5 text-foreground shadow-none">
                   <div className="mb-5 flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold">Equipa</h3>
-                      <p className="text-sm text-white/50">Volume por profissional</p>
+                      <p className="text-sm text-muted-foreground">Volume por profissional</p>
                     </div>
-                    <TrendingUp className="h-5 w-5 text-primary-light" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
                   </div>
 
                   <div className="space-y-4">
                     {professionalMovements.map(({ professional, total, completed, progress }) => (
-                      <div key={professional.id} className="rounded-2xl bg-white/7 p-4">
+                      <div key={professional.id} className="rounded-2xl border border-primary/10 bg-card/85 p-4 shadow-sm">
                         <div className="mb-3 flex items-center gap-3">
                           <div
                             className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
@@ -463,18 +465,18 @@ export default function StatisticsPage() {
                             {getInitials(professional.name)}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold">{professional.name}</p>
-                            <p className="text-xs text-white/45">
+                            <p className="truncate font-semibold text-foreground">{professional.name}</p>
+                            <p className="text-xs text-muted-foreground">
                               {total} consulta{total !== 1 ? 's' : ''} · {completed} concluída{completed !== 1 ? 's' : ''}
                             </p>
                           </div>
-                          <span className="rounded-full bg-primary-light px-2 py-1 text-xs font-bold text-[#2f2618]">
+                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-bold text-primary-dark">
                             {progress}%
                           </span>
                         </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                        <div className="h-2 overflow-hidden rounded-full bg-secondary">
                           <div
-                            className="h-full rounded-full bg-primary-light"
+                            className="h-full rounded-full bg-primary-gradient"
                             style={{ width: `${Math.max(progress, 6)}%` }}
                           />
                         </div>
@@ -483,7 +485,7 @@ export default function StatisticsPage() {
                   </div>
 
                   {professionalMovements.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-sm text-white/50">
+                    <div className="rounded-2xl border border-dashed border-primary/20 bg-card/70 p-6 text-center text-sm text-muted-foreground">
                       Sem consultas por profissional neste período.
                     </div>
                   )}
