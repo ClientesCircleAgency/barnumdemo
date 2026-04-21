@@ -33,8 +33,10 @@ import { Badge } from '@/components/ui/badge';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
+import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
 import { toast } from 'sonner';
 import type { ProfessionalRow } from '@/types/database';
+import { professionalSupportsService } from '@/utils/professionalServicePreferences';
 
 export interface SlotSelection {
   date: string;
@@ -47,6 +49,7 @@ export interface SuggestSlotsSource {
   appointment_id: string;
   name: string;
   specialty_id: string;
+  consultation_type_id?: string;
   preferred_date: string;
   preferred_time: string;
   duration_minutes: number;
@@ -160,6 +163,7 @@ export function SuggestAlternativesModal({
   const { data: appointments = [] } = useAppointments();
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
+  const { data: servicePreferences = [] } = useProfessionalServicePreferences();
 
   const [selectedSlots, setSelectedSlots] = useState<Map<string, true>>(new Map());
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
@@ -185,9 +189,15 @@ export function SuggestAlternativesModal({
           ? [professional.specialty_id]
           : [];
 
-      return acceptedSpecialties.includes(source.specialty_id);
+      return acceptedSpecialties.includes(source.specialty_id)
+        && professionalSupportsService(
+          professional,
+          servicePreferences,
+          source.specialty_id,
+          source.consultation_type_id,
+        );
     });
-  }, [source, professionals, profSpecialties]);
+  }, [source, professionals, profSpecialties, servicePreferences]);
 
   const activeAppointments = useMemo(
     () => appointments.filter((appointment) => !['cancelled', 'completed', 'no_show'].includes(appointment.status)),

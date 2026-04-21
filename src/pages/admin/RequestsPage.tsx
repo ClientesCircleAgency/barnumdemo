@@ -33,10 +33,12 @@ import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
+import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
 import { SuggestAlternativesModal } from '@/components/admin/SuggestAlternativesModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getAvailableProfessionalIds } from '@/utils/availability';
+import { professionalSupportsService } from '@/utils/professionalServicePreferences';
 
 export default function RequestsPage() {
   const { data: requests = [], isLoading: loadingRequests } = useAppointmentRequests();
@@ -46,6 +48,7 @@ export default function RequestsPage() {
   const { data: consultationTypes = [] } = useConsultationTypes();
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
+  const { data: servicePreferences = [] } = useProfessionalServicePreferences();
   const { data: allAppointments = [] } = useAppointments();
 
   const updateRequestStatus = useUpdateAppointmentRequestStatus();
@@ -76,7 +79,8 @@ export default function RequestsPage() {
       const relevantProf = professionals.find(p => {
         const pSpecIds = profSpecialties.filter(ps => ps.professional_id === p.id).map(ps => ps.specialty_id);
         const allIds = pSpecIds.length > 0 ? pSpecIds : (p.specialty_id ? [p.specialty_id] : []);
-        return allIds.includes(selectedRequest.specialty_id);
+        return allIds.includes(selectedRequest.specialty_id)
+          && professionalSupportsService(p, servicePreferences, selectedRequest.specialty_id);
       });
       setSelectedProfessionalId(relevantProf?.id || '');
       setSelectedConsultationTypeId('');
@@ -88,7 +92,7 @@ export default function RequestsPage() {
       setManualDurationMinutes('');
       setRejectionReason('');
     }
-  }, [selectedRequest, professionals, profSpecialties]);
+  }, [selectedRequest, professionals, profSpecialties, servicePreferences]);
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const processedRequests = requests.filter(r => r.status !== 'pending');
@@ -112,9 +116,22 @@ export default function RequestsPage() {
           .map(ps => ps.specialty_id);
         // Fallback to legacy specialty_id if junction table is empty for this professional
         const allSpecIds = profSpecIds.length > 0 ? profSpecIds : (p.specialty_id ? [p.specialty_id] : []);
-        return allSpecIds.includes(selectedRequest.specialty_id);
+        return allSpecIds.includes(selectedRequest.specialty_id)
+          && professionalSupportsService(
+            p,
+            servicePreferences,
+            selectedRequest.specialty_id,
+            selectedConsultationTypeId || undefined,
+          );
       })
     : [];
+
+  useEffect(() => {
+    if (!selectedProfessionalId) return;
+    if (!specialtyProfessionals.some((professional) => professional.id === selectedProfessionalId)) {
+      setSelectedProfessionalId(specialtyProfessionals[0]?.id || '');
+    }
+  }, [selectedProfessionalId, specialtyProfessionals]);
 
   const availableProfessionalIds = isDurationValid && selectedRequest
     ? getAvailableProfessionalIds(
@@ -734,6 +751,7 @@ export default function RequestsPage() {
           preferred_date: selectedRequest.preferred_date,
           preferred_time: selectedRequest.preferred_time,
           duration_minutes: duration,
+          consultation_type_id: selectedConsultationTypeId || undefined,
         } : null}
         onSubmit={async (slots) => {
           if (!selectedRequest) return;

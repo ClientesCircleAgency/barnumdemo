@@ -29,10 +29,15 @@ import {
 import { cn } from '@/lib/utils';
 import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
 import { PatientLookupByNIF } from './PatientLookupByNIF';
 import { useToast } from '@/hooks/use-toast';
 import type { Patient, AppointmentStatus } from '@/types/clinic';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
+import {
+  filterConsultationTypesForProfessional,
+  professionalSupportsService,
+} from '@/utils/professionalServicePreferences';
 import {
   Form,
   FormControl,
@@ -63,6 +68,7 @@ export function AppointmentWizard({
     consultationTypes,
     addAppointment,
   } = useClinic();
+  const { data: servicePreferences = [] } = useProfessionalServicePreferences();
 
   const [step, setStep] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
@@ -92,14 +98,21 @@ export function AppointmentWizard({
 
   const selectedSpecialtyId = form.watch('specialtyId');
   const selectedProfessionalId = form.watch('professionalId');
+  const selectedConsultationTypeId = form.watch('consultationTypeId');
 
-  const availableConsultationTypes = useMemo(
-    () =>
-      selectedSpecialtyId
-        ? consultationTypes.filter((type) => type.specialtyId === selectedSpecialtyId)
-        : [],
-    [consultationTypes, selectedSpecialtyId]
-  );
+  const availableConsultationTypes = useMemo(() => {
+    const specialtyTypes = selectedSpecialtyId
+      ? consultationTypes.filter((type) => type.specialtyId === selectedSpecialtyId)
+      : [];
+
+    const professionalIdForTypeFilter = selectedProfessionalId || doctorProfessionalId;
+
+    return filterConsultationTypesForProfessional(
+      specialtyTypes,
+      professionalIdForTypeFilter,
+      servicePreferences,
+    );
+  }, [consultationTypes, doctorProfessionalId, selectedProfessionalId, selectedSpecialtyId, servicePreferences]);
 
   const availableProfessionals = useMemo(
     () =>
@@ -115,9 +128,14 @@ export function AppointmentWizard({
         return (
           professional.specialtyIds.includes(selectedSpecialtyId) ||
           professional.specialty === selectedSpecialtyId
+        ) && professionalSupportsService(
+          professional,
+          servicePreferences,
+          selectedSpecialtyId,
+          selectedConsultationTypeId || undefined,
         );
       }),
-    [doctorProfessionalId, isDoctor, professionals, selectedSpecialtyId]
+    [doctorProfessionalId, isDoctor, professionals, selectedConsultationTypeId, selectedSpecialtyId, servicePreferences]
   );
 
   useEffect(() => {

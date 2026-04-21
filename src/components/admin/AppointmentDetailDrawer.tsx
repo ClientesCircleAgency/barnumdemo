@@ -400,6 +400,7 @@ export function AppointmentDetailDrawer({
           appointment_id: appointment.id,
           name: patient?.name || 'Paciente',
           specialty_id: appointment.specialtyId,
+          consultation_type_id: appointment.consultationTypeId,
           preferred_date: appointment.date,
           preferred_time: appointment.time,
           duration_minutes: appointment.duration,
