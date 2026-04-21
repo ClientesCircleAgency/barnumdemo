@@ -30,7 +30,7 @@ import type { ClinicAppointment, Patient } from '@/types/clinic';
 type PatientFilter = 'all' | 'today' | 'upcoming' | 'inactive';
 
 const patientsInsightBackground =
-  'linear-gradient(115deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.84) 45%, rgba(255, 255, 255, 0.24) 100%), url("https://images.pexels.com/photos/8313253/pexels-photo-8313253.jpeg?auto=compress&cs=tinysrgb&w=900")';
+  'linear-gradient(115deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.86) 45%, rgba(255, 255, 255, 0.18) 100%), url("https://images.pexels.com/photos/5524021/pexels-photo-5524021.jpeg?auto=compress&cs=tinysrgb&w=900")';
 
 interface PatientTimeline {
   all: ClinicAppointment[];
@@ -189,7 +189,7 @@ export default function PatientsPage() {
                 className="mb-6 overflow-hidden rounded-[1.5rem] bg-white bg-cover p-5 text-slate-950 shadow-[0_20px_45px_rgba(146,94,18,0.14)]"
                 style={{
                   backgroundImage: patientsInsightBackground,
-                  backgroundPosition: '52% center',
+                  backgroundPosition: '56% 24%',
                 }}
               >
                 <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary-dark shadow-sm backdrop-blur">
@@ -424,6 +424,16 @@ function PatientRow({
           <div className="h-2 overflow-hidden rounded-full bg-secondary">
             <div className="h-full rounded-full bg-primary-gradient" style={{ width: `${Math.max(progress, totalAppointments > 0 ? 8 : 0)}%` }} />
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {totalAppointments} consulta{totalAppointments !== 1 ? 's' : ''} connosco
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-primary/10 px-3 py-2 text-right text-primary-dark">
+          <p className="text-2xl font-semibold leading-none">{totalAppointments}</p>
+          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+            consulta{totalAppointments !== 1 ? 's' : ''}
+          </p>
         </div>
 
         <Button
