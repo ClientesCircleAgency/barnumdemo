@@ -74,6 +74,18 @@ export default function AgendaPage() {
     return professionals.filter(p => p.name && p.name.trim() !== '');
   }, [professionals]);
 
+  const dayViewProfessionals = useMemo(() => {
+    if (isDoctor && doctorProfessionalId) {
+      return activeProfessionals.filter((professional) => professional.id === doctorProfessionalId);
+    }
+
+    if (selectedProfessional !== 'all') {
+      return activeProfessionals.filter((professional) => professional.id === selectedProfessional);
+    }
+
+    return activeProfessionals;
+  }, [activeProfessionals, doctorProfessionalId, isDoctor, selectedProfessional]);
+
   const professionalNameCounts = useMemo(() => {
     return activeProfessionals.reduce<Record<string, number>>((acc, professional) => {
       acc[professional.name] = (acc[professional.name] || 0) + 1;
@@ -239,6 +251,7 @@ export default function AgendaPage() {
       {viewMode === 'day' && (
         <DayView
           appointments={dayAppointments}
+          professionals={dayViewProfessionals}
           onAppointmentClick={handleAppointmentClick}
         />
       )}
