@@ -30,7 +30,7 @@ import type { ClinicAppointment, Patient } from '@/types/clinic';
 type PatientFilter = 'all' | 'today' | 'upcoming' | 'inactive';
 
 const patientsInsightBackground =
-  'linear-gradient(115deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.78) 43%, rgba(15, 23, 42, 0.24) 100%), url("https://images.pexels.com/photos/30110227/pexels-photo-30110227.jpeg?auto=compress&cs=tinysrgb&w=900")';
+  'linear-gradient(115deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.84) 45%, rgba(255, 255, 255, 0.24) 100%), url("https://images.pexels.com/photos/8313253/pexels-photo-8313253.jpeg?auto=compress&cs=tinysrgb&w=900")';
 
 interface PatientTimeline {
   all: ClinicAppointment[];
@@ -186,18 +186,18 @@ export default function PatientsPage() {
           <div className="grid gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="border-b border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-5 lg:border-b-0 lg:border-r">
               <div
-                className="mb-6 overflow-hidden rounded-[1.5rem] bg-slate-950 bg-cover p-5 text-white shadow-[0_20px_45px_rgba(15,23,42,0.22)]"
+                className="mb-6 overflow-hidden rounded-[1.5rem] bg-white bg-cover p-5 text-slate-950 shadow-[0_20px_45px_rgba(146,94,18,0.14)]"
                 style={{
                   backgroundImage: patientsInsightBackground,
-                  backgroundPosition: '68% center',
+                  backgroundPosition: '52% center',
                 }}
               >
-                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/85 text-slate-900 shadow-sm backdrop-blur">
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary-dark shadow-sm backdrop-blur">
                   <Users className="h-6 w-6" />
                 </div>
-                <p className="text-sm text-white/78">Base de pacientes</p>
+                <p className="text-sm font-medium text-slate-700">Base de pacientes</p>
                 <p className="mt-1 text-4xl font-semibold">{stats.total}</p>
-                <p className="mt-3 text-sm text-white/78">
+                <p className="mt-3 text-sm text-slate-700">
                   {stats.withFutureAppointment} com consulta futura, {stats.withoutFutureAppointment} para reativar.
                 </p>
               </div>
