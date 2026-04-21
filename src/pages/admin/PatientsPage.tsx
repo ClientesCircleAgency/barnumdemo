@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import type { MouseEvent } from 'react';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowUpRight,
   Calendar,
+  CheckCircle2,
   Clock,
   FileText,
   Filter,
@@ -240,9 +241,13 @@ export default function PatientsPage() {
               </div>
 
               <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card">
-                <div className="border-b border-primary/10 px-5 py-4">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div className="border-b border-primary/10 bg-gradient-to-r from-card via-secondary/35 to-card px-5 py-4">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
                     <div>
+                      <div className="mb-2 flex w-fit items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                        <Users className="h-3.5 w-3.5" />
+                        Mapa inteligente
+                      </div>
                       <h2 className="text-2xl font-semibold tracking-tight text-foreground">Mapa de Pacientes</h2>
                       <p className="text-sm text-muted-foreground">
                         {filteredPatients.length} resultado{filteredPatients.length !== 1 ? 's' : ''} no filtro atual.
@@ -265,7 +270,7 @@ export default function PatientsPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-primary/10">
+                  <div className="grid gap-3 bg-secondary/25 p-3 sm:p-4 xl:grid-cols-2">
                     {filteredPatients.map((patient) => (
                       <PatientRow
                         key={patient.id}
@@ -327,48 +332,71 @@ function PatientRow({
   const totalAppointments = timeline?.all.length ?? 0;
   const completedAppointments = timeline?.all.filter((appointment) => appointment.status === 'completed').length ?? 0;
   const progress = totalAppointments > 0 ? Math.round((completedAppointments / totalAppointments) * 100) : 0;
+  const statusTone = timeline?.next ? 'active' : totalAppointments > 0 ? 'reactivate' : 'new';
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onOpen();
+    }
+  };
   const status = timeline?.next ? 'Acompanhamento ativo' : totalAppointments > 0 ? 'Sem próxima consulta' : 'Novo paciente';
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="group grid w-full gap-4 px-5 py-4 text-left transition-colors hover:bg-secondary/45 lg:grid-cols-[minmax(240px,1.1fr)_minmax(210px,0.9fr)_minmax(210px,0.8fr)_auto]"
+      onKeyDown={handleKeyDown}
+      className="group relative cursor-pointer overflow-hidden rounded-[1.5rem] border border-primary/10 bg-card p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-xl hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
     >
-      <div className="flex min-w-0 items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-sm font-bold text-primary-dark">
-          {getInitials(patient.name)}
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-base font-semibold text-foreground">{patient.name}</p>
-            <Badge
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-primary-light to-transparent opacity-80" />
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-sm font-bold text-primary-dark ring-4 ring-primary/5">
+            {getInitials(patient.name)}
+            <span
               className={cn(
-                'rounded-full px-2 py-0.5 text-[11px]',
-                timeline?.next
-                  ? 'bg-primary/10 text-primary hover:bg-primary/10'
-                  : 'bg-muted text-muted-foreground hover:bg-muted',
+                'absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card',
+                statusTone === 'active' && 'bg-emerald-500',
+                statusTone === 'reactivate' && 'bg-amber-500',
+                statusTone === 'new' && 'bg-primary',
               )}
             >
-              {status}
-            </Badge>
+              {statusTone === 'active' && <CheckCircle2 className="h-3 w-3 text-white" />}
+            </span>
           </div>
-          <p className="mt-1 font-mono text-xs text-muted-foreground">NIF {patient.nif}</p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-lg font-semibold tracking-tight text-foreground">{patient.name}</p>
+              <Badge
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-[11px] font-medium',
+                  statusTone === 'active' && 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10',
+                  statusTone === 'reactivate' && 'bg-amber-500/10 text-amber-700 hover:bg-amber-500/10',
+                  statusTone === 'new' && 'bg-primary/10 text-primary hover:bg-primary/10',
+                )}
+              >
+                {status}
+              </Badge>
+            </div>
+            <p className="mt-1 font-mono text-xs text-muted-foreground">NIF {patient.nif}</p>
+          </div>
         </div>
+        <ArrowUpRight className="mt-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
 
-      <div className="space-y-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
+      <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+        <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-primary/10 bg-secondary/45 px-3">
           <Phone className="h-4 w-4 text-primary" />
-          <span>{patient.phone || 'Sem telefone'}</span>
+          <span className="truncate">{patient.phone || 'Sem telefone'}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-primary/10 bg-secondary/45 px-3">
           <Mail className="h-4 w-4 text-primary" />
           <span className="truncate">{patient.email || 'Sem email'}</span>
         </div>
       </div>
 
-      <div className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-1">
+      <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <TimelineBadge icon={Clock} label="Última" value={formatDate(timeline?.last?.date)} />
         <TimelineBadge
           icon={Calendar}
@@ -378,8 +406,8 @@ function PatientRow({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 lg:justify-end">
-        <div className="hidden min-w-[120px] sm:block">
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="min-w-[120px] flex-1">
           <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
             <span>Histórico</span>
             <span>{progress}%</span>
@@ -398,9 +426,8 @@ function PatientRow({
           <Plus className="mr-1 h-4 w-4" />
           Consulta
         </Button>
-        <ArrowUpRight className="hidden h-4 w-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary lg:block" />
       </div>
-    </button>
+    </div>
   );
 }
 
