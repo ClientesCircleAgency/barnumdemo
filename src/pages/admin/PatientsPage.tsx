@@ -29,6 +29,9 @@ import type { ClinicAppointment, Patient } from '@/types/clinic';
 
 type PatientFilter = 'all' | 'today' | 'upcoming' | 'inactive';
 
+const patientsInsightBackground =
+  'linear-gradient(115deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.78) 43%, rgba(15, 23, 42, 0.24) 100%), url("https://images.pexels.com/photos/30110227/pexels-photo-30110227.jpeg?auto=compress&cs=tinysrgb&w=900")';
+
 interface PatientTimeline {
   all: ClinicAppointment[];
   past: ClinicAppointment[];
@@ -182,13 +185,19 @@ export default function PatientsPage() {
 
           <div className="grid gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside className="border-b border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-5 lg:border-b-0 lg:border-r">
-              <div className="mb-6 rounded-[1.5rem] bg-gradient-to-br from-[#2f2618] via-[#463018] to-primary-dark p-5 text-white">
-                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-light text-[#2f2618]">
+              <div
+                className="mb-6 overflow-hidden rounded-[1.5rem] bg-slate-950 bg-cover p-5 text-white shadow-[0_20px_45px_rgba(15,23,42,0.22)]"
+                style={{
+                  backgroundImage: patientsInsightBackground,
+                  backgroundPosition: '68% center',
+                }}
+              >
+                <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/85 text-slate-900 shadow-sm backdrop-blur">
                   <Users className="h-6 w-6" />
                 </div>
-                <p className="text-sm text-white/60">Base de pacientes</p>
+                <p className="text-sm text-white/78">Base de pacientes</p>
                 <p className="mt-1 text-4xl font-semibold">{stats.total}</p>
-                <p className="mt-3 text-sm text-white/65">
+                <p className="mt-3 text-sm text-white/78">
                   {stats.withFutureAppointment} com consulta futura, {stats.withoutFutureAppointment} para reativar.
                 </p>
               </div>
