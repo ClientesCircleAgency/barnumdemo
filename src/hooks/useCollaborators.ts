@@ -70,6 +70,76 @@ async function invokeStaffFunction<TResponse>(
 }
 
 async function fetchCollaborators(): Promise<Collaborator[]> {
+  const { data: roles, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('user_id, role')
+    .neq('role', 'admin')
+    .order('role');
+
+  if (rolesError) throw rolesError;
+  if (!roles?.length) return [];
+
+  const userIds = roles.map((role) => role.user_id);
+
+  const [{ data: profiles, error: profilesError }, { data: professionals, error: professionalsError }] = await Promise.all([
+    supabase
+      .from('user_profiles')
+      .select('user_id, full_name, color, photo_url, active_specialty_ids, active_consultation_type_ids, working_hours, time_off, extra_permissions')
+      .in('user_id', userIds),
+    supabase
+      .from('professionals')
+      .select('id, user_id, name, specialty_id, color, avatar_url')
+      .in('user_id', userIds),
+  ]);
+
+  if (profilesError) throw profilesError;
+  if (professionalsError) throw professionalsError;
+
+  const specialtyIds = Array.from(
+    new Set((professionals || []).map((professional) => professional.specialty_id).filter(Boolean))
+  ) as string[];
+
+  const { data: specialties, error: specialtiesError } = specialtyIds.length
+    ? await supabase.from('specialties').select('id, name').in('id', specialtyIds)
+    : { data: [], error: null };
+
+  if (specialtiesError) throw specialtiesError;
+
+  const profilesByUserId = new Map((profiles || []).map((profile) => [profile.user_id, profile]));
+  const professionalsByUserId = new Map((professionals || []).map((professional) => [professional.user_id, professional]));
+  const specialtiesById = new Map((specialties || []).map((specialty) => [specialty.id, specialty.name]));
+
+  const collaborators = roles
+    .filter((role) => role.role === 'doctor' || role.role === 'secretary')
+    .map((role): Collaborator => {
+      const profile = profilesByUserId.get(role.user_id);
+      const professional = professionalsByUserId.get(role.user_id);
+      const displayName = profile?.full_name || professional?.name || 'Colaborador';
+
+      return {
+        user_id: role.user_id,
+        email: displayName,
+        role: role.role,
+        color: profile?.color || null,
+        photo_url: profile?.photo_url || null,
+        active_specialty_ids: profile?.active_specialty_ids || null,
+        active_consultation_type_ids: profile?.active_consultation_type_ids || null,
+        working_hours: profile?.working_hours || null,
+        time_off: profile?.time_off || null,
+        extra_permissions: profile?.extra_permissions || null,
+        professional_id: professional?.id || null,
+        professional_name: professional?.name || profile?.full_name || null,
+        professional_specialty_id: professional?.specialty_id || null,
+        professional_specialty: professional?.specialty_id ? specialtiesById.get(professional.specialty_id) || null : null,
+        professional_color: professional?.color || null,
+        professional_avatar_url: professional?.avatar_url || null,
+      };
+    });
+
+  if (collaborators.length > 0) {
+    return collaborators;
+  }
+
   const data = await invokeStaffFunction<ListCollaboratorsResponse>('list-collaborators');
 
   if (!data?.success || !data.collaborators) {
