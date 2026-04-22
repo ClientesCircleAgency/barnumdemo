@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Users,
+  UserCog,
   Armchair,
   Settings,
   ChevronLeft,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays, allowedRoles: ['admin', 'secretary', 'doctor'] },
   { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests', allowedRoles: ['admin', 'secretary'] },
   { path: '/admin/pacientes', label: 'Pacientes', icon: Users, allowedRoles: ['admin', 'secretary', 'doctor'] },
+  { path: '/admin/profissionais', label: 'Profissionais', icon: UserCog, allowedRoles: ['admin', 'secretary'] },
   { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp, allowedRoles: ['admin'] },
   { path: '/admin/sala-espera', label: 'Sala de Espera', icon: Armchair, allowedRoles: ['admin', 'secretary', 'doctor'] },
 ];

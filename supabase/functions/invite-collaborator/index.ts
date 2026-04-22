@@ -127,17 +127,21 @@ serve(async (req: Request): Promise<Response> => {
 
     const user = userData.user;
 
-    // Validate user is admin
-    const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(
+    // Validate user can manage staff
+    const { data: isAdminData, error: adminRoleError } = await supabaseAdmin.rpc(
       "has_role",
       { _user_id: user.id, _role: "admin" }
     );
+    const { data: isSecretaryData, error: secretaryRoleError } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: user.id, _role: "secretary" }
+    );
 
-    if (roleError || !isAdminData) {
+    if (adminRoleError || secretaryRoleError || (!isAdminData && !isSecretaryData)) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Forbidden: Admin role required",
+          error: "Forbidden: Staff manager role required",
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

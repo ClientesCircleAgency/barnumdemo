@@ -463,30 +463,39 @@ export type Database = {
           active_specialty_ids: string[]
           color: string | null
           created_at: string
+          extra_permissions: Json
           full_name: string
           photo_url: string | null
+          time_off: Json
           updated_at: string
           user_id: string
+          working_hours: Json
         }
         Insert: {
           active_consultation_type_ids?: string[]
           active_specialty_ids?: string[]
           color?: string | null
           created_at?: string
+          extra_permissions?: Json
           full_name: string
           photo_url?: string | null
+          time_off?: Json
           updated_at?: string
           user_id: string
+          working_hours?: Json
         }
         Update: {
           active_consultation_type_ids?: string[]
           active_specialty_ids?: string[]
           color?: string | null
           created_at?: string
+          extra_permissions?: Json
           full_name?: string
           photo_url?: string | null
+          time_off?: Json
           updated_at?: string
           user_id?: string
+          working_hours?: Json
         }
         Relationships: []
       }

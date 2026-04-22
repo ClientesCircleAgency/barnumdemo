@@ -68,13 +68,17 @@ serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ success: false, error: "User not found" }, 401);
     }
 
-    // Verify caller is admin
-    const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(
+    // Verify caller can manage staff
+    const { data: isAdminData, error: adminRoleError } = await supabaseAdmin.rpc(
       "has_role",
       { _user_id: callerId, _role: "admin" }
     );
-    if (roleError || !isAdminData) {
-      return jsonResponse({ success: false, error: "Forbidden: Admin role required" }, 403);
+    const { data: isSecretaryData, error: secretaryRoleError } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: callerId, _role: "secretary" }
+    );
+    if (adminRoleError || secretaryRoleError || (!isAdminData && !isSecretaryData)) {
+      return jsonResponse({ success: false, error: "Forbidden: Staff manager role required" }, 403);
     }
 
     // Parse body
@@ -93,6 +97,14 @@ serve(async (req: Request): Promise<Response> => {
       await supabaseAdmin.auth.admin.getUserById(body.user_id);
     if (targetError || !targetUser.user) {
       return jsonResponse({ success: false, error: "Target user not found" }, 404);
+    }
+
+    const { data: targetIsAdmin } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: body.user_id, _role: "admin" }
+    );
+    if (targetIsAdmin) {
+      return jsonResponse({ success: false, error: "Admin accounts are managed in the database only" }, 403);
     }
 
     // Step 1: Unlink professional (don't delete the professional record)

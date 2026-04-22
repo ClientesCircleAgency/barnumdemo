@@ -21,6 +21,11 @@ interface Collaborator {
   professional_specialty?: string | null;
   professional_color?: string | null;
   professional_avatar_url?: string | null;
+  active_specialty_ids?: string[] | null;
+  active_consultation_type_ids?: string[] | null;
+  working_hours?: unknown;
+  time_off?: unknown;
+  extra_permissions?: unknown;
 }
 
 interface ListResponse {
@@ -32,10 +37,18 @@ interface ListResponse {
 async function fetchProfileData(
   supabaseAdmin: ReturnType<typeof createClient>,
   userId: string
-): Promise<{ color: string | null; photo_url: string | null }> {
+): Promise<{
+  color: string | null;
+  photo_url: string | null;
+  active_specialty_ids: string[] | null;
+  active_consultation_type_ids: string[] | null;
+  working_hours: unknown;
+  time_off: unknown;
+  extra_permissions: unknown;
+}> {
   const { data, error } = await supabaseAdmin
     .from("user_profiles")
-    .select("color, photo_url")
+    .select("color, photo_url, active_specialty_ids, active_consultation_type_ids, working_hours, time_off, extra_permissions")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -43,6 +56,11 @@ async function fetchProfileData(
     return {
       color: data?.color || null,
       photo_url: data?.photo_url || null,
+      active_specialty_ids: data?.active_specialty_ids || null,
+      active_consultation_type_ids: data?.active_consultation_type_ids || null,
+      working_hours: data?.working_hours || null,
+      time_off: data?.time_off || null,
+      extra_permissions: data?.extra_permissions || null,
     };
   }
 
@@ -50,9 +68,22 @@ async function fetchProfileData(
     error.code === "PGRST204" ||
     error.message?.includes("color") ||
     error.message?.includes("photo_url") ||
+    error.message?.includes("active_specialty_ids") ||
+    error.message?.includes("active_consultation_type_ids") ||
+    error.message?.includes("working_hours") ||
+    error.message?.includes("time_off") ||
+    error.message?.includes("extra_permissions") ||
     error.message?.includes("schema cache")
   ) {
-    return { color: null, photo_url: null };
+    return {
+      color: null,
+      photo_url: null,
+      active_specialty_ids: null,
+      active_consultation_type_ids: null,
+      working_hours: null,
+      time_off: null,
+      extra_permissions: null,
+    };
   }
 
   throw error;
@@ -130,17 +161,21 @@ serve(async (req: Request): Promise<Response> => {
 
     const user = userData.user;
 
-    // Validate user is admin
-    const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(
+    // Validate user can manage staff
+    const { data: isAdminData, error: adminRoleError } = await supabaseAdmin.rpc(
       "has_role",
       { _user_id: user.id, _role: "admin" }
     );
+    const { data: isSecretaryData, error: secretaryRoleError } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: user.id, _role: "secretary" }
+    );
 
-    if (roleError || !isAdminData) {
+    if (adminRoleError || secretaryRoleError || (!isAdminData && !isSecretaryData)) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Forbidden: Admin role required",
+          error: "Forbidden: Staff manager role required",
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -169,6 +204,8 @@ serve(async (req: Request): Promise<Response> => {
     const collaborators: Collaborator[] = [];
 
     for (const userRole of usersWithRoles || []) {
+      if (userRole.role === "admin") continue;
+
       // Fetch user email from auth.users
       const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(
         userRole.user_id
@@ -203,6 +240,11 @@ serve(async (req: Request): Promise<Response> => {
         role: userRole.role,
         color: profile.color,
         photo_url: profile.photo_url,
+        active_specialty_ids: profile.active_specialty_ids,
+        active_consultation_type_ids: profile.active_consultation_type_ids,
+        working_hours: profile.working_hours,
+        time_off: profile.time_off,
+        extra_permissions: profile.extra_permissions,
         professional_id: professional?.id || null,
         professional_name: professional?.name || null,
         professional_specialty_id: professional?.specialty_id || null,

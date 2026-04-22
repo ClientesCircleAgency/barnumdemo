@@ -13,6 +13,15 @@ interface UpdateRequest {
   user_id: string;
   role?: "secretary" | "doctor" | "admin";
   color?: string | null;
+  profile?: {
+    full_name?: string;
+    color?: string | null;
+    active_specialty_ids?: string[];
+    active_consultation_type_ids?: string[];
+    working_hours?: unknown;
+    time_off?: unknown;
+    extra_permissions?: unknown;
+  } | null;
   professional?: {
     action: "link" | "unlink" | "update";
     id?: string; // professional to link
@@ -38,7 +47,7 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 
 async function upsertUserProfile(
   supabaseAdmin: ReturnType<typeof createClient>,
-  payload: { user_id: string; full_name: string; color?: string | null }
+  payload: Record<string, unknown> & { user_id: string; full_name: string }
 ) {
   const { error } = await supabaseAdmin
     .from("user_profiles")
@@ -49,6 +58,11 @@ async function upsertUserProfile(
   if (
     error.code === "PGRST204" ||
     error.message?.includes("color") ||
+    error.message?.includes("active_specialty_ids") ||
+    error.message?.includes("active_consultation_type_ids") ||
+    error.message?.includes("working_hours") ||
+    error.message?.includes("time_off") ||
+    error.message?.includes("extra_permissions") ||
     error.message?.includes("schema cache")
   ) {
     const { error: fallbackError } = await supabaseAdmin
@@ -105,13 +119,17 @@ serve(async (req: Request): Promise<Response> => {
       return jsonResponse({ success: false, error: "User not found" }, 401);
     }
 
-    // Verify caller is admin
-    const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(
+    // Verify caller can manage staff
+    const { data: isAdminData, error: adminRoleError } = await supabaseAdmin.rpc(
       "has_role",
       { _user_id: callerId, _role: "admin" }
     );
-    if (roleError || !isAdminData) {
-      return jsonResponse({ success: false, error: "Forbidden: Admin role required" }, 403);
+    const { data: isSecretaryData, error: secretaryRoleError } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: callerId, _role: "secretary" }
+    );
+    if (adminRoleError || secretaryRoleError || (!isAdminData && !isSecretaryData)) {
+      return jsonResponse({ success: false, error: "Forbidden: Staff manager role required" }, 403);
     }
 
     // Parse body
@@ -130,6 +148,18 @@ serve(async (req: Request): Promise<Response> => {
       await supabaseAdmin.auth.admin.getUserById(body.user_id);
     if (targetError || !targetUser.user) {
       return jsonResponse({ success: false, error: "Target user not found" }, 404);
+    }
+
+    const { data: targetIsAdmin } = await supabaseAdmin.rpc(
+      "has_role",
+      { _user_id: body.user_id, _role: "admin" }
+    );
+    if (targetIsAdmin) {
+      return jsonResponse({ success: false, error: "Admin accounts are managed in the database only" }, 403);
+    }
+
+    if (body.role === "admin") {
+      return jsonResponse({ success: false, error: "Admin accounts are managed in the database only" }, 400);
     }
 
     // Update role if requested
@@ -177,6 +207,19 @@ serve(async (req: Request): Promise<Response> => {
         user_id: body.user_id,
         full_name: targetUser.user.email?.split("@")[0] || "",
         color: body.color,
+      });
+    }
+
+    if (body.profile) {
+      await upsertUserProfile(supabaseAdmin, {
+        user_id: body.user_id,
+        full_name: body.profile.full_name || targetUser.user.email?.split("@")[0] || "",
+        ...(body.profile.color !== undefined && { color: body.profile.color }),
+        ...(body.profile.active_specialty_ids !== undefined && { active_specialty_ids: body.profile.active_specialty_ids }),
+        ...(body.profile.active_consultation_type_ids !== undefined && { active_consultation_type_ids: body.profile.active_consultation_type_ids }),
+        ...(body.profile.working_hours !== undefined && { working_hours: body.profile.working_hours }),
+        ...(body.profile.time_off !== undefined && { time_off: body.profile.time_off }),
+        ...(body.profile.extra_permissions !== undefined && { extra_permissions: body.profile.extra_permissions }),
       });
     }
 

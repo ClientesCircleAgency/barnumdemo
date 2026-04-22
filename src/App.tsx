@@ -18,6 +18,7 @@ import RequestsPage from "./pages/admin/RequestsPage";
 import PlanPage from "./pages/admin/PlanPage";
 import StatisticsPage from "./pages/admin/StatisticsPage";
 import AccountPage from "./pages/admin/AccountPage";
+import ProfessionalsPage from "./pages/admin/ProfessionalsPage";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,14 @@ const App = () => (
             />
             <Route path="pacientes" element={<PatientsPage />} />
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
+            <Route
+              path="profissionais"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'secretary']}>
+                  <ProfessionalsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="sala-espera" element={<WaitingRoomPage />} />
             <Route 
               path="configuracoes" 

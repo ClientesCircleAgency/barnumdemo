@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface Collaborator {
   user_id: string;
@@ -13,6 +14,11 @@ export interface Collaborator {
   professional_specialty?: string | null;
   professional_color?: string | null;
   professional_avatar_url?: string | null;
+  active_specialty_ids?: string[] | null;
+  active_consultation_type_ids?: string[] | null;
+  working_hours?: Json | null;
+  time_off?: Json | null;
+  extra_permissions?: Json | null;
 }
 
 interface ListCollaboratorsResponse {
@@ -81,6 +87,15 @@ export interface UpdateCollaboratorParams {
   user_id: string;
   role?: 'admin' | 'secretary' | 'doctor';
   color?: string | null;
+  profile?: {
+    full_name?: string;
+    color?: string | null;
+    active_specialty_ids?: string[];
+    active_consultation_type_ids?: string[];
+    working_hours?: Json;
+    time_off?: Json;
+    extra_permissions?: Json;
+  } | null;
   professional?: {
     action: 'link' | 'unlink' | 'update';
     id?: string;
