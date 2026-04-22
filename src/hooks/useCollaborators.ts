@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface Collaborator {
@@ -33,37 +33,44 @@ interface EdgeFnResponse {
   message?: string;
 }
 
-async function getHeaders() {
+async function getFunctionHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('No active session');
   return {
     Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    apikey: SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
     'x-user-token': session.access_token,
   };
 }
 
-async function extractError(error: any, fallback: string): Promise<string> {
+async function invokeStaffFunction<TResponse>(
+  functionName: string,
+  body?: unknown
+): Promise<TResponse> {
+  const headers = await getFunctionHeaders();
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+    method: 'POST',
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  let payload: TResponse & { error?: string };
   try {
-    if (error.context && typeof error.context.json === 'function') {
-      const errBody = await error.context.json();
-      return errBody?.error || fallback;
-    }
-    return error.message || fallback;
+    payload = await response.json();
   } catch {
-    return error.message || fallback;
+    throw new Error(`Failed to read ${functionName} response`);
   }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || `Failed to call ${functionName}`);
+  }
+
+  return payload;
 }
 
 async function fetchCollaborators(): Promise<Collaborator[]> {
-  const headers = await getHeaders();
-  const { data, error } = await supabase.functions.invoke<ListCollaboratorsResponse>(
-    'list-collaborators',
-    { headers }
-  );
-
-  if (error) {
-    throw new Error(await extractError(error, 'Failed to fetch collaborators'));
-  }
+  const data = await invokeStaffFunction<ListCollaboratorsResponse>('list-collaborators');
 
   if (!data?.success || !data.collaborators) {
     throw new Error(data?.error || 'Failed to fetch collaborators');
@@ -110,15 +117,7 @@ export function useUpdateCollaborator() {
 
   return useMutation({
     mutationFn: async (params: UpdateCollaboratorParams) => {
-      const headers = await getHeaders();
-      const { data, error } = await supabase.functions.invoke<EdgeFnResponse>(
-        'update-collaborator',
-        { body: params, headers }
-      );
-
-      if (error) {
-        throw new Error(await extractError(error, 'Failed to update collaborator'));
-      }
+      const data = await invokeStaffFunction<EdgeFnResponse>('update-collaborator', params);
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to update collaborator');
       }
@@ -139,15 +138,7 @@ export function useDeleteCollaborator() {
 
   return useMutation({
     mutationFn: async (params: DeleteCollaboratorParams) => {
-      const headers = await getHeaders();
-      const { data, error } = await supabase.functions.invoke<EdgeFnResponse>(
-        'delete-collaborator',
-        { body: params, headers }
-      );
-
-      if (error) {
-        throw new Error(await extractError(error, 'Failed to delete collaborator'));
-      }
+      const data = await invokeStaffFunction<EdgeFnResponse>('delete-collaborator', params);
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to delete collaborator');
       }
