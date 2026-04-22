@@ -11,6 +11,7 @@ import { EditHoursModal } from '@/components/admin/EditHoursModal';
 import { ManageCollaboratorsModal } from '@/components/admin/ManageCollaboratorsModal';
 import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultationTypesModal';
 import { PageHeader } from '@/components/admin/PageHeader';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
 const DEFAULT_HOURS = [
@@ -191,16 +192,20 @@ export default function SettingsPage() {
                       : collab.professional_specialty || 'Médico';
 
                     const bgColor = collab.color || collab.professional_color || (isSecretary ? '#10b981' : isAdminUser ? '#8b5cf6' : '#6366f1');
+                    const photoUrl = collab.photo_url || collab.professional_avatar_url;
 
                     return (
                       <div key={collab.user_id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-secondary/40 p-2">
                         <div className="flex items-center gap-2">
-                          <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs"
-                            style={{ backgroundColor: bgColor }}
-                          >
-                            {initials}
-                          </div>
+                          <Avatar className="h-8 w-8 border border-border">
+                            {photoUrl && <AvatarImage src={photoUrl} alt={displayName} />}
+                            <AvatarFallback
+                              className="text-white font-semibold text-xs"
+                              style={{ backgroundColor: bgColor }}
+                            >
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0">
                             <p className="font-medium text-foreground text-sm truncate">{displayName}</p>
                             <p className="text-xs text-muted-foreground truncate">
