@@ -14,11 +14,13 @@ interface Collaborator {
   email: string;
   role: "admin" | "secretary" | "doctor";
   color?: string | null;
+  photo_url?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
   professional_specialty_id?: string | null;
   professional_specialty?: string | null;
   professional_color?: string | null;
+  professional_avatar_url?: string | null;
 }
 
 interface ListResponse {
@@ -27,26 +29,30 @@ interface ListResponse {
   error?: string;
 }
 
-async function fetchProfileColor(
+async function fetchProfileData(
   supabaseAdmin: ReturnType<typeof createClient>,
   userId: string
-): Promise<string | null> {
+): Promise<{ color: string | null; photo_url: string | null }> {
   const { data, error } = await supabaseAdmin
     .from("user_profiles")
-    .select("color")
+    .select("color, photo_url")
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!error) {
-    return data?.color || null;
+    return {
+      color: data?.color || null,
+      photo_url: data?.photo_url || null,
+    };
   }
 
   if (
     error.code === "PGRST204" ||
     error.message?.includes("color") ||
+    error.message?.includes("photo_url") ||
     error.message?.includes("schema cache")
   ) {
-    return null;
+    return { color: null, photo_url: null };
   }
 
   throw error;
@@ -170,13 +176,13 @@ serve(async (req: Request): Promise<Response> => {
 
       if (!authUser.user) continue;
 
-      // Fetch user profile (color)
-      const profileColor = await fetchProfileColor(supabaseAdmin, userRole.user_id);
+      // Fetch user profile data
+      const profile = await fetchProfileData(supabaseAdmin, userRole.user_id);
 
       // Fetch professional data if exists
       const { data: professional } = await supabaseAdmin
         .from("professionals")
-        .select("id, name, specialty_id, color")
+        .select("id, name, specialty_id, color, avatar_url")
         .eq("user_id", userRole.user_id)
         .maybeSingle();
 
@@ -195,12 +201,14 @@ serve(async (req: Request): Promise<Response> => {
         user_id: userRole.user_id,
         email: authUser.user.email || "",
         role: userRole.role,
-        color: profileColor,
+        color: profile.color,
+        photo_url: profile.photo_url,
         professional_id: professional?.id || null,
         professional_name: professional?.name || null,
         professional_specialty_id: professional?.specialty_id || null,
         professional_specialty: specialtyName,
         professional_color: professional?.color || null,
+        professional_avatar_url: professional?.avatar_url || null,
       });
     }
 

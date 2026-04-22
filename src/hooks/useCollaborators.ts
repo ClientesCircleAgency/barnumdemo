@@ -6,11 +6,13 @@ export interface Collaborator {
   email: string;
   role: 'admin' | 'secretary' | 'doctor';
   color?: string | null;
+  photo_url?: string | null;
   professional_id?: string | null;
   professional_name?: string | null;
   professional_specialty_id?: string | null;
   professional_specialty?: string | null;
   professional_color?: string | null;
+  professional_avatar_url?: string | null;
 }
 
 interface ListCollaboratorsResponse {
