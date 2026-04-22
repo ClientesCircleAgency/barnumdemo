@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   CalendarOff,
   Clock,
+  AlertTriangle,
   KeyRound,
   Loader2,
   Plus,
+  RefreshCw,
   Save,
   Settings2,
   Stethoscope,
@@ -76,6 +78,8 @@ const DEFAULT_EXTRA_PERMISSIONS: ExtraPermissions = {
   can_manage_settings: false,
 };
 
+const BARNUN_SUPABASE_PROJECT_REF = 'oziejxqmghwmtjufstfp';
+
 const EXTRA_PERMISSION_LABELS: Array<{ key: keyof ExtraPermissions; label: string }> = [
   { key: 'can_manage_requests', label: 'Pedidos' },
   { key: 'can_manage_messages', label: 'Mensagens' },
@@ -109,7 +113,13 @@ function initialsFor(collaborator: Collaborator) {
 }
 
 export default function ProfessionalsPage() {
-  const { data: collaborators = [], isLoading: loadingCollaborators, refetch } = useCollaborators();
+  const {
+    data: collaborators = [],
+    error: collaboratorsError,
+    isError: collaboratorsLoadFailed,
+    isLoading: loadingCollaborators,
+    refetch,
+  } = useCollaborators();
   const { data: specialties = [] } = useSpecialties();
   const { data: consultationTypes = [] } = useConsultationTypes();
   const updateCollaborator = useUpdateCollaborator();
@@ -126,6 +136,18 @@ export default function ProfessionalsPage() {
   const [newSpecialtyName, setNewSpecialtyName] = useState('');
   const [editingSpecialtyId, setEditingSpecialtyId] = useState<string | null>(null);
   const [editingSpecialtyName, setEditingSpecialtyName] = useState('');
+
+  const supabaseProjectRef = useMemo(() => {
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+      return url ? new URL(url).hostname.split('.')[0] : null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const isUnexpectedSupabaseProject =
+    Boolean(supabaseProjectRef) && supabaseProjectRef !== BARNUN_SUPABASE_PROJECT_REF;
 
   const staff = useMemo(
     () => collaborators.filter((collab) => collab.role === 'doctor' || collab.role === 'secretary'),
@@ -320,10 +342,34 @@ export default function ProfessionalsPage() {
             <h2 className="text-sm font-semibold">Equipa</h2>
           </div>
 
+          {isUnexpectedSupabaseProject && (
+            <div className="mb-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
+              <div className="mb-1 flex items-center gap-2 font-semibold">
+                <AlertTriangle className="h-4 w-4" />
+                Supabase incorreto
+              </div>
+              Este frontend está ligado ao projeto {supabaseProjectRef}, mas Barnun usa {BARNUN_SUPABASE_PROJECT_REF}.
+            </div>
+          )}
+
           {loadingCollaborators ? (
             <div className="flex min-h-32 items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               A carregar...
+            </div>
+          ) : collaboratorsLoadFailed ? (
+            <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-destructive/30 bg-destructive/5 p-4 text-center">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="text-sm font-medium text-destructive">Não foi possível carregar os colaboradores.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {collaboratorsError instanceof Error ? collaboratorsError.message : 'Erro desconhecido na listagem.'}
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4" />
+                Tentar novamente
+              </Button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -361,11 +407,16 @@ export default function ProfessionalsPage() {
                   </button>
                 );
               })}
+              {staff.length === 0 && (
+                <div className="flex min-h-32 items-center justify-center rounded-xl border border-dashed text-center text-sm text-muted-foreground">
+                  Não existem contas com função médico ou secretária nesta base de dados.
+                </div>
+              )}
             </div>
           )}
         </section>
 
-        {selected ? (
+        {selected && !collaboratorsLoadFailed ? (
           <section className="space-y-4">
             <div className="rounded-2xl border border-primary/10 bg-card p-4 shadow-sm">
               <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
