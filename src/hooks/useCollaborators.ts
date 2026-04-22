@@ -187,11 +187,76 @@ export function useUpdateCollaborator() {
 
   return useMutation({
     mutationFn: async (params: UpdateCollaboratorParams) => {
-      const data = await invokeStaffFunction<EdgeFnResponse>('update-collaborator', params);
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to update collaborator');
+      if (params.role === 'admin') {
+        throw new Error('Admin accounts are managed in the database only');
       }
-      return data;
+
+      if (params.role) {
+        const { error } = await supabase
+          .from('user_roles')
+          .update({ role: params.role })
+          .eq('user_id', params.user_id)
+          .neq('role', 'admin');
+
+        if (error) throw error;
+      }
+
+      if (params.profile) {
+        const fullName = params.profile.full_name || 'Colaborador';
+        const { error } = await supabase
+          .from('user_profiles')
+          .upsert({
+            user_id: params.user_id,
+            full_name: fullName,
+            ...(params.profile.color !== undefined && { color: params.profile.color }),
+            ...(params.profile.active_specialty_ids !== undefined && { active_specialty_ids: params.profile.active_specialty_ids }),
+            ...(params.profile.active_consultation_type_ids !== undefined && { active_consultation_type_ids: params.profile.active_consultation_type_ids }),
+            ...(params.profile.working_hours !== undefined && { working_hours: params.profile.working_hours }),
+            ...(params.profile.time_off !== undefined && { time_off: params.profile.time_off }),
+            ...(params.profile.extra_permissions !== undefined && { extra_permissions: params.profile.extra_permissions }),
+          }, { onConflict: 'user_id' });
+
+        if (error) throw error;
+      }
+
+      if (params.professional?.action === 'update') {
+        const { data: existingProfessional, error: existingError } = await supabase
+          .from('professionals')
+          .select('id')
+          .eq('user_id', params.user_id)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+
+        const professionalPayload = {
+          user_id: params.user_id,
+          name: params.professional.name || params.profile?.full_name || 'Profissional',
+          specialty_id: params.professional.specialty_id || null,
+          color: params.professional.color || params.color || '#6366f1',
+        };
+
+        const { error } = existingProfessional
+          ? await supabase
+            .from('professionals')
+            .update(professionalPayload)
+            .eq('id', existingProfessional.id)
+          : await supabase
+            .from('professionals')
+            .insert(professionalPayload);
+
+        if (error) throw error;
+      }
+
+      if (params.professional?.action === 'unlink') {
+        const { error } = await supabase
+          .from('professionals')
+          .update({ user_id: null })
+          .eq('user_id', params.user_id);
+
+        if (error) throw error;
+      }
+
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collaborators'] });
