@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface Collaborator {
@@ -37,7 +37,7 @@ async function getHeaders() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('No active session');
   return {
-    Authorization: `Bearer ${session.access_token}`,
+    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     'x-user-token': session.access_token,
   };
 }
