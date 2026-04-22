@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
@@ -32,7 +33,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
 import { PatientLookupByNIF } from './PatientLookupByNIF';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { Patient, AppointmentStatus } from '@/types/clinic';
+import type { Json } from '@/integrations/supabase/types';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
 import {
   filterConsultationTypesForProfessional,
@@ -52,6 +55,32 @@ interface AppointmentWizardProps {
   onOpenChange: (open: boolean) => void;
   preselectedPatient?: Patient | null;
   preselectedDate?: Date | null;
+}
+
+interface TimeOffItem {
+  id?: string;
+  type?: 'vacation' | 'day_off' | 'holiday';
+  start?: string;
+  end?: string;
+  note?: string;
+}
+
+interface ProfessionalAvailability {
+  user_id: string;
+  time_off: Json | null;
+}
+
+function isDateInTimeOff(date: Date, value: Json | null | undefined) {
+  if (!Array.isArray(value)) return false;
+
+  const dateKey = format(date, 'yyyy-MM-dd');
+
+  return (value as unknown as TimeOffItem[]).some((item) => {
+    if (!item.start) return false;
+    const start = item.start;
+    const end = item.end || item.start;
+    return dateKey >= start && dateKey <= end;
+  });
 }
 
 export function AppointmentWizard({
@@ -99,6 +128,37 @@ export function AppointmentWizard({
   const selectedSpecialtyId = form.watch('specialtyId');
   const selectedProfessionalId = form.watch('professionalId');
   const selectedConsultationTypeId = form.watch('consultationTypeId');
+  const selectedDate = form.watch('date');
+
+  const professionalUserIds = useMemo(
+    () => professionals.map((professional) => professional.userId).filter(Boolean) as string[],
+    [professionals]
+  );
+
+  const { data: professionalAvailability = [] } = useQuery({
+    queryKey: ['professional-availability', professionalUserIds],
+    enabled: open && professionalUserIds.length > 0,
+    queryFn: async (): Promise<ProfessionalAvailability[]> => {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('user_id, time_off')
+        .in('user_id', professionalUserIds);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const timeOffByUserId = useMemo(
+    () => new Map(professionalAvailability.map((item) => [item.user_id, item.time_off])),
+    [professionalAvailability]
+  );
+
+  const isProfessionalUnavailable = (professionalId: string, date: Date) => {
+    const professional = professionals.find((item) => item.id === professionalId);
+    if (!professional?.userId) return false;
+    return isDateInTimeOff(date, timeOffByUserId.get(professional.userId));
+  };
 
   const availableConsultationTypes = useMemo(() => {
     const specialtyTypes = selectedSpecialtyId
@@ -121,6 +181,10 @@ export function AppointmentWizard({
           return false;
         }
 
+        if (selectedDate && isProfessionalUnavailable(professional.id, selectedDate)) {
+          return false;
+        }
+
         if (!selectedSpecialtyId) {
           return true;
         }
@@ -135,7 +199,7 @@ export function AppointmentWizard({
           selectedConsultationTypeId || undefined,
         );
       }),
-    [doctorProfessionalId, isDoctor, professionals, selectedConsultationTypeId, selectedSpecialtyId, servicePreferences]
+    [doctorProfessionalId, isDoctor, professionals, selectedConsultationTypeId, selectedDate, selectedSpecialtyId, servicePreferences, timeOffByUserId]
   );
 
   useEffect(() => {
@@ -262,6 +326,15 @@ export function AppointmentWizard({
       toast({
         title: 'Erro',
         description: 'Selecione uma especialidade valida para esta consulta.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isProfessionalUnavailable(data.professionalId, data.date)) {
+      toast({
+        title: 'Profissional indisponível',
+        description: 'Este profissional está de férias ou folga nesta data. Escolha outra data ou outro profissional.',
         variant: 'destructive',
       });
       return;

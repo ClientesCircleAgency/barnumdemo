@@ -260,6 +260,8 @@ export function useUpdateCollaborator() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+      queryClient.invalidateQueries({ queryKey: ['professional-availability'] });
+      queryClient.invalidateQueries({ queryKey: ['professionals'] });
     },
   });
 }
