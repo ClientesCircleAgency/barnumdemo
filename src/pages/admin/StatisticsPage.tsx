@@ -29,6 +29,7 @@ import { pt } from 'date-fns/locale';
 import {
   BarChart3,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   Sparkles,
   TrendingUp,
@@ -45,14 +46,14 @@ const ACTIVE_STATUSES = ['confirmed', 'waiting', 'in_progress', 'completed'] as 
 const periodLabels: Record<Period, string> = {
   today: 'Hoje',
   week: 'Semana',
-  month: 'Mês',
+  month: 'Mes',
   year: 'Ano',
 };
 
 const funnelLabels: Record<FunnelView, string> = {
   requests: 'Pedidos',
   confirmed: 'Confirmadas',
-  completed: 'Concluídas',
+  completed: 'Concluidas',
   pending: 'Pendentes',
 };
 
@@ -69,9 +70,9 @@ const statusLabels: Record<string, string> = {
   confirmed: 'Confirmada',
   waiting: 'Em espera',
   in_progress: 'Em atendimento',
-  completed: 'Concluída',
+  completed: 'Concluida',
   cancelled: 'Cancelada',
-  no_show: 'Não compareceu',
+  no_show: 'Nao compareceu',
 };
 
 function getPeriodInterval(period: Period) {
@@ -97,7 +98,6 @@ function getPeriodInterval(period: Period) {
 
 function isDateInInterval(dateString: string | null | undefined, interval: { start: Date; end: Date }) {
   if (!dateString) return false;
-
   return isWithinInterval(parseISO(dateString), interval);
 }
 
@@ -127,22 +127,22 @@ export default function StatisticsPage() {
 
   const activeAppointments = useMemo(
     () => appointments.filter((appointment) => (ACTIVE_STATUSES as readonly string[]).includes(appointment.status)),
-    [appointments],
+    [appointments]
   );
 
   const periodAppointments = useMemo(
     () => activeAppointments.filter((appointment) => isDateInInterval(appointment.date, periodInterval)),
-    [activeAppointments, periodInterval],
+    [activeAppointments, periodInterval]
   );
 
   const periodRequests = useMemo(
     () => allRequests.filter((request) => isDateInInterval(request.preferred_date, periodInterval)),
-    [allRequests, periodInterval],
+    [allRequests, periodInterval]
   );
 
   const periodPendingRequests = useMemo(
     () => periodRequests.filter((request) => request.status === 'pending'),
-    [periodRequests],
+    [periodRequests]
   );
 
   const periodLabel = useMemo(() => {
@@ -186,7 +186,7 @@ export default function StatisticsPage() {
         const hour = format(hourDate, 'HH');
         const dateStr = format(hourDate, 'yyyy-MM-dd');
         const appointmentsAtHour = periodAppointments.filter(
-          (appointment) => appointment.date === dateStr && appointment.time?.startsWith(hour),
+          (appointment) => appointment.date === dateStr && appointment.time?.startsWith(hour)
         );
         const requestsAtHour = periodRequests.filter((request) => request.preferred_time?.startsWith(hour));
 
@@ -205,10 +205,10 @@ export default function StatisticsPage() {
         const monthStart = startOfMonth(monthDate);
         const monthEnd = endOfMonth(monthDate);
         const appointmentsInMonth = periodAppointments.filter((appointment) =>
-          isDateInInterval(appointment.date, { start: monthStart, end: monthEnd }),
+          isDateInInterval(appointment.date, { start: monthStart, end: monthEnd })
         );
         const requestsInMonth = periodRequests.filter((request) =>
-          isDateInInterval(request.preferred_date, { start: monthStart, end: monthEnd }),
+          isDateInInterval(request.preferred_date, { start: monthStart, end: monthEnd })
         );
 
         return {
@@ -240,7 +240,7 @@ export default function StatisticsPage() {
     return professionals
       .map((professional) => {
         const professionalAppointments = periodAppointments.filter(
-          (appointment) => appointment.professionalId === professional.id,
+          (appointment) => appointment.professionalId === professional.id
         );
         const completed = professionalAppointments.filter((appointment) => appointment.status === 'completed').length;
         const progress = professionalAppointments.length > 0
@@ -273,264 +273,277 @@ export default function StatisticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-10">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-3 sm:px-6">
-        <section className="overflow-hidden rounded-[2rem] border border-primary/10 bg-card shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
-          <div className="flex flex-col gap-5 border-b border-primary/10 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full bg-primary/10 px-3 py-1 text-primary hover:bg-primary/10">
-                  Barnun Analytics
+    <div className="space-y-4 pb-24 lg:space-y-6 lg:pb-6">
+      <section className="overflow-hidden rounded-[2rem] border border-primary/10 bg-[radial-gradient(circle_at_top_left,rgba(191,145,54,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.97),rgba(255,255,255,0.84))] p-4 shadow-sm backdrop-blur sm:p-5">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.4rem] bg-primary-gradient text-primary-foreground shadow-lg shadow-primary/20">
+              <BarChart3 className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="rounded-full border-0 bg-foreground text-[11px] font-semibold text-background shadow-sm">
+                  Mobile analytics
                 </Badge>
-                <span className="text-sm text-primary-dark">Dados em tempo real</span>
+                <Badge variant="outline" className="rounded-full border-primary/20 bg-white/70 text-[11px] text-primary">
+                  Tempo real
+                </Badge>
               </div>
-              <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Estatísticas
-              </h2>
-              <p className="mt-1 text-muted-foreground">
-                Dados operacionais da clínica, pedidos e consultas registadas.
+              <h1 className="mt-3 font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                Estatisticas
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Leitura rapida do funil, da equipa e do movimento clinico, pensada para consulta no telemovel.
               </p>
             </div>
+          </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-3 text-sm font-medium text-foreground shadow-inner">
-                <CalendarDays className="h-4 w-4 text-primary" />
-                {periodLabel}
-              </div>
-              <Tabs value={activePeriod} onValueChange={(value) => setActivePeriod(value as Period)}>
-                <TabsList className="rounded-full bg-secondary p-1">
-                  {(Object.keys(periodLabels) as Period[]).map((period) => (
-                    <TabsTrigger
-                      key={period}
-                      value={period}
-                      className="rounded-full px-4 data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
-                    >
-                      {periodLabels[period]}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <HeroMetric title="Fluxo" value={kpis.total} caption="Pedidos + consultas" />
+            <HeroMetric title="Conversao" value={`${kpis.conversion}%`} caption="Do pedido ao agendamento" />
+            <HeroMetric title="Pendentes" value={kpis.pending} caption="A aguardar resposta" />
+            <HeroMetric title="Pacientes" value={patients.length} caption="Base atual" />
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <div className="inline-flex w-full items-center gap-2 rounded-[1.4rem] border border-primary/10 bg-white/80 px-4 py-3 text-sm font-medium text-foreground shadow-sm sm:w-fit">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {periodLabel}
             </div>
+            <Tabs value={activePeriod} onValueChange={(value) => setActivePeriod(value as Period)}>
+              <TabsList className="grid h-auto w-full grid-cols-4 rounded-[1.4rem] bg-secondary p-1">
+                {(Object.keys(periodLabels) as Period[]).map((period) => (
+                  <TabsTrigger
+                    key={period}
+                    value={period}
+                    className="rounded-[1rem] px-2 py-2.5 text-xs sm:text-sm data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
+                  >
+                    {periodLabels[period]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
           </div>
+        </div>
+      </section>
 
-          <div className="grid gap-0 lg:grid-cols-[240px_minmax(0,1fr)]">
-            <aside className="border-b border-primary/10 bg-gradient-to-b from-primary/10 via-secondary/70 to-card p-5 lg:border-b-0 lg:border-r">
-              <div className="mb-8 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-gradient text-primary-foreground shadow-lg shadow-primary/20">
-                  <Sparkles className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-foreground">CRMBarnun</p>
-                  <p className="text-xs text-muted-foreground">Gestão clínica</p>
-                </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
+        <div className="space-y-4">
+          <Card className="rounded-[2rem] border-primary/10 bg-card p-4 shadow-sm">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Funil de marcacoes</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Leitura do periodo selecionado sem sair do contexto mobile.</p>
               </div>
-
-              <nav className="space-y-2">
-                <SidebarPill active icon={BarChart3} label="Estatísticas" />
-                <SidebarPill icon={Users} label={`${patients.length} pacientes`} />
-                <SidebarPill icon={Clock3} label={`${kpis.pending} pendentes`} />
-              </nav>
-            </aside>
-
-            <main className="space-y-6 p-5 sm:p-7">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <MetricCard title="Total no fluxo" value={kpis.total} caption="Pedidos + consultas" />
-                <MetricCard title="Pedidos" value={kpis.requests} caption="Entradas no período" />
-                <MetricCard title="Confirmadas" value={kpis.confirmed} caption="Consultas marcadas" />
-                <MetricCard title="Conversão" value={`${kpis.conversion}%`} caption="Pedidos para consultas" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Sparkles className="h-5 w-5" />
               </div>
+            </div>
 
-              <Card className="rounded-[1.75rem] border-primary/10 bg-card p-5 shadow-none">
-                <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <h3 className="text-2xl font-semibold tracking-tight text-foreground">Funil de Marcações</h3>
-                    <p className="text-sm text-muted-foreground">Funil de marcações e movimento clínico.</p>
+            <div className="mb-4 grid grid-cols-2 gap-2">
+              {(Object.keys(funnelLabels) as FunnelView[]).map((view) => (
+                <Button
+                  key={view}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFunnelView(view)}
+                  className={`h-11 rounded-2xl ${
+                    funnelView === view
+                      ? 'bg-primary-gradient text-primary-foreground hover:opacity-90 hover:text-primary-foreground'
+                      : 'bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                >
+                  {funnelLabels[view]}
+                </Button>
+              ))}
+            </div>
+
+            <div className="h-[300px] rounded-[1.6rem] border border-primary/10 bg-gradient-to-b from-card to-secondary/40 p-3 sm:h-[340px] sm:p-4">
+              <ChartContainer config={chartConfig} className="h-full w-full">
+                <LineChart data={chartData} margin={{ left: 0, right: 8, top: 20, bottom: 6 }}>
+                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="0" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#71717a', fontSize: 12 }}
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#71717a', fontSize: 12 }}
+                    tickFormatter={(value) => `${value}`}
+                    width={30}
+                  />
+                  <ChartTooltip
+                    content={<ChartTooltipContent indicator="line" />}
+                    formatter={(value: number) => [value, funnelLabels[funnelView]]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey={funnelView}
+                    stroke="hsl(var(--primary-dark))"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: 'hsl(var(--primary-dark))', strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--primary-dark))', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            </div>
+          </Card>
+
+          <Card className="rounded-[2rem] border-primary/10 bg-card p-4 shadow-sm">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Movimentos recentes</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Consultas recentes em formato de feed, mais natural para mobile.</p>
+              </div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Clock3 className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {recentMovements.map((appointment) => (
+                <MovementCard
+                  key={appointment.id}
+                  appointment={appointment}
+                  patientName={getPatientById(appointment.patientId)?.name ?? 'Paciente'}
+                  professionalName={getProfessionalById(appointment.professionalId)?.name ?? 'Profissional'}
+                  consultationName={
+                    appointment.consultationTypeName
+                    || getConsultationTypeById(appointment.consultationTypeId)?.name
+                    || 'Consulta'
+                  }
+                />
+              ))}
+            </div>
+
+            {recentMovements.length === 0 && (
+              <div className="rounded-[1.5rem] border border-dashed border-primary/20 bg-secondary/40 p-6 text-center text-sm text-muted-foreground">
+                Sem movimentos para este periodo.
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="space-y-4">
+          <Card className="rounded-[2rem] border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-4 shadow-sm">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Resumo rapido</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Estado operacional da clinica neste periodo.</p>
+              </div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <InsightPill icon={BarChart3} label="Pedidos registados" value={kpis.requests} accent />
+              <InsightPill icon={Users} label="Consultas confirmadas" value={kpis.confirmed} />
+              <InsightPill icon={Clock3} label="Em espera" value={kpis.waiting + kpis.inProgress} />
+              <InsightPill icon={TrendingUp} label="Concluidas" value={kpis.completed} />
+            </div>
+          </Card>
+
+          <Card className="rounded-[2rem] border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-4 shadow-sm">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-foreground">Equipa</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Volume por profissional</p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {professionalMovements.map(({ professional, total, completed, progress }) => (
+                <div key={professional.id} className="rounded-[1.5rem] border border-primary/10 bg-card/90 p-4 shadow-sm">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold text-white"
+                      style={{ backgroundColor: professional.color || 'hsl(var(--primary))' }}
+                    >
+                      {getInitials(professional.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-foreground">{professional.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {total} consulta{total !== 1 ? 's' : ''} · {completed} concluida{completed !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary-dark">
+                      {progress}%
+                    </span>
                   </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.keys(funnelLabels) as FunnelView[]).map((view) => (
-                      <Button
-                        key={view}
-                        type="button"
-                        variant="ghost"
-                        onClick={() => setFunnelView(view)}
-                        className={`rounded-full px-4 ${
-                          funnelView === view
-                            ? 'bg-primary-gradient text-primary-foreground hover:opacity-90 hover:text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                        }`}
-                      >
-                        {funnelLabels[view]}
-                      </Button>
-                    ))}
+                  <div className="h-2.5 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary-gradient"
+                      style={{ width: `${Math.max(progress, 6)}%` }}
+                    />
                   </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="h-[320px] rounded-[1.4rem] border border-primary/10 bg-gradient-to-b from-card to-secondary/40 p-4">
-                  <ChartContainer config={chartConfig} className="h-full w-full">
-                    <LineChart data={chartData} margin={{ left: 8, right: 18, top: 20, bottom: 8 }}>
-                      <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="0" vertical={false} />
-                      <XAxis
-                        dataKey="label"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#71717a', fontSize: 12 }}
-                        minTickGap={18}
-                      />
-                      <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: '#71717a', fontSize: 12 }}
-                        tickFormatter={(value) => `${value}`}
-                        width={34}
-                      />
-                      <ChartTooltip
-                        content={<ChartTooltipContent indicator="line" />}
-                        formatter={(value: number) => [value, funnelLabels[funnelView]]}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey={funnelView}
-                        stroke="hsl(var(--primary-dark))"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: 'hsl(var(--primary-dark))', strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'hsl(var(--primary-dark))', strokeWidth: 2 }}
-                      />
-                    </LineChart>
-                  </ChartContainer>
-                </div>
-              </Card>
-
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-                <Card className="overflow-hidden rounded-[1.75rem] border-primary/10 bg-card shadow-none">
-                  <div className="border-b border-primary/10 p-5">
-                    <h3 className="text-2xl font-semibold tracking-tight text-foreground">Movimentos de Pacientes</h3>
-                    <p className="text-sm text-muted-foreground">Últimas consultas do período selecionado.</p>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] text-left">
-                      <thead>
-                        <tr className="border-b border-primary/10 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          <th className="px-5 py-4">Overview</th>
-                          <th className="px-5 py-4">Consulta</th>
-                          <th className="px-5 py-4">Profissional</th>
-                          <th className="px-5 py-4">Progress</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentMovements.map((appointment) => (
-                          <MovementRow
-                            key={appointment.id}
-                            appointment={appointment}
-                            patientName={getPatientById(appointment.patientId)?.name ?? 'Paciente'}
-                            professionalName={getProfessionalById(appointment.professionalId)?.name ?? 'Profissional'}
-                            consultationName={
-                              appointment.consultationTypeName
-                              || getConsultationTypeById(appointment.consultationTypeId)?.name
-                              || 'Consulta'
-                            }
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {recentMovements.length === 0 && (
-                    <div className="px-5 py-12 text-center text-sm text-muted-foreground">
-                      Sem movimentos para este período.
-                    </div>
-                  )}
-                </Card>
-
-                <Card className="rounded-[1.75rem] border-primary/10 bg-gradient-to-b from-primary/8 via-secondary/60 to-card p-5 text-foreground shadow-none">
-                  <div className="mb-5 flex items-center justify-between">
-                    <div>
-                      <h3 className="text-xl font-semibold">Equipa</h3>
-                      <p className="text-sm text-muted-foreground">Volume por profissional</p>
-                    </div>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <TrendingUp className="h-5 w-5" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {professionalMovements.map(({ professional, total, completed, progress }) => (
-                      <div key={professional.id} className="rounded-2xl border border-primary/10 bg-card/85 p-4 shadow-sm">
-                        <div className="mb-3 flex items-center gap-3">
-                          <div
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white"
-                            style={{ backgroundColor: professional.color || 'hsl(var(--primary))' }}
-                          >
-                            {getInitials(professional.name)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold text-foreground">{professional.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {total} consulta{total !== 1 ? 's' : ''} · {completed} concluída{completed !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-bold text-primary-dark">
-                            {progress}%
-                          </span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-secondary">
-                          <div
-                            className="h-full rounded-full bg-primary-gradient"
-                            style={{ width: `${Math.max(progress, 6)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {professionalMovements.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-primary/20 bg-card/70 p-6 text-center text-sm text-muted-foreground">
-                      Sem consultas por profissional neste período.
-                    </div>
-                  )}
-                </Card>
+            {professionalMovements.length === 0 && (
+              <div className="rounded-[1.5rem] border border-dashed border-primary/20 bg-card/70 p-6 text-center text-sm text-muted-foreground">
+                Sem consultas por profissional neste periodo.
               </div>
-            </main>
-          </div>
-        </section>
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );
 }
 
-function SidebarPill({
+function HeroMetric({ title, value, caption }: { title: string; value: number | string; caption: string }) {
+  return (
+    <div className="rounded-2xl border border-white/70 bg-white/80 p-3 shadow-[0_12px_24px_-18px_rgba(15,23,42,0.55)]">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
+      <p className="mt-2 text-xl font-semibold tracking-tight text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
+    </div>
+  );
+}
+
+function InsightPill({
   icon: Icon,
   label,
-  active = false,
+  value,
+  accent = false,
 }: {
   icon: typeof BarChart3;
   label: string;
-  active?: boolean;
+  value: number;
+  accent?: boolean;
 }) {
   return (
     <div
-      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium ${
-        active ? 'bg-primary-gradient text-primary-foreground shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-card/80 hover:text-foreground'
+      className={`flex items-center gap-3 rounded-[1.4rem] px-4 py-3 ${
+        accent
+          ? 'bg-primary-gradient text-primary-foreground shadow-md shadow-primary/20'
+          : 'border border-primary/10 bg-card/85 text-foreground'
       }`}
     >
-      <Icon className="h-4 w-4" />
-      {label}
+      <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${accent ? 'bg-white/15' : 'bg-primary/10 text-primary'}`}>
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={`text-xs uppercase tracking-[0.18em] ${accent ? 'text-primary-foreground/75' : 'text-muted-foreground'}`}>
+          {label}
+        </p>
+        <p className="mt-1 text-lg font-semibold">{value}</p>
+      </div>
     </div>
   );
 }
 
-function MetricCard({ title, value, caption }: { title: string; value: number | string; caption: string }) {
-  return (
-    <div className="rounded-[1.35rem] border border-primary/10 bg-secondary/60 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
-      <p className="mt-1 text-sm text-muted-foreground">{caption}</p>
-    </div>
-  );
-}
-
-function MovementRow({
+function MovementCard({
   appointment,
   patientName,
   professionalName,
@@ -544,35 +557,44 @@ function MovementRow({
   const progress = statusProgress[appointment.status] ?? 30;
 
   return (
-    <tr className="border-b border-primary/10 last:border-0">
-      <td className="px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary-dark">
-            {getInitials(patientName)}
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">{patientName}</p>
-            <p className="text-xs text-muted-foreground">
-              {format(parseISO(appointment.date), 'dd MMM', { locale: pt })} · {appointment.time.slice(0, 5)}
-            </p>
-          </div>
+    <div className="rounded-[1.5rem] border border-primary/10 bg-secondary/30 p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-bold text-primary-dark">
+          {getInitials(patientName)}
         </div>
-      </td>
-      <td className="px-5 py-4">
-        <p className="font-semibold text-foreground">{consultationName}</p>
-        <p className="text-xs text-muted-foreground">{statusLabels[appointment.status] ?? appointment.status}</p>
-      </td>
-      <td className="px-5 py-4 text-sm font-medium text-foreground/80">{professionalName}</td>
-      <td className="px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-2 w-32 overflow-hidden rounded-full bg-secondary">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-foreground">{patientName}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {format(parseISO(appointment.date), 'dd MMM', { locale: pt })} · {appointment.time.slice(0, 5)}
+              </p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary-dark">
+              {progress}%
+            </span>
+          </div>
+
+          <div className="mt-3 grid gap-2">
+            <div className="rounded-2xl bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Consulta</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{consultationName}</p>
+            </div>
+            <div className="rounded-2xl bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Profissional</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{professionalName}</p>
+            </div>
+            <div className="rounded-2xl bg-background/80 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Estado</p>
+              <p className="mt-1 text-sm font-medium text-foreground">{statusLabels[appointment.status] ?? appointment.status}</p>
+            </div>
+          </div>
+
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-secondary">
             <div className="h-full rounded-full bg-primary-gradient" style={{ width: `${progress}%` }} />
           </div>
-          <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary-dark">
-            {progress}%
-          </span>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
