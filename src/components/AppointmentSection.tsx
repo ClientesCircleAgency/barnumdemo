@@ -133,10 +133,10 @@ export function AppointmentSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full mb-4">
               <span className="text-sm font-medium text-accent-foreground">Marcação</span>
             </div>
-            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
               Marque a sua <span className="text-primary-gradient">Consulta</span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-7">
               Preencha o formulário abaixo e entraremos em contacto para confirmar
               a sua marcação.
             </p>
@@ -145,7 +145,7 @@ export function AppointmentSection() {
           {/* Form */}
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-6 md:p-8 shadow-lg"
+            className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg"
           >
             {/* Service Type Selection */}
             <div className="mb-8">
@@ -156,7 +156,14 @@ export function AppointmentSection() {
                   <span>A carregar especialidades...</span>
                 </div>
               ) : (
-                <div className={cn("grid gap-4", (specialties?.length ?? 0) <= 3 ? `grid-cols-${specialties?.length ?? 2}` : "grid-cols-2 md:grid-cols-3")}>
+                <div
+                  className={cn(
+                    "grid gap-3 sm:gap-4",
+                    (specialties?.length ?? 0) <= 1 && "grid-cols-1",
+                    (specialties?.length ?? 0) === 2 && "grid-cols-1 sm:grid-cols-2",
+                    (specialties?.length ?? 0) >= 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  )}
+                >
                   {specialties?.map((spec) => {
                     const Icon = SPECIALTY_ICONS[spec.name] ?? Sparkles;
                     const isSelected = watchServiceType === spec.id;
@@ -166,7 +173,7 @@ export function AppointmentSection() {
                         type="button"
                         onClick={() => setValue('serviceType', spec.id, { shouldValidate: true })}
                         className={cn(
-                          "p-6 rounded-2xl border-2 transition-all text-center",
+                          "p-4 sm:p-6 rounded-2xl border-2 transition-all text-center",
                           isSelected
                             ? "border-primary bg-accent"
                             : "border-border hover:border-primary/50"
@@ -238,7 +245,7 @@ export function AppointmentSection() {
               {/* Phone */}
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 sm:flex">
                   <Select
                     value={selectedCountry}
                     onValueChange={(v: PhoneCountry) => {
@@ -247,7 +254,7 @@ export function AppointmentSection() {
                       setValue('phone', '', { shouldValidate: true });
                     }}
                   >
-                    <SelectTrigger className={cn("rounded-xl h-12 w-[130px] shrink-0", errors.phone && 'border-destructive')}>
+                    <SelectTrigger className={cn("rounded-xl h-12 w-full shrink-0 sm:w-[130px]", errors.phone && 'border-destructive')}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">

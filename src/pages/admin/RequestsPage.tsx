@@ -263,8 +263,8 @@ export default function RequestsPage() {
       />
 
       <Tabs defaultValue="appointments" className="space-y-4">
-        <TabsList className="grid h-12 w-full max-w-md grid-cols-2 rounded-2xl bg-secondary p-1">
-          <TabsTrigger value="appointments" className="h-10 gap-2 rounded-xl data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
+        <TabsList className="grid h-auto w-full grid-cols-2 rounded-2xl bg-secondary p-1 sm:max-w-md">
+          <TabsTrigger value="appointments" className="h-11 gap-2 rounded-xl px-2 text-xs sm:text-sm data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
             <Calendar className="w-4 h-4" />
             Marcações
             {pendingRequests.length > 0 && (
@@ -273,7 +273,7 @@ export default function RequestsPage() {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="messages" className="h-10 gap-2 rounded-xl data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
+          <TabsTrigger value="messages" className="h-11 gap-2 rounded-xl px-2 text-xs sm:text-sm data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
             <Mail className="w-4 h-4" />
             Mensagens
             {newMessages.length > 0 && (
@@ -311,8 +311,8 @@ export default function RequestsPage() {
                   className="cursor-pointer rounded-[1.35rem] border-primary/10 p-4 transition-all hover:border-primary/20 hover:bg-secondary/35 hover:shadow-md"
                   onClick={() => setSelectedRequest(request)}
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-4">
                       <div className={cn(
                         "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
                         // Find specialty name to determine icon/color
@@ -327,14 +327,14 @@ export default function RequestsPage() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-foreground truncate">{request.name}</p>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                           <span>NIF: {request.nif}</span>
                           <span>•</span>
                           <span>{format(parseISO(request.preferred_date), "d MMM", { locale: pt })} às {request.preferred_time}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                       {getStatusBadge(request.status)}
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(request.created_at), "d MMM", { locale: pt })}
@@ -353,8 +353,8 @@ export default function RequestsPage() {
               <div className="grid gap-2 opacity-60">
                 {processedRequests.slice(0, 5).map((request) => (
                   <Card key={request.id} className="rounded-2xl border-primary/10 p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
                         <span className="font-medium text-sm">{request.name}</span>
                         <span className="text-xs text-muted-foreground">
                           {format(parseISO(request.preferred_date), "d MMM", { locale: pt })}
@@ -392,10 +392,10 @@ export default function RequestsPage() {
                     }
                   }}
                 >
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{message.name}</p>
+                        <p className="truncate font-medium text-foreground">{message.name}</p>
                         {message.status === 'new' && (
                           <Badge className="bg-primary text-primary-foreground text-xs">Nova</Badge>
                         )}
@@ -415,7 +415,7 @@ export default function RequestsPage() {
 
       {/* Request Detail Modal */}
       <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-[1.6rem] sm:rounded-[1.8rem]">
           <DialogHeader>
             <DialogTitle>Pedido de Marcação</DialogTitle>
             <DialogDescription>
@@ -424,7 +424,7 @@ export default function RequestsPage() {
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <div className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center",
                   specialties.find(s => s.id === selectedRequest.specialty_id)?.name.toLowerCase().includes('rejuv')
@@ -436,9 +436,9 @@ export default function RequestsPage() {
                     <Smile className="h-6 w-6 text-purple-600" />
                   )}
                 </div>
-                <div>
-                  <p className="font-semibold text-lg">{selectedRequest.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="break-words font-semibold text-lg">{selectedRequest.name}</p>
+                  <p className="break-words text-sm text-muted-foreground">
                     {specialties.find(s => s.id === selectedRequest.specialty_id)?.name || 'Especialidade desconhecida'}
                   </p>
                 </div>
@@ -463,7 +463,7 @@ export default function RequestsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span>
+                  <span className="break-words">
                     {format(parseISO(selectedRequest.preferred_date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt })} às {selectedRequest.preferred_time}
                   </span>
                 </div>
@@ -514,7 +514,7 @@ export default function RequestsPage() {
                   <Clock className="w-4 h-4" />
                   Duração da Consulta (minutos) <span className="text-destructive">*</span>
                 </Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <Input
                     id="duration"
                     type="number"
@@ -608,7 +608,7 @@ export default function RequestsPage() {
                       </Button>
                     )}
 
-                    <div className="flex gap-2 w-full">
+                    <div className="flex flex-col gap-2 w-full sm:flex-row">
                       <Button
                         variant="outline"
                         className="flex-1 gap-2 border-green-500 text-green-600 hover:bg-green-50"
@@ -654,7 +654,7 @@ export default function RequestsPage() {
 
       {/* Rejection Reason Dialog */}
       <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[1.6rem] sm:rounded-[1.8rem]">
           <DialogHeader>
             <DialogTitle>Rejeitar Pedido</DialogTitle>
             <DialogDescription>
@@ -691,7 +691,7 @@ export default function RequestsPage() {
 
       {/* Message Detail Modal */}
       <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[1.6rem] sm:rounded-[1.8rem]">
           <DialogHeader>
             <DialogTitle>Mensagem</DialogTitle>
             <DialogDescription>

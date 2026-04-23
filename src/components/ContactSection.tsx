@@ -94,10 +94,10 @@ export function ContactSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full mb-4">
               <span className="text-sm font-medium text-accent-foreground">Contactos</span>
             </div>
-            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
               Entre em <span className="text-primary-gradient">Contacto</span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-7">
               Tem alguma questão? Estamos aqui para ajudar.
             </p>
           </div>
@@ -110,14 +110,14 @@ export function ContactSection() {
                 {contactInfo.map((info, index) => (
                   <div
                     key={index}
-                    className="bg-card border border-border rounded-2xl p-5 flex items-start gap-4 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                    className="bg-card border border-border rounded-2xl p-4 sm:p-5 flex items-start gap-4 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
                   >
                     <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
                       <info.icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground mb-1">{info.label}</p>
-                      <p className="text-foreground font-medium text-sm whitespace-pre-line">{info.value}</p>
+                      <p className="break-words text-foreground font-medium text-sm whitespace-pre-line leading-6">{info.value}</p>
                     </div>
                   </div>
                 ))}
@@ -139,7 +139,7 @@ export function ContactSection() {
             </div>
 
             {/* Contact Form */}
-            <div className="bg-card border border-border rounded-2xl p-6 md:p-8 shadow-lg">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8 shadow-lg">
               <h3 className="text-xl font-semibold text-foreground mb-6">
                 Envie-nos uma mensagem
               </h3>

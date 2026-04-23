@@ -25,7 +25,7 @@ export function AdminPageShell({
   return (
     <div className={cn('min-h-screen bg-transparent pb-4 lg:bg-background lg:pb-10', className)}>
       <section className="mx-auto w-full max-w-7xl overflow-hidden rounded-[1.8rem] border border-primary/10 bg-card shadow-[0_18px_48px_rgba(146,94,18,0.08)] lg:rounded-[2rem] lg:shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
-        <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-4 py-5 sm:px-5 lg:px-7 lg:py-6">
+        <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-4 py-4 sm:px-5 sm:py-5 lg:px-7 lg:py-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -34,12 +34,12 @@ export function AdminPageShell({
                 </Badge>
                 {badge}
               </div>
-              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+              <h1 className="break-words font-display text-[1.45rem] font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                 {title}
               </h1>
-              {subtitle && <p className="mt-2 max-w-3xl text-sm text-muted-foreground lg:text-base">{subtitle}</p>}
+              {subtitle && <p className="mt-2 max-w-3xl break-words text-sm leading-6 text-muted-foreground lg:text-base">{subtitle}</p>}
             </div>
-            {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+            {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">{actions}</div>}
           </div>
         </div>
         <div className="p-4 sm:p-5 lg:p-7">{children}</div>
@@ -80,7 +80,7 @@ export function AdminMetricCard({
   return (
     <div
       className={cn(
-        'rounded-[1.2rem] border border-primary/10 bg-secondary/60 p-4 transition-all hover:border-primary/20 hover:bg-secondary/80 lg:rounded-[1.35rem]',
+        'min-w-0 rounded-[1.2rem] border border-primary/10 bg-secondary/60 p-4 transition-all hover:border-primary/20 hover:bg-secondary/80 lg:rounded-[1.35rem]',
         accent && 'bg-primary-gradient text-primary-foreground shadow-lg shadow-primary/15',
         className,
       )}
@@ -95,8 +95,8 @@ export function AdminMetricCard({
           </div>
         )}
       </div>
-      <p className={cn('text-[1.7rem] font-semibold tracking-tight text-foreground lg:text-3xl', accent && 'text-white')}>{value}</p>
-      <p className={cn('mt-1 text-xs text-muted-foreground lg:text-sm', accent && 'text-white/70')}>{caption}</p>
+      <p className={cn('break-words text-[1.5rem] font-semibold tracking-tight text-foreground sm:text-[1.7rem] lg:text-3xl', accent && 'text-white')}>{value}</p>
+      <p className={cn('mt-1 break-words text-xs leading-5 text-muted-foreground lg:text-sm', accent && 'text-white/70')}>{caption}</p>
     </div>
   );
 }

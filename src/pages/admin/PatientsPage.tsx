@@ -165,10 +165,10 @@ export default function PatientsPage() {
                   </Badge>
                   <span className="text-sm text-primary-dark">Base clínica em tempo real</span>
                 </div>
-                <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                <h1 className="break-words font-display text-[1.7rem] font-semibold tracking-tight text-foreground sm:text-4xl">
                   Pacientes
                 </h1>
-                <p className="mt-2 max-w-2xl text-muted-foreground">
+                <p className="mt-2 max-w-2xl break-words text-sm leading-6 text-muted-foreground sm:text-base">
                   Uma visão mais completa da relação com cada paciente: contacto, histórico, próxima consulta e estado de acompanhamento.
                 </p>
               </div>
@@ -196,8 +196,8 @@ export default function PatientsPage() {
                   <Users className="h-6 w-6" />
                 </div>
                 <p className="text-sm font-medium text-slate-700">Base de pacientes</p>
-                <p className="mt-1 text-4xl font-semibold">{stats.total}</p>
-                <p className="mt-3 text-sm text-slate-700">
+                <p className="mt-1 text-3xl font-semibold sm:text-4xl">{stats.total}</p>
+                <p className="mt-3 break-words text-sm leading-6 text-slate-700">
                   {stats.withFutureAppointment} com consulta futura, {stats.withoutFutureAppointment} para reativar.
                 </p>
               </div>
@@ -228,21 +228,21 @@ export default function PatientsPage() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                   <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PatientFilter)}>
-                    <TabsList className="h-12 rounded-2xl bg-secondary p-1">
+                    <TabsList className="grid h-auto w-full grid-cols-2 rounded-2xl bg-secondary p-1 sm:flex sm:w-auto">
                       {(Object.keys(filterLabels) as PatientFilter[]).map((filter) => (
                         <TabsTrigger
                           key={filter}
                           value={filter}
-                          className="h-10 rounded-xl px-4 data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
+                          className="h-10 rounded-xl px-3 data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground"
                         >
                           {filterLabels[filter]}
                         </TabsTrigger>
                       ))}
                     </TabsList>
                   </Tabs>
-                  <Button variant="outline" className="h-12 rounded-2xl border-primary/15 bg-card">
+                  <Button variant="outline" className="h-12 rounded-2xl border-primary/15 bg-card sm:min-w-[110px]">
                     <Filter className="mr-2 h-4 w-4" />
                     Filtros
                   </Button>
@@ -257,7 +257,7 @@ export default function PatientsPage() {
                         <Users className="h-3.5 w-3.5" />
                         Mapa inteligente
                       </div>
-                      <h2 className="text-2xl font-semibold tracking-tight text-foreground">Mapa de Pacientes</h2>
+                      <h2 className="break-words text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Mapa de Pacientes</h2>
                       <p className="text-sm text-muted-foreground">
                         {filteredPatients.length} resultado{filteredPatients.length !== 1 ? 's' : ''} no filtro atual.
                       </p>
@@ -376,7 +376,7 @@ function PatientRow({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-lg font-semibold tracking-tight text-foreground">{patient.name}</p>
+              <p className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">{patient.name}</p>
               <Badge
                 className={cn(
                   'rounded-full px-2.5 py-1 text-[11px] font-medium',
@@ -415,8 +415,8 @@ function PatientRow({
         />
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="min-w-[120px] flex-1">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
             <span>Histórico</span>
             <span>{progress}%</span>
@@ -429,7 +429,7 @@ function PatientRow({
           </p>
         </div>
 
-        <div className="rounded-2xl bg-primary/10 px-3 py-2 text-right text-primary-dark">
+        <div className="rounded-2xl bg-primary/10 px-3 py-2 text-left text-primary-dark sm:text-right">
           <p className="text-2xl font-semibold leading-none">{totalAppointments}</p>
           <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
             consulta{totalAppointments !== 1 ? 's' : ''}
@@ -440,7 +440,7 @@ function PatientRow({
           size="sm"
           variant="outline"
           onClick={(event) => onNewAppointment(patient, event)}
-          className="h-10 rounded-xl border-primary/20 bg-card text-primary hover:bg-primary/10"
+          className="h-10 w-full rounded-xl border-primary/20 bg-card text-primary hover:bg-primary/10 sm:w-auto"
         >
           <Plus className="mr-1 h-4 w-4" />
           Consulta

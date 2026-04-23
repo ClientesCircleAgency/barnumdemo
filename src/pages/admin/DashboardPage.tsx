@@ -70,10 +70,10 @@ export default function DashboardPage() {
               </div>
 
               <div className="space-y-3">
-                <h2 className="max-w-2xl font-display text-[1.6rem] font-semibold tracking-tight text-foreground lg:text-4xl">
+                <h2 className="max-w-2xl break-words font-display text-[1.3rem] font-semibold tracking-tight text-foreground sm:text-[1.6rem] lg:text-4xl">
                   Uma dashboard mais clínica, mais operacional e mais fácil de decidir.
                 </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground lg:text-base">
+                <p className="max-w-2xl break-words text-sm leading-6 text-muted-foreground lg:text-base">
                   Prioridades do dia, acessos rápidos e visibilidade imediata sobre agenda, pedidos e atendimento.
                 </p>
               </div>
@@ -83,10 +83,10 @@ export default function DashboardPage() {
                   <Link
                     key={action.to}
                     to={action.to}
-                    className="group rounded-[1.25rem] border border-primary/10 bg-background/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md lg:rounded-[1.35rem]"
+                    className="group min-w-0 rounded-[1.25rem] border border-primary/10 bg-background/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md lg:rounded-[1.35rem]"
                   >
-                    <p className="text-sm font-semibold text-foreground group-hover:text-primary">{action.label}</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{action.helper}</p>
+                    <p className="break-words text-sm font-semibold text-foreground group-hover:text-primary">{action.label}</p>
+                    <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{action.helper}</p>
                   </Link>
                 ))}
               </div>
@@ -115,7 +115,7 @@ export default function DashboardPage() {
           </div>
         </AdminSectionCard>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <AdminMetricCard icon={CalendarDays} title="Hoje" value={todayAppointments.length} caption="Consultas" accent />
           <MetricLink to="/admin/pedidos">
             <AdminMetricCard icon={Inbox} title="Pedidos" value={pendingRequests.length} caption="Pendentes" />
@@ -249,14 +249,14 @@ function SectionHeader({
   href: string;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-primary/10 p-4 lg:p-5">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 border-b border-primary/10 p-4 sm:flex-row sm:items-center sm:justify-between lg:p-5">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Icon className="h-5 w-5" />
         </div>
-        <h3 className="font-semibold text-foreground">{title}</h3>
+        <h3 className="break-words font-semibold text-foreground">{title}</h3>
       </div>
-      <Button asChild variant="ghost" size="sm" className="rounded-xl text-primary">
+      <Button asChild variant="ghost" size="sm" className="w-full rounded-xl text-primary sm:w-auto">
         <Link to={href}>Ver tudo</Link>
       </Button>
     </div>
@@ -284,21 +284,21 @@ function HighlightCard({
   helper: string;
 }) {
   return (
-    <div className="rounded-[1.15rem] border border-primary/10 bg-background/80 p-4 shadow-sm lg:rounded-[1.4rem]">
+    <div className="min-w-0 rounded-[1.15rem] border border-primary/10 bg-background/80 p-4 shadow-sm lg:rounded-[1.4rem]">
       <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-[1rem] bg-primary/10 text-primary lg:rounded-2xl">
         <Icon className="h-5 w-5" />
       </div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:text-xs lg:tracking-[0.18em]">{label}</p>
       <p className="mt-2 text-[1.6rem] font-semibold tracking-tight text-foreground lg:text-2xl">{value}</p>
-      <p className="mt-1 text-xs text-muted-foreground lg:text-sm">{helper}</p>
+      <p className="mt-1 break-words text-xs text-muted-foreground lg:text-sm">{helper}</p>
     </div>
   );
 }
 
 function SummaryCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-[1.15rem] border border-primary/10 bg-secondary/35 p-4 lg:rounded-2xl">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:text-xs">{label}</p>
+    <div className="min-w-0 rounded-[1.15rem] border border-primary/10 bg-secondary/35 p-4 lg:rounded-2xl">
+      <p className="break-words text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:text-xs">{label}</p>
       <p className="mt-2 text-[1.6rem] font-semibold tracking-tight text-foreground lg:text-2xl">{value}</p>
     </div>
   );

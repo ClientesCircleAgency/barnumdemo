@@ -471,7 +471,7 @@ export default function AccountPage() {
 
         {/* Profile photo */}
         <div className="bg-card border border-border rounded-xl p-4 lg:p-5 max-w-xl">
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <Avatar className="h-20 w-20 border border-border">
               {photoUrl && <AvatarImage src={photoUrl} alt={fullName || user?.email || 'Perfil'} />}
               <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
@@ -498,12 +498,12 @@ export default function AccountPage() {
                 onChange={(event) => handlePhotoUpload(event.target.files?.[0] || null)}
               />
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="gap-2"
+                  className="h-10 gap-2 rounded-2xl"
                   onClick={() => photoInputRef.current?.click()}
                   disabled={savingPhoto}
                 >
@@ -516,7 +516,7 @@ export default function AccountPage() {
                     type="button"
                     size="sm"
                     variant="ghost"
-                    className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    className="h-10 gap-2 rounded-2xl text-destructive hover:text-destructive hover:bg-destructive/10"
                     onClick={handleRemovePhoto}
                     disabled={savingPhoto}
                   >
@@ -552,7 +552,7 @@ export default function AccountPage() {
                 variant={hasAllServicesActive ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={handleSelectAllServices}
-                className="min-h-11 gap-2 rounded-full px-4"
+                className="min-h-11 w-full gap-2 rounded-full px-4 sm:w-auto"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 {hasAllServicesActive ? 'Tudo ativo' : 'Ativar tudo'}
@@ -621,7 +621,7 @@ export default function AccountPage() {
                         )}
                       >
                         <div>
-                          <p className="font-medium text-foreground">{specialty.name}</p>
+                          <p className="break-words font-medium text-foreground">{specialty.name}</p>
                           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                             <span
                               className={cn(
@@ -713,7 +713,7 @@ export default function AccountPage() {
                   size="sm"
                   onClick={handleSaveAvailability}
                   disabled={savingAvailability}
-                  className="min-h-11 gap-2"
+                  className="min-h-11 w-full gap-2 rounded-2xl sm:w-auto"
                 >
                   {savingAvailability ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Guardar serviços
@@ -729,14 +729,14 @@ export default function AccountPage() {
             <UserIcon className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold text-foreground">Nome</h3>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               placeholder="O seu nome completo"
               className="flex-1"
             />
-            <Button size="sm" onClick={handleSaveName} disabled={savingProfile || !fullName.trim()}>
+            <Button size="sm" className="h-10 rounded-2xl sm:w-auto" onClick={handleSaveName} disabled={savingProfile || !fullName.trim()}>
               {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             </Button>
           </div>
@@ -748,7 +748,7 @@ export default function AccountPage() {
             <Mail className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold text-foreground">Email</h3>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               type="email"
               value={email}
@@ -756,7 +756,7 @@ export default function AccountPage() {
               placeholder="email@exemplo.pt"
               className="flex-1"
             />
-            <Button size="sm" onClick={handleSaveEmail} disabled={savingEmail || email === user?.email}>
+            <Button size="sm" className="h-10 rounded-2xl sm:w-auto" onClick={handleSaveEmail} disabled={savingEmail || email === user?.email}>
               {savingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             </Button>
           </div>
@@ -798,7 +798,7 @@ export default function AccountPage() {
               size="sm"
               onClick={handleSavePassword}
               disabled={savingPassword || !newPassword || newPassword !== confirmPassword}
-              className="w-full"
+              className="h-11 w-full rounded-2xl"
             >
               {savingPassword ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />A guardar...</>
@@ -816,7 +816,7 @@ export default function AccountPage() {
               <Palette className="h-4 w-4 text-muted-foreground" />
               <h3 className="text-sm font-semibold text-foreground">Cor na Agenda</h3>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Input
                 type="color"
                 value={color}
@@ -827,7 +827,7 @@ export default function AccountPage() {
                 className="h-9 flex-1 rounded-lg border border-border"
                 style={{ backgroundColor: color }}
               />
-              <Button size="sm" onClick={handleSaveColor} disabled={savingColor}>
+              <Button size="sm" className="h-10 rounded-2xl sm:w-auto" onClick={handleSaveColor} disabled={savingColor}>
                 {savingColor ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               </Button>
             </div>

@@ -48,14 +48,14 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-background">
+    <div className="flex h-[calc(100vh-64px)] flex-col bg-background md:flex-row">
       {/* Lista de conversas - hidden on mobile when conversation selected */}
       <div className={cn(
         'w-full md:w-80 lg:w-72 xl:w-80 border-r border-border bg-card flex flex-col shrink-0',
         selectedConversation && 'hidden md:flex'
       )}>
         {/* Search */}
-        <div className="p-3 border-b border-border">
+        <div className="border-b border-border p-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -124,8 +124,8 @@ export default function MessagesPage() {
           !selectedConversation && 'hidden md:flex'
         )}>
           {/* Chat header */}
-          <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="bg-card border-b border-border px-3 py-3 sm:px-4 flex items-center justify-between shrink-0">
+            <div className="flex min-w-0 items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
@@ -147,14 +147,14 @@ export default function MessagesPage() {
                 </div>
               </div>
             </div>
-            <Button size="sm" className="shrink-0 text-xs h-8">
+            <Button size="sm" className="hidden h-8 shrink-0 text-xs sm:inline-flex">
               Assumir Controlo
             </Button>
           </div>
 
           {/* Messages area */}
           <ScrollArea className="flex-1">
-            <div className="p-4 md:p-6 space-y-3">
+            <div className="space-y-3 p-3 sm:p-4 md:p-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -165,7 +165,7 @@ export default function MessagesPage() {
                 >
                   <div
                     className={cn(
-                      'max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm',
+                      'max-w-[90%] sm:max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm',
                       message.isOutgoing
                         ? 'bg-[hsl(145,55%,90%)] text-foreground rounded-br-md'
                         : 'bg-card text-foreground rounded-bl-md border border-border'

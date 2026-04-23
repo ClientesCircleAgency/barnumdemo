@@ -31,11 +31,11 @@ function ServiceCard({ service, index }: { service: Service; index: number }) {
       )}
 
       {/* Content */}
-      <div className="p-6">
-        <h4 className="text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
+      <div className="p-5 sm:p-6">
+        <h4 className="break-words text-lg font-semibold text-foreground mb-2 group-hover:text-primary transition-colors">
           {service.name}
         </h4>
-        <p className="text-muted-foreground text-sm leading-relaxed">
+        <p className="break-words text-muted-foreground text-sm leading-relaxed">
           {service.description}
         </p>
       </div>
@@ -60,10 +60,10 @@ export function ServicesSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full mb-4">
               <span className="text-sm font-medium text-accent-foreground">Serviços</span>
             </div>
-            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
               Os Nossos <span className="text-primary-gradient">Serviços</span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-7">
               Oferecemos uma gama completa de serviços de medicina dentária e
               rejuvenescimento facial, sempre com a mais alta qualidade.
             </p>
@@ -72,17 +72,17 @@ export function ServicesSection() {
           {/* Tabs */}
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-10 h-14 p-1 bg-card border border-border rounded-2xl">
+            <TabsList className="grid w-full max-w-xl mx-auto grid-cols-1 sm:grid-cols-2 mb-10 h-auto p-1 bg-card border border-border rounded-2xl">
               <TabsTrigger
                 value="dentaria"
-                className="data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground rounded-xl h-12 text-sm font-medium transition-all"
+                className="data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground rounded-xl h-auto min-h-12 px-3 py-3 text-sm font-medium transition-all"
               >
                 <Icons.Smile className="w-4 h-4 mr-2" />
                 Medicina Dentária
               </TabsTrigger>
               <TabsTrigger
                 value="rejuvenescimento"
-                className="data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground rounded-xl h-12 text-sm font-medium transition-all"
+                className="data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground rounded-xl h-auto min-h-12 px-3 py-3 text-sm font-medium transition-all"
               >
                 <Icons.Sparkles className="w-4 h-4 mr-2" />
                 Rejuvenescimento

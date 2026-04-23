@@ -24,14 +24,14 @@ export function TeamSection() {
           }`}
         >
           {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
             <span className="bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
               A Nossa Equipa
             </span>
-            <h2 className="mt-4 text-4xl font-bold text-foreground tracking-tight">
+            <h2 className="mt-4 text-2xl sm:text-4xl font-bold text-foreground tracking-tight">
               Conheça os especialistas que <span className="text-primary">cuidam de si.</span>
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-4 text-base sm:text-lg text-muted-foreground leading-7">
               Profissionais dedicados, tecnologia de ponta e um atendimento que faz a diferença na sua saúde.
             </p>
           </div>
@@ -41,7 +41,7 @@ export function TeamSection() {
             {teamMembers.map((member, index) => (
               <div
                 key={member.id}
-                className={`group bg-card rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-border overflow-hidden flex flex-col items-center text-center p-6 relative cursor-pointer ${
+                className={`group bg-card rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-border overflow-hidden flex flex-col items-center text-center p-5 sm:p-6 relative cursor-pointer ${
                   isVisible ? 'animate-fade-in-up' : 'opacity-0'
                 }`}
                 style={{ animationDelay: `${index * 100}ms` }}
@@ -59,14 +59,14 @@ export function TeamSection() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-foreground mb-1">{member.name}</h3>
-                <p className="text-primary font-medium text-sm mb-3">{member.role}</p>
+                <h3 className="break-words text-xl font-bold text-foreground mb-1">{member.name}</h3>
+                <p className="break-words text-primary font-medium text-sm mb-3">{member.role}</p>
 
                 <div className="inline-block bg-muted px-3 py-1 rounded-full text-xs text-muted-foreground font-medium mb-4">
                   {member.specialty}
                 </div>
 
-                <p className="text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-2">
+                <p className="break-words text-muted-foreground text-sm leading-relaxed mb-6 line-clamp-3">
                   {member.shortBio}
                 </p>
 
@@ -87,7 +87,7 @@ export function TeamSection() {
             onClick={() => setSelectedMember(null)}
           ></div>
 
-          <div className="bg-card rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden relative z-10 flex flex-col md:flex-row animate-scale-in">
+          <div className="bg-card rounded-[1.75rem] sm:rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative z-10 flex flex-col md:flex-row animate-scale-in">
             <button
               onClick={() => setSelectedMember(null)}
               className="absolute top-4 right-4 p-2 bg-background/80 hover:bg-muted rounded-full transition-colors z-20"
@@ -110,10 +110,10 @@ export function TeamSection() {
             </div>
 
             {/* Lado Direito - Conteúdo */}
-            <div className="md:w-3/5 p-8 md:p-10 text-left">
+            <div className="md:w-3/5 p-5 sm:p-8 md:p-10 text-left">
               <div className="hidden md:block mb-6">
                 <span className="text-primary font-bold tracking-wide text-sm uppercase">{selectedMember.specialty}</span>
-                <h3 className="text-3xl font-bold text-foreground mt-1">{selectedMember.name}</h3>
+                <h3 className="break-words text-2xl sm:text-3xl font-bold text-foreground mt-1">{selectedMember.name}</h3>
                 <p className="text-muted-foreground text-lg">{selectedMember.role}</p>
               </div>
 

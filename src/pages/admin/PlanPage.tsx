@@ -30,7 +30,7 @@ const planFeatures = {
 export default function PlanPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
-      <div className="max-w-4xl mx-auto px-4 py-12 lg:py-20">
+      <div className="max-w-4xl mx-auto px-4 py-10 lg:py-20">
         {/* Logo */}
         <div className="flex justify-center mb-12">
           <div className="relative inline-block">
@@ -56,23 +56,23 @@ export default function PlanPage() {
         </div>
 
         {/* Header */}
-        <div className="text-center mb-12 lg:mb-16">
+        <div className="text-center mb-10 lg:mb-16">
           <Badge variant="outline" className="mb-4 px-4 py-1.5 bg-primary/5 border-primary/20 text-primary">
             <Zap className="h-3.5 w-3.5 mr-1.5" />
             Plano Atual: Advanced
           </Badge>
-          <h1 className="text-3xl lg:text-5xl font-bold text-foreground mb-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-foreground mb-4">
             Eleve a sua clínica ao próximo nível
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg leading-7 text-muted-foreground max-w-2xl mx-auto">
             Desbloqueie todo o potencial do DentalHub com funcionalidades premium
           </p>
         </div>
 
         {/* Plan Comparison */}
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 mb-12">
+        <div className="grid gap-6 md:grid-cols-2 lg:gap-8 mb-12">
           {/* Current Plan */}
-          <Card className="p-6 lg:p-8 border-border bg-card/50 relative overflow-hidden">
+          <Card className="p-5 sm:p-6 lg:p-8 border-border bg-card/50 relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center">
@@ -86,22 +86,22 @@ export default function PlanPage() {
 
             <ul className="space-y-3 mb-6">
               {planFeatures.advanced.map((feature, i) => (
-                <li key={i} className="flex items-center gap-3 text-muted-foreground">
+                <li key={i} className="flex items-start gap-3 text-muted-foreground">
                   <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <Check className="h-3 w-3 text-muted-foreground" />
                   </div>
-                  <span className="text-sm">{feature}</span>
+                  <span className="text-sm leading-6">{feature}</span>
                 </li>
               ))}
             </ul>
 
-            <Button variant="outline" className="w-full" disabled>
+            <Button variant="outline" className="h-11 w-full rounded-2xl" disabled>
               Plano atual
             </Button>
           </Card>
 
           {/* Premium Plan */}
-          <Card className="p-6 lg:p-8 border-primary/30 bg-gradient-to-b from-primary/5 to-transparent relative overflow-hidden ring-1 ring-primary/20">
+          <Card className="p-5 sm:p-6 lg:p-8 border-primary/30 bg-gradient-to-b from-primary/5 to-transparent relative overflow-hidden ring-1 ring-primary/20">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-purple-500 to-primary" />
 
             {/* Popular badge */}
@@ -124,16 +124,16 @@ export default function PlanPage() {
 
             <ul className="space-y-3 mb-6">
               {planFeatures.premium.map((feature, i) => (
-                <li key={i} className="flex items-center gap-3 text-foreground">
+                <li key={i} className="flex items-start gap-3 text-foreground">
                   <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <Check className="h-3 w-3 text-primary" />
                   </div>
-                  <span className="text-sm">{feature}</span>
+                  <span className="text-sm leading-6">{feature}</span>
                 </li>
               ))}
             </ul>
 
-            <Button className="w-full gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 shadow-lg">
+            <Button className="h-11 w-full rounded-2xl gap-2 bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 shadow-lg">
               Fazer Upgrade
               <ArrowRight className="h-4 w-4" />
             </Button>

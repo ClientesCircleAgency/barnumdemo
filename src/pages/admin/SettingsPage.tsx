@@ -57,7 +57,7 @@ export default function SettingsPage() {
         actions={
           <Button 
             size="sm" 
-            className="gap-2 bg-primary-gradient hover:opacity-90"
+            className="h-11 w-full gap-2 rounded-2xl bg-primary-gradient hover:opacity-90 sm:w-auto"
             onClick={handleSaveAll}
             disabled={isSaving}
           >
@@ -73,15 +73,15 @@ export default function SettingsPage() {
           {/* Horário de Funcionamento */}
           <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
-              <div className="flex items-start gap-3 mb-4">
+              <div className="mb-4 flex items-start gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
                   <Clock className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
                 </div>
-                <h3 className="font-semibold text-sm lg:text-base text-foreground pt-1">Horário</h3>
+                <h3 className="break-words pt-1 text-sm font-semibold text-foreground lg:text-base">Horário</h3>
               </div>
               <div className="space-y-2.5">
                 {workingHours.slice(0, 3).map((schedule) => (
-                  <div key={schedule.day} className="flex items-center justify-between">
+                  <div key={schedule.day} className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Switch 
                         checked={schedule.enabled} 
@@ -124,12 +124,12 @@ export default function SettingsPage() {
           {/* Colaboradores - Admin Only */}
           <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 lg:gap-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2 lg:gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
                     <Users className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   </div>
-                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Colaboradores</h3>
+                  <h3 className="break-words text-sm font-semibold text-foreground lg:text-base">Colaboradores</h3>
                 </div>
                 {!isAdmin ? (
                   <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -140,7 +140,7 @@ export default function SettingsPage() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="gap-1 h-7 text-xs" 
+                    className="h-9 w-full gap-1 rounded-2xl text-xs sm:h-7 sm:w-auto" 
                     onClick={() => setCollaboratorsModalOpen(true)}
                   >
                     <Plus className="h-3 w-3" />
@@ -179,8 +179,8 @@ export default function SettingsPage() {
                     const photoUrl = collab.photo_url || collab.professional_avatar_url;
 
                     return (
-                      <div key={collab.user_id} className="flex items-center justify-between rounded-2xl border border-primary/10 bg-secondary/40 p-2">
-                        <div className="flex items-center gap-2">
+                      <div key={collab.user_id} className="flex flex-col gap-3 rounded-2xl border border-primary/10 bg-secondary/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-center gap-2">
                           <Avatar className="h-8 w-8 border border-border">
                             {photoUrl && <AvatarImage src={photoUrl} alt={displayName} />}
                             <AvatarFallback
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           {isAdminUser && (
                             <Badge variant="default" className="text-xs">Admin</Badge>
                           )}
@@ -238,15 +238,15 @@ export default function SettingsPage() {
           {/* Tipos de Consulta - Admin Only */}
           <div className="overflow-hidden rounded-[1.75rem] border border-primary/10 bg-card shadow-sm">
             <div className="p-4 lg:p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 lg:gap-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-2 lg:gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 lg:h-10 lg:w-10">
                     <Tag className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   </div>
-                  <h3 className="font-semibold text-sm lg:text-base text-foreground">Tipos</h3>
+                  <h3 className="break-words text-sm font-semibold text-foreground lg:text-base">Tipos</h3>
                 </div>
                 {(isAdmin || userRole === 'secretary') && (
-                  <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => setTypesModalOpen(true)}>
+                  <Button variant="outline" size="sm" className="h-9 w-full gap-1 rounded-2xl text-xs sm:h-7 sm:w-auto" onClick={() => setTypesModalOpen(true)}>
                     <Plus className="h-3 w-3" />
                     <span>Novo</span>
                   </Button>

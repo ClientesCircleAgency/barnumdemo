@@ -33,10 +33,10 @@ export function TestimonialsSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full mb-4">
               <span className="text-sm font-medium text-accent-foreground">Testemunhos</span>
             </div>
-            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 tracking-tight">
               O que dizem os nossos <span className="text-primary-gradient">Pacientes</span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+            <p className="text-muted-foreground max-w-2xl mx-auto text-base sm:text-lg leading-7">
               A satisfação dos nossos pacientes é a nossa maior recompensa.
             </p>
           </div>
@@ -49,7 +49,7 @@ export function TestimonialsSection() {
                   key={testimonial.id}
                   className="flex-none w-full sm:w-1/2 lg:w-1/3 min-w-0"
                 >
-                  <div className="bg-card border border-border rounded-2xl p-6 h-full relative shadow-sm hover:shadow-lg hover:border-primary/30 transition-all duration-300">
+                  <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 h-full relative shadow-sm hover:shadow-lg hover:border-primary/30 transition-all duration-300">
                     <Quote className="absolute top-4 right-4 w-8 h-8 text-primary/20" />
 
                     {/* Rating */}
@@ -66,7 +66,7 @@ export function TestimonialsSection() {
                     </div>
 
                     {/* Content */}
-                    <p className="text-foreground/80 mb-6 italic leading-relaxed">
+                    <p className="break-words text-foreground/80 mb-6 italic leading-relaxed">
                       "{testimonial.content}"
                     </p>
 
@@ -77,7 +77,7 @@ export function TestimonialsSection() {
                           {testimonial.clientName.charAt(0)}
                         </span>
                       </div>
-                      <span className="font-medium text-foreground">
+                      <span className="break-words font-medium text-foreground">
                         {testimonial.clientName}
                       </span>
                     </div>

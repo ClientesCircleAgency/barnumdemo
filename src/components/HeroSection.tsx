@@ -25,9 +25,9 @@ export function HeroSection() {
       <div className="max-w-3xl mx-auto animate-fade-in-up">
         {/* Logo */}
         {/* Logo */}
-        <div className="relative inline-block mx-auto mb-8">
+        <div className="relative inline-block mx-auto mb-6 sm:mb-8">
           {/* Ghost image for dimensions */}
-          <img alt="Barnun" className="h-48 md:h-64 lg:h-80 w-auto opacity-0" src={logo} />
+          <img alt="Barnun" className="h-32 sm:h-40 md:h-64 lg:h-80 w-auto opacity-0" src={logo} />
           {/* Gradient Mask */}
           <div
             className="absolute inset-0 bg-primary-gradient drop-shadow-lg"
@@ -46,7 +46,7 @@ export function HeroSection() {
 
         {/* Main Tagline */}
         {/* Main Tagline */}
-        <h1 className="font-display text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight tracking-tight">
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-5 leading-tight tracking-tight">
           Cuidamos do seu{' '}
           <span className="text-primary-gradient">Sorriso</span>
           {' '}e da sua{' '}
@@ -55,17 +55,17 @@ export function HeroSection() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto font-normal">
+        <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto font-normal leading-7">
           Especialistas em Medicina Dentária e Rejuvenescimento Facial, com mais de 15 anos de experiência.
         </p>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" onClick={scrollToMarcacao} className="bg-primary-gradient hover:opacity-90 text-base font-semibold px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl gap-2">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          <Button size="lg" onClick={scrollToMarcacao} className="w-full sm:w-auto bg-primary-gradient hover:opacity-90 text-base font-semibold px-6 sm:px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl gap-2">
             <Calendar className="w-5 h-5" />
             Marcar Consulta
           </Button>
-          <Button size="lg" variant="outline" onClick={scrollToSobre} className="text-base font-semibold px-8 py-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 rounded-xl gap-2">
+          <Button size="lg" variant="outline" onClick={scrollToSobre} className="w-full sm:w-auto text-base font-semibold px-6 sm:px-8 py-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 rounded-xl gap-2">
             Conhecer a Clínica
             <ArrowRight className="w-5 h-5" />
           </Button>
