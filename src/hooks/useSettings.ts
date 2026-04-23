@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
@@ -10,6 +11,21 @@ interface ClinicSetting {
 }
 
 export function useSettings() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('clinic-settings-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clinic_settings' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['clinic_settings'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['clinic_settings'],
     queryFn: async (): Promise<Record<string, Json>> => {

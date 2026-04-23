@@ -3,21 +3,7 @@ import { Check, CheckCheck } from 'lucide-react';
 import { useClinic } from '@/context/ClinicContext';
 import type { ClinicAppointment, Professional } from '@/types/clinic';
 import { cn } from '@/lib/utils';
-
-const generateTimeSlots = (): string[] => {
-  const slots: string[] = [];
-
-  for (let h = 8; h <= 20; h++) {
-    slots.push(`${h.toString().padStart(2, '0')}:00`);
-    if (h < 20) {
-      slots.push(`${h.toString().padStart(2, '0')}:30`);
-    }
-  }
-
-  return slots;
-};
-
-const TIME_SLOTS = generateTimeSlots();
+import { useClinicSchedule } from '@/hooks/useClinicSchedule';
 
 interface DayViewProps {
   appointments: ClinicAppointment[];
@@ -36,12 +22,13 @@ const statusConfig: Record<string, { label: string; shortLabel: string; bgClass:
 
 export function DayView({ appointments, professionals, onAppointmentClick }: DayViewProps) {
   const { getPatientById, getProfessionalById, getConsultationTypeById } = useClinic();
+  const { workingHours, getTimeSlotsForDate } = useClinicSchedule();
 
   const normalizeTime = (time: string): string => time.slice(0, 5);
 
   const getAppointmentTimeSlotIndex = (time: string): number => {
     const normalized = normalizeTime(time);
-    return TIME_SLOTS.findIndex((slot) => slot === normalized);
+    return timeSlots.findIndex((slot) => slot === normalized);
   };
 
   const getAppointmentSlotSpan = (appointment: ClinicAppointment): number => {
@@ -55,8 +42,23 @@ export function DayView({ appointments, professionals, onAppointmentClick }: Day
     return withAppointments.length > 0 ? withAppointments : professionals;
   }, [appointments, professionals]);
 
+  const dateForSlots = useMemo(() => {
+    const appointmentDate = appointments[0]?.date;
+    return appointmentDate ? new Date(`${appointmentDate}T00:00:00`) : new Date();
+  }, [appointments]);
+
+  const timeSlots = useMemo(() => {
+    const slots = getTimeSlotsForDate(dateForSlots, 30);
+    if (slots.length > 0) return slots;
+
+    const fallbackDay = workingHours.find((day) => day.enabled);
+    if (!fallbackDay) return ['09:00'];
+
+    return getTimeSlotsForDate(new Date(), 30);
+  }, [dateForSlots, getTimeSlotsForDate, workingHours]);
+
   const gridTemplateColumns = `68px repeat(${Math.max(professionalColumns.length, 1)}, minmax(190px, 1fr))`;
-  const gridTemplateRows = `repeat(${TIME_SLOTS.length}, minmax(64px, auto))`;
+  const gridTemplateRows = `repeat(${timeSlots.length}, minmax(64px, auto))`;
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card lg:rounded-2xl">
@@ -91,7 +93,7 @@ export function DayView({ appointments, professionals, onAppointmentClick }: Day
             className="relative grid min-w-[720px]"
             style={{ gridTemplateColumns, gridTemplateRows }}
           >
-            {TIME_SLOTS.map((slot, slotIndex) => (
+            {timeSlots.map((slot, slotIndex) => (
               <div
                 key={`time-${slot}`}
                 className="sticky left-0 z-10 flex items-start justify-end border-b border-r border-border/60 bg-card/95 px-3 py-3 text-xs font-medium text-muted-foreground"
@@ -101,7 +103,7 @@ export function DayView({ appointments, professionals, onAppointmentClick }: Day
               </div>
             ))}
 
-            {TIME_SLOTS.map((slot, slotIndex) =>
+            {timeSlots.map((slot, slotIndex) =>
               professionalColumns.map((professional, professionalIndex) => (
                 <div
                   key={`${professional.id}-${slot}`}

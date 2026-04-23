@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, CalendarCheck } from 'lucide-react';
 import { useClinic } from '@/context/ClinicContext';
-import { useSettings } from '@/hooks/useSettings';
+import { useClinicSchedule } from '@/hooks/useClinicSchedule';
 import {
   format,
   startOfWeek,
@@ -43,7 +43,7 @@ const periodLabels: Record<Period, string> = {
 
 export function AppointmentsChart() {
   const { appointments } = useClinic();
-  const { data: settings } = useSettings();
+  const { bounds } = useClinicSchedule();
   const [activePeriod, setActivePeriod] = useState<Period>('month');
 
   const activeAppointments = useMemo(() => {
@@ -77,14 +77,13 @@ export function AppointmentsChart() {
 
   // Horário de funcionamento da clínica
   const clinicOpenHour = useMemo(() => {
-    const openingHours = settings?.openingHours as { start?: string; end?: string } | undefined;
-    const startStr = openingHours?.start || '09:00';
-    const endStr = openingHours?.end || '19:00';
+    const startStr = bounds.start || '09:00';
+    const endStr = bounds.end || '19:00';
     return {
       start: parseInt(startStr.split(':')[0], 10),
       end: parseInt(endStr.split(':')[0], 10),
     };
-  }, [settings]);
+  }, [bounds]);
 
   const appointmentsData = useMemo(() => {
     const today = new Date();

@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { useClinic } from '@/context/ClinicContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
+import { useClinicSchedule } from '@/hooks/useClinicSchedule';
 import { PatientLookupByNIF } from './PatientLookupByNIF';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -98,6 +99,7 @@ export function AppointmentWizard({
     addAppointment,
   } = useClinic();
   const { data: servicePreferences = [] } = useProfessionalServicePreferences();
+  const { getTimeSlotsForDate } = useClinicSchedule();
 
   const [step, setStep] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
@@ -129,6 +131,10 @@ export function AppointmentWizard({
   const selectedProfessionalId = form.watch('professionalId');
   const selectedConsultationTypeId = form.watch('consultationTypeId');
   const selectedDate = form.watch('date');
+  const availableTimeSlots = useMemo(
+    () => getTimeSlotsForDate(selectedDate, 15),
+    [getTimeSlotsForDate, selectedDate],
+  );
 
   const professionalUserIds = useMemo(
     () => professionals.map((professional) => professional.userId).filter(Boolean) as string[],
@@ -205,19 +211,22 @@ export function AppointmentWizard({
   useEffect(() => {
     if (!open) return;
 
+    const initialDate = preselectedDate || new Date();
+    const initialTimeSlots = getTimeSlotsForDate(initialDate, 15);
+
     setSelectedPatient(preselectedPatient || null);
     form.reset({
       consultationTypeId: '',
       professionalId: doctorProfessionalId,
       specialtyId: '',
-      date: preselectedDate || new Date(),
-      time: '09:00',
+      date: initialDate,
+      time: initialTimeSlots[0] || '09:00',
       duration: 30,
       notes: '',
       sendConfirmation: true,
     });
     setStep(1);
-  }, [open, preselectedPatient, preselectedDate, form, doctorProfessionalId]);
+  }, [open, preselectedPatient, preselectedDate, form, doctorProfessionalId, getTimeSlotsForDate]);
 
   useEffect(() => {
     if (!open || !doctorProfessionalId) return;
@@ -244,19 +253,36 @@ export function AppointmentWizard({
   }, [availableConsultationTypes, form]);
 
   const resetForm = () => {
+    const initialDate = preselectedDate || new Date();
+    const initialTimeSlots = getTimeSlotsForDate(initialDate, 15);
+
     setStep(1);
     setSelectedPatient(preselectedPatient || null);
     form.reset({
       consultationTypeId: '',
       professionalId: doctorProfessionalId,
       specialtyId: '',
-      date: preselectedDate || new Date(),
-      time: '09:00',
+      date: initialDate,
+      time: initialTimeSlots[0] || '09:00',
       duration: 30,
       notes: '',
       sendConfirmation: true,
     });
   };
+
+  useEffect(() => {
+    if (!selectedDate) return;
+
+    const currentTime = form.getValues('time');
+    if (availableTimeSlots.length === 0) {
+      form.setValue('time', '', { shouldValidate: true });
+      return;
+    }
+
+    if (!availableTimeSlots.includes(currentTime)) {
+      form.setValue('time', availableTimeSlots[0], { shouldValidate: true });
+    }
+  }, [availableTimeSlots, form, selectedDate]);
 
   const handleClose = () => {
     onOpenChange(false);
@@ -371,13 +397,6 @@ export function AppointmentWizard({
       });
     }
   };
-
-  const timeSlots = [];
-  for (let h = 8; h <= 20; h++) {
-    for (let m = 0; m < 60; m += 15) {
-      timeSlots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -583,12 +602,12 @@ export function AppointmentWizard({
                       <FormLabel>Hora *</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="bg-popover z-50 max-h-60">
-                          {timeSlots.map((time) => (
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-popover z-50 max-h-60">
+                          {availableTimeSlots.map((time) => (
                             <SelectItem key={time} value={time}>
                               {time}
                             </SelectItem>

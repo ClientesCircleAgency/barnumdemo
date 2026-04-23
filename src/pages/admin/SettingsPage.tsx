@@ -13,16 +13,7 @@ import { ManageConsultationTypesModal } from '@/components/admin/ManageConsultat
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-
-const DEFAULT_HOURS = [
-  { day: 'Segunda', start: '09:00', end: '19:00', enabled: true },
-  { day: 'Terça', start: '09:00', end: '19:00', enabled: true },
-  { day: 'Quarta', start: '09:00', end: '19:00', enabled: true },
-  { day: 'Quinta', start: '09:00', end: '19:00', enabled: true },
-  { day: 'Sexta', start: '09:00', end: '18:00', enabled: true },
-  { day: 'Sábado', start: '09:00', end: '13:00', enabled: true },
-  { day: 'Domingo', start: '', end: '', enabled: false },
-];
+import { DEFAULT_CLINIC_WORKING_HOURS, normalizeWorkingHours } from '@/lib/clinicSettings';
 
 
 export default function SettingsPage() {
@@ -38,18 +29,11 @@ export default function SettingsPage() {
   const [typesModalOpen, setTypesModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [workingHours, setWorkingHours] = useState(DEFAULT_HOURS);
+  const [workingHours, setWorkingHours] = useState(DEFAULT_CLINIC_WORKING_HOURS);
 
   // Load settings from DB on mount — with shape validation
   useEffect(() => {
-    if (dbSettings.working_hours) {
-      try {
-        const wh = dbSettings.working_hours;
-        if (Array.isArray(wh) && wh.length > 0 && typeof wh[0]?.day === 'string') {
-          setWorkingHours(wh as typeof DEFAULT_HOURS);
-        }
-      } catch { /* keep defaults */ }
-    }
+    setWorkingHours(normalizeWorkingHours(dbSettings.working_hours));
   }, [dbSettings]);
 
   const handleSaveAll = async () => {

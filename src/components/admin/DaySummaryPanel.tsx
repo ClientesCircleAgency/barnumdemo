@@ -4,6 +4,7 @@ import { Clock, CalendarCheck, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useClinic } from '@/context/ClinicContext';
+import { useClinicSchedule } from '@/hooks/useClinicSchedule';
 import { StatusBadge } from './StatusBadge';
 import type { ClinicAppointment } from '@/types/clinic';
 
@@ -14,6 +15,7 @@ interface DaySummaryPanelProps {
 
 export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryPanelProps) {
   const { appointments, getPatientById, getProfessionalById } = useClinic();
+  const { getTimeSlotsForDate } = useClinicSchedule();
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const todayAppointments = appointments.filter((a) => a.date === dateStr);
@@ -36,7 +38,7 @@ export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryP
 
   // Slots livres (simplificado - apenas conta horários sem consulta)
   const occupiedTimes = todayAppointments.map((a) => a.time);
-  const allSlots = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30'];
+  const allSlots = getTimeSlotsForDate(currentDate, 30);
   const freeSlots = allSlots.filter((slot) => !occupiedTimes.includes(slot));
 
   return (

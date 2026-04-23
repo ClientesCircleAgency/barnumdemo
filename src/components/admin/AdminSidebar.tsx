@@ -76,14 +76,14 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
   return (
     <aside
       className={cn(
-        'border-r border-sidebar-border flex flex-col',
+        'flex flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,rgba(255,252,247,0.98),rgba(248,245,239,0.94))]',
         isMobile ? 'w-full h-full' : 'fixed left-0 z-40 transition-all duration-300',
         !isMobile && 'top-24 lg:top-28 h-[calc(100vh-6rem)] lg:h-[calc(100vh-7rem)]',
         !isMobile && (isCollapsed ? 'w-16' : 'w-64')
       )}
     >
       {/* Plan Badge */}
-      <div className={cn("px-3 border-b border-sidebar-border/50", isCollapsed ? "py-2" : "py-4")}>
+      <div className={cn("border-b border-sidebar-border/50 px-3", isCollapsed ? "py-2" : "py-4")}>
         <PlanBadge plan="advanced" collapsed={isCollapsed} />
       </div>
 
@@ -114,7 +114,14 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
       </div>
 
       {/* Navegação */}
-      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 overflow-y-auto px-3 py-3">
+        {!isCollapsed && (
+          <div className="mb-3 px-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Navegação
+            </p>
+          </div>
+        )}
         {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           const Icon = item.icon;
@@ -132,10 +139,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
                   <NavLink
                     to={item.path}
                     className={cn(
-                      'flex items-center justify-center h-10 w-full rounded-lg transition-all relative',
-                      isActive
-                        ? 'bg-sidebar-accent text-sidebar-primary'
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                    'relative flex h-10 w-full items-center justify-center rounded-xl transition-all',
+                    isActive
+                        ? 'bg-sidebar-accent text-sidebar-primary shadow-sm'
+                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
                     )}
                   >
                     <Icon className="h-4 w-4" />
@@ -156,10 +163,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
               key={item.path}
               to={item.path}
               className={cn(
-                'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
+                'flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-sans transition-all',
                 isActive
-                  ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                  ? 'bg-sidebar-accent text-sidebar-primary font-medium shadow-sm'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -189,10 +196,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
                   <NavLink
                     to="/admin/configuracoes"
                     className={cn(
-                      'flex items-center justify-center h-10 w-full rounded-lg transition-all',
+                      'flex h-10 w-full items-center justify-center rounded-xl transition-all',
                       location.pathname === '/admin/configuracoes'
-                      ? 'bg-sidebar-accent text-sidebar-primary'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                      ? 'bg-sidebar-accent text-sidebar-primary shadow-sm'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
                   )}
                 >
                   <Settings className="h-4 w-4" />
@@ -219,10 +226,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
               <NavLink
                 to="/admin/configuracoes"
                 className={cn(
-                  'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
+                  'flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-sans transition-all',
                   location.pathname === '/admin/configuracoes'
-                    ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                    ? 'bg-sidebar-accent text-sidebar-primary font-medium shadow-sm'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -238,10 +245,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
               <NavLink
                 to="/admin/conta"
                 className={cn(
-                  'flex items-center justify-center h-10 w-full rounded-lg transition-all',
+                  'flex h-10 w-full items-center justify-center rounded-xl transition-all',
                   location.pathname === '/admin/conta'
-                    ? 'bg-sidebar-accent text-sidebar-primary'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                    ? 'bg-sidebar-accent text-sidebar-primary shadow-sm'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
                 )}
               >
                 <UserCircle className="h-4 w-4" />
@@ -253,10 +260,10 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
           <NavLink
             to="/admin/conta"
             className={cn(
-              'flex items-center gap-3 h-10 px-3 rounded-lg transition-all font-sans text-sm',
+              'flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-sans transition-all',
               location.pathname === '/admin/conta'
-                ? 'bg-sidebar-accent text-sidebar-primary font-medium'
-                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-primary'
+                ? 'bg-sidebar-accent text-sidebar-primary font-medium shadow-sm'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-primary'
             )}
           >
             <UserCircle className="h-4 w-4" />
@@ -282,7 +289,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
         ) : (
           <button
             onClick={onLogout}
-            className="flex items-center gap-3 h-10 px-3 w-full rounded-lg transition-all font-sans text-sm text-destructive hover:bg-destructive/10"
+            className="flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-sans text-destructive transition-all hover:bg-destructive/10"
           >
             <LogOut className="h-4 w-4" />
             <span>Sair</span>
@@ -296,7 +303,7 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
           <button
             onClick={onToggle}
             className={cn(
-              'flex items-center w-full h-9 rounded-lg transition-all font-sans text-xs text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/30',
+              'flex h-9 w-full items-center rounded-xl text-xs font-sans text-muted-foreground transition-all hover:bg-sidebar-accent/30 hover:text-foreground',
               isCollapsed ? 'justify-center' : 'justify-start gap-2 px-3'
             )}
           >

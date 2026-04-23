@@ -34,6 +34,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
 import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
+import { useClinicSchedule } from '@/hooks/useClinicSchedule';
 import { toast } from 'sonner';
 import type { ProfessionalRow } from '@/types/database';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
@@ -71,17 +72,6 @@ interface DayAvailability {
   status: 'past' | 'empty' | 'healthy' | 'busy' | 'full';
 }
 
-const WORKING_HOURS = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-  '16:00', '16:30', '17:00', '17:30', '18:00', '18:30',
-];
-
-const WORKING_WINDOWS = [
-  { start: '09:00', end: '13:00' },
-  { start: '14:00', end: '19:00' },
-];
-
 const WEEK_DAYS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
 
 function timeToMinutes(t: string) {
@@ -91,17 +81,6 @@ function timeToMinutes(t: string) {
 
 function normalizeTime(t: string) {
   return t.slice(0, 5);
-}
-
-function slotFitsWorkingWindows(time: string, durationMinutes: number) {
-  const slotStart = timeToMinutes(time);
-  const slotEnd = slotStart + durationMinutes;
-
-  return WORKING_WINDOWS.some((window) => {
-    const windowStart = timeToMinutes(window.start);
-    const windowEnd = timeToMinutes(window.end);
-    return slotStart >= windowStart && slotEnd <= windowEnd;
-  });
 }
 
 function buildSlotKey(professionalId: string, dateStr: string, time: string) {
@@ -164,6 +143,7 @@ export function SuggestAlternativesModal({
   const { data: professionals = [] } = useProfessionals();
   const { data: profSpecialties = [] } = useProfessionalSpecialties();
   const { data: servicePreferences = [] } = useProfessionalServicePreferences();
+  const { getTimeSlotsForDate } = useClinicSchedule();
 
   const [selectedSlots, setSelectedSlots] = useState<Map<string, true>>(new Map());
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
@@ -230,7 +210,7 @@ export function SuggestAlternativesModal({
   );
 
   const isProfFree = (professionalId: string, dateStr: string, time: string) => {
-    if (!source || !slotFitsWorkingWindows(time, durationMinutes)) {
+    if (!source) {
       return false;
     }
 
@@ -258,7 +238,13 @@ export function SuggestAlternativesModal({
 
   const getAvailableSlotsForDay = (professionalId: string, date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return WORKING_HOURS.filter((time) => isProfFree(professionalId, dateStr, time));
+    return getTimeSlotsForDate(date, 30).filter((time) => {
+      const slotStart = timeToMinutes(time);
+      const slotEnd = slotStart + durationMinutes;
+      const fitsWorkingDay = slotEnd <= timeToMinutes(getTimeSlotsForDate(date, 30).slice(-1)[0] || time) + 30;
+
+      return fitsWorkingDay && isProfFree(professionalId, dateStr, time);
+    });
   };
 
   const getDayAvailability = (professionalId: string, date: Date): DayAvailability => {
@@ -269,8 +255,14 @@ export function SuggestAlternativesModal({
       return { totalSlots: 0, availableSlots: 0, status: 'past' };
     }
 
-    const totalSlots = WORKING_HOURS.filter((time) => {
-      if (!slotFitsWorkingWindows(time, durationMinutes)) return false;
+    const configuredSlots = getTimeSlotsForDate(date, 30);
+    const lastSlot = configuredSlots.at(-1);
+    const dayEndMinutes = lastSlot ? timeToMinutes(lastSlot) + 30 : 0;
+
+    const totalSlots = configuredSlots.filter((time) => {
+      const slotStart = timeToMinutes(time);
+      const slotEnd = slotStart + durationMinutes;
+      if (slotEnd > dayEndMinutes) return false;
 
       if (dateStr === format(today, 'yyyy-MM-dd')) {
         const now = new Date();
@@ -311,12 +303,12 @@ export function SuggestAlternativesModal({
         getDayAvailability(selectedProfessional.id, startOfDay(day)),
       ]),
     );
-  }, [calendarDays, selectedProfessional, activeAppointments, durationMinutes, source]);
+  }, [calendarDays, durationMinutes, getTimeSlotsForDate, selectedProfessional, activeAppointments, source]);
 
   const availableTimes = useMemo(() => {
     if (!selectedProfessional) return [];
     return getAvailableSlotsForDay(selectedProfessional.id, selectedDate);
-  }, [selectedProfessional, selectedDate, activeAppointments, durationMinutes, source]);
+  }, [selectedProfessional, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
 
   const professionalAvailability = useMemo(() => {
     return specialtyProfessionals.map((professional) => {
@@ -330,7 +322,7 @@ export function SuggestAlternativesModal({
         selectedDaySlots: nextSelectedDaySlots,
       };
     });
-  }, [specialtyProfessionals, calendarDays, visibleMonth, selectedDate, activeAppointments, durationMinutes, source]);
+  }, [specialtyProfessionals, calendarDays, visibleMonth, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
 
   const toggleSlot = (professional: ProfessionalRow, date: Date, time: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');

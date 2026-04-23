@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,12 @@ export function EditHoursModal({
   onSave,
 }: EditHoursModalProps) {
   const [hours, setHours] = useState<WorkingDay[]>(initialHours);
+
+  useEffect(() => {
+    if (open) {
+      setHours(initialHours);
+    }
+  }, [initialHours, open]);
 
   const handleToggle = (index: number) => {
     setHours((prev) =>

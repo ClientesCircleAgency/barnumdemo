@@ -23,26 +23,26 @@ export function AdminPageShell({
   className,
 }: AdminPageShellProps) {
   return (
-    <div className={cn('min-h-screen bg-background pb-10', className)}>
-      <section className="mx-auto w-full max-w-7xl overflow-hidden rounded-[2rem] border border-primary/10 bg-card shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
-        <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-5 py-6 sm:px-7">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <div className={cn('min-h-screen bg-transparent pb-4 lg:bg-background lg:pb-10', className)}>
+      <section className="mx-auto w-full max-w-7xl overflow-hidden rounded-[1.8rem] border border-primary/10 bg-card shadow-[0_18px_48px_rgba(146,94,18,0.08)] lg:rounded-[2rem] lg:shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
+        <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-4 py-5 sm:px-5 lg:px-7 lg:py-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <Badge className="rounded-full bg-primary/10 px-3 py-1 text-primary hover:bg-primary/10">
+                <Badge className="rounded-full bg-primary/10 px-3 py-1 text-[11px] text-primary hover:bg-primary/10 lg:text-xs">
                   {eyebrow}
                 </Badge>
                 {badge}
               </div>
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
                 {title}
               </h1>
-              {subtitle && <p className="mt-2 max-w-3xl text-muted-foreground">{subtitle}</p>}
+              {subtitle && <p className="mt-2 max-w-3xl text-sm text-muted-foreground lg:text-base">{subtitle}</p>}
             </div>
             {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
           </div>
         </div>
-        <div className="p-5 sm:p-7">{children}</div>
+        <div className="p-4 sm:p-5 lg:p-7">{children}</div>
       </section>
     </div>
   );
@@ -56,7 +56,7 @@ export function AdminSectionCard({
   className?: string;
 }) {
   return (
-    <div className={cn('rounded-[1.75rem] border border-primary/10 bg-card shadow-sm', className)}>
+    <div className={cn('rounded-[1.35rem] border border-primary/10 bg-card shadow-sm lg:rounded-[1.75rem]', className)}>
       {children}
     </div>
   );
@@ -80,23 +80,23 @@ export function AdminMetricCard({
   return (
     <div
       className={cn(
-        'rounded-[1.35rem] border border-primary/10 bg-secondary/60 p-4 transition-all hover:border-primary/20 hover:bg-secondary/80',
+        'rounded-[1.2rem] border border-primary/10 bg-secondary/60 p-4 transition-all hover:border-primary/20 hover:bg-secondary/80 lg:rounded-[1.35rem]',
         accent && 'bg-primary-gradient text-primary-foreground shadow-lg shadow-primary/15',
         className,
       )}
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <p className={cn('text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground', accent && 'text-white/70')}>
+        <p className={cn('text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground lg:text-xs lg:tracking-[0.18em]', accent && 'text-white/70')}>
           {title}
         </p>
         {Icon && (
-          <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary', accent && 'bg-white/15 text-white')}>
+          <div className={cn('flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary', accent && 'bg-white/15 text-white')}>
             <Icon className="h-4 w-4" />
           </div>
         )}
       </div>
-      <p className={cn('text-3xl font-semibold tracking-tight text-foreground', accent && 'text-white')}>{value}</p>
-      <p className={cn('mt-1 text-sm text-muted-foreground', accent && 'text-white/70')}>{caption}</p>
+      <p className={cn('text-[1.7rem] font-semibold tracking-tight text-foreground lg:text-3xl', accent && 'text-white')}>{value}</p>
+      <p className={cn('mt-1 text-xs text-muted-foreground lg:text-sm', accent && 'text-white/70')}>{caption}</p>
     </div>
   );
 }
