@@ -24,17 +24,17 @@ const contactInfo = [
   {
     icon: MapPin,
     label: 'Morada',
-    value: 'Rua dos Comediantes nº 13 r/c – C\n2910-468 Setúbal',
+    value: 'Av. Dr. António Rodrigues Manito, 65, 1.º Andar\n2900-067 Setúbal',
   },
   {
     icon: Phone,
     label: 'Telefone',
-    value: '265 540 990 (Fixo)\n919 265 497 (Móvel)',
+    value: '265 231 64 (Fixo)\n936 667 034 (Móvel)',
   },
   {
     icon: Mail,
     label: 'Email',
-    value: 'geral@barnun.pt',
+    value: 'barnun_clinica@hotmail.com',
   },
   {
     icon: Clock,
@@ -126,7 +126,7 @@ export function ContactSection() {
               {/* Google Maps */}
               <div className="rounded-2xl overflow-hidden shadow-lg h-64 md:h-80 border border-border">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3118.123456789!2d-8.893333!3d38.523889!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd194330b6b4f1c1%3A0x1234567890abcdef!2sRua%20dos%20Comediantes%2013%2C%202910-468%20Set%C3%BAbal!5e0!3m2!1spt-PT!2spt!4v1700000000000!5m2!1spt-PT!2spt"
+                  src="https://www.google.com/maps?q=Av.%20Dr.%20Ant%C3%B3nio%20Rodrigues%20Manito%2C%2065%2C%201.%C2%BA%20Andar%2C%202900-067%20Set%C3%BAbal&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

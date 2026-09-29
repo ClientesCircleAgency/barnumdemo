@@ -108,8 +108,8 @@ export function Footer() {
                   <MapPin className="w-5 h-5 text-primary" />
                 </div>
                 <span className="text-background/70 text-sm">
-                  Rua dos Comediantes nº 13 r/c – C<br />
-                  2910-468 Setúbal
+                  Av. Dr. António Rodrigues Manito, 65, 1.º Andar<br />
+                  2900-067 Setúbal
                 </span>
               </li>
               <li className="flex items-start gap-3 justify-center md:justify-start">
@@ -117,11 +117,11 @@ export function Footer() {
                   <Phone className="w-5 h-5 text-primary" />
                 </div>
                 <div className="text-background/70 text-sm">
-                  <a href="tel:+351265540990" className="hover:text-primary block">
-                    265 540 990 (Fixo)
+                  <a href="tel:+35126523164" className="hover:text-primary block">
+                    265 231 64 (Fixo)
                   </a>
-                  <a href="tel:+351919265497" className="hover:text-primary block">
-                    919 265 497 (Móvel)
+                  <a href="tel:+351936667034" className="hover:text-primary block">
+                    936 667 034 (Móvel)
                   </a>
                 </div>
               </li>
@@ -129,8 +129,8 @@ export function Footer() {
                 <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Mail className="w-5 h-5 text-primary" />
                 </div>
-                <a href="mailto:geral@barnun.pt" className="text-background/70 hover:text-primary text-sm">
-                  geral@barnun.pt
+                <a href="mailto:barnun_clinica@hotmail.com" className="text-background/70 hover:text-primary text-sm">
+                  barnun_clinica@hotmail.com
                 </a>
               </li>
               <li className="flex items-start gap-3 justify-center md:justify-start">
