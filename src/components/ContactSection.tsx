@@ -25,6 +25,7 @@ const contactInfo = [
     icon: MapPin,
     label: 'Morada',
     value: 'Av. Dr. António Rodrigues Manito, 65, 1.º Andar\n2900-067 Setúbal',
+    className: 'sm:col-span-2',
   },
   {
     icon: Phone,
@@ -35,6 +36,7 @@ const contactInfo = [
     icon: Mail,
     label: 'Email',
     value: 'barnun_clinica@hotmail.com',
+    className: 'sm:col-span-2 xl:col-span-1',
   },
   {
     icon: Clock,
@@ -110,14 +112,19 @@ export function ContactSection() {
                 {contactInfo.map((info, index) => (
                   <div
                     key={index}
-                    className="bg-card border border-border rounded-2xl p-4 sm:p-5 flex items-start gap-4 hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                    className={cn(
+                      "bg-card border border-border rounded-2xl p-5 sm:p-6 flex items-start gap-4 sm:gap-5 min-h-[144px] hover:shadow-lg hover:border-primary/30 transition-all duration-300",
+                      info.className
+                    )}
                   >
-                    <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
-                      <info.icon className="w-5 h-5 text-primary" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
+                      <info.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">{info.label}</p>
-                      <p className="break-words text-foreground font-medium text-sm whitespace-pre-line leading-6">{info.value}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-base text-muted-foreground mb-1.5">{info.label}</p>
+                      <p className="text-foreground font-semibold text-sm sm:text-[15px] whitespace-pre-line leading-6 [overflow-wrap:anywhere]">
+                        {info.value}
+                      </p>
                     </div>
                   </div>
                 ))}
