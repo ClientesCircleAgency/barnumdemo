@@ -23,12 +23,10 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_events (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_whatsapp_events_status ON public.whatsapp_events(status);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_events_scheduled_for ON public.whatsapp_events(scheduled_for);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_events_entity ON public.whatsapp_events(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_events_workflow ON public.whatsapp_events(workflow_id);
-
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_whatsapp_events_updated_at()
 RETURNS TRIGGER AS $$
@@ -37,21 +35,17 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
 DROP TRIGGER IF EXISTS trigger_update_whatsapp_events_updated_at ON public.whatsapp_events;
 CREATE TRIGGER trigger_update_whatsapp_events_updated_at
   BEFORE UPDATE ON public.whatsapp_events
   FOR EACH ROW
   EXECUTE FUNCTION update_whatsapp_events_updated_at();
-
 -- RLS Policies
 ALTER TABLE public.whatsapp_events ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Service role has full access to whatsapp_events" ON public.whatsapp_events;
 CREATE POLICY "Service role has full access to whatsapp_events"
   ON public.whatsapp_events FOR ALL TO service_role
   USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Users can view whatsapp_events for their clinic" ON public.whatsapp_events;
 CREATE POLICY "Users can view whatsapp_events for their clinic"
   ON public.whatsapp_events FOR SELECT TO authenticated
@@ -61,7 +55,6 @@ CREATE POLICY "Users can view whatsapp_events for their clinic"
       WHERE a.id = entity_id
     )
   );
-
 -- ============================================================================
 -- 2. Create whatsapp_action_tokens table
 -- ============================================================================
@@ -78,25 +71,20 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_action_tokens (
   expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-
 CREATE INDEX IF NOT EXISTS idx_whatsapp_action_tokens_token ON public.whatsapp_action_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_action_tokens_appointment ON public.whatsapp_action_tokens(appointment_id);
 CREATE INDEX IF NOT EXISTS idx_whatsapp_action_tokens_expires_at ON public.whatsapp_action_tokens(expires_at);
-
 -- RLS Policies
 ALTER TABLE public.whatsapp_action_tokens ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Anyone can validate tokens" ON public.whatsapp_action_tokens;
 CREATE POLICY "Anyone can validate tokens"
   ON public.whatsapp_action_tokens FOR SELECT
   TO anon, authenticated, service_role
   USING (true);
-
 DROP POLICY IF EXISTS "Service role has full access to whatsapp_action_tokens" ON public.whatsapp_action_tokens;
 CREATE POLICY "Service role has full access to whatsapp_action_tokens"
   ON public.whatsapp_action_tokens FOR ALL TO service_role
   USING (true) WITH CHECK (true);
-
 -- ============================================================================
 -- 3. Create appointment_suggestions table
 -- ============================================================================
@@ -112,25 +100,20 @@ CREATE TABLE IF NOT EXISTS public.appointment_suggestions (
   updated_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT (now() + interval '7 days')
 );
-
 CREATE INDEX IF NOT EXISTS idx_appointment_suggestions_request ON public.appointment_suggestions(appointment_request_id);
 CREATE INDEX IF NOT EXISTS idx_appointment_suggestions_patient ON public.appointment_suggestions(patient_id);
 CREATE INDEX IF NOT EXISTS idx_appointment_suggestions_status ON public.appointment_suggestions(status);
-
 DROP TRIGGER IF EXISTS trigger_update_appointment_suggestions_updated_at ON public.appointment_suggestions;
 CREATE TRIGGER trigger_update_appointment_suggestions_updated_at
   BEFORE UPDATE ON public.appointment_suggestions
   FOR EACH ROW
   EXECUTE FUNCTION update_whatsapp_events_updated_at();
-
 -- RLS Policies
 ALTER TABLE public.appointment_suggestions ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS "Service role has full access to appointment_suggestions" ON public.appointment_suggestions;
 CREATE POLICY "Service role has full access to appointment_suggestions"
   ON public.appointment_suggestions FOR ALL TO service_role
   USING (true) WITH CHECK (true);
-
 DROP POLICY IF EXISTS "Users can view their own appointment_suggestions" ON public.appointment_suggestions;
 CREATE POLICY "Users can view their own appointment_suggestions"
   ON public.appointment_suggestions FOR SELECT TO authenticated
@@ -139,7 +122,6 @@ CREATE POLICY "Users can view their own appointment_suggestions"
       SELECT 1 FROM public.patients WHERE id = patient_id
     )
   );
-
 -- ============================================================================
 -- 4. Helper Functions
 -- ============================================================================
@@ -173,7 +155,6 @@ BEGIN
   RETURN v_token;
 END;
 $$;
-
 -- Validate action token
 CREATE OR REPLACE FUNCTION validate_action_token(p_token text)
 RETURNS TABLE (
@@ -216,7 +197,6 @@ BEGIN
     NULL::text;
 END;
 $$;
-
 -- Mark token as used
 CREATE OR REPLACE FUNCTION mark_token_used(p_token text)
 RETURNS void
@@ -227,7 +207,6 @@ BEGIN
   UPDATE public.whatsapp_action_tokens SET used_at = now() WHERE token = p_token;
 END;
 $$;
-
 -- ============================================================================
 -- DONE: Core tables and functions created
--- ============================================================================
+-- ============================================================================;

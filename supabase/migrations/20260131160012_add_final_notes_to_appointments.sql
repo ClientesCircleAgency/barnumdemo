@@ -27,11 +27,9 @@
 
 ALTER TABLE public.appointments 
 ADD COLUMN IF NOT EXISTS final_notes text;
-
 COMMENT ON COLUMN public.appointments.final_notes IS 'Final consultation notes (summary + prescription) written by doctor/secretary during finalization. Included in post-consultation WhatsApp message sent 2 hours after finalization.';
-
 -- =====================================================
 -- Migration Complete
 -- =====================================================
 -- Backwards compatible: nullable column, existing data unaffected
--- =====================================================
+-- =====================================================;

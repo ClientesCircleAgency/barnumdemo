@@ -51,7 +51,6 @@ BEGIN
   RETURN v_event_id;
 END;
 $$;
-
 -- ============================================================================
 -- Trigger 1: Pre-confirmation on Appointment Insert
 -- ============================================================================
@@ -100,13 +99,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trigger_appointment_pre_confirmation ON public.appointments;
 CREATE TRIGGER trigger_appointment_pre_confirmation
   AFTER INSERT ON public.appointments
   FOR EACH ROW
   EXECUTE FUNCTION trigger_pre_confirmation_event();
-
 -- ============================================================================
 -- Trigger 2: No-Show Reschedule
 -- ============================================================================
@@ -151,13 +148,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trigger_appointment_no_show_reschedule ON public.appointments;
 CREATE TRIGGER trigger_appointment_no_show_reschedule
   AFTER UPDATE ON public.appointments
   FOR EACH ROW
   EXECUTE FUNCTION trigger_no_show_reschedule_event();
-
 -- ============================================================================
 -- Trigger 3: Review Reminder 2h After Completion
 -- ============================================================================
@@ -202,13 +197,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trigger_appointment_review_reminder ON public.appointments;
 CREATE TRIGGER trigger_appointment_review_reminder
   AFTER UPDATE ON public.appointments
   FOR EACH ROW
   EXECUTE FUNCTION trigger_review_reminder_event();
-
 -- ============================================================================
 -- Trigger 4: Appointment Request Suggestion
 -- ============================================================================
@@ -233,13 +226,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trigger_appointment_request_suggestion ON public.appointment_requests;
 CREATE TRIGGER trigger_appointment_request_suggestion
   AFTER INSERT ON public.appointment_requests
   FOR EACH ROW
   EXECUTE FUNCTION trigger_appointment_suggestion_event();
-
 -- ============================================================================
 -- Trigger 5: Send Suggestion When Slots Populated
 -- ============================================================================
@@ -285,13 +276,11 @@ BEGIN
   RETURN NEW;
 END;
 $$;
-
 DROP TRIGGER IF EXISTS trigger_send_appointment_suggestion ON public.appointment_suggestions;
 CREATE TRIGGER trigger_send_appointment_suggestion
   AFTER UPDATE ON public.appointment_suggestions
   FOR EACH ROW
   EXECUTE FUNCTION trigger_send_appointment_suggestion();
-
 -- ============================================================================
 -- DONE: All triggers created
--- ============================================================================
+-- ============================================================================;

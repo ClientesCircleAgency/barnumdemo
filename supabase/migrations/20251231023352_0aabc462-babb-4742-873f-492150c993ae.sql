@@ -1,6 +1,5 @@
 -- Enum para roles
 CREATE TYPE public.app_role AS ENUM ('admin', 'user');
-
 -- Tabela de roles de utilizadores
 CREATE TABLE public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -9,10 +8,8 @@ CREATE TABLE public.user_roles (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, role)
 );
-
 -- Ativar RLS
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
-
 -- Função para verificar roles (SECURITY DEFINER evita recursividade)
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
 RETURNS BOOLEAN
@@ -26,13 +23,11 @@ AS $$
     WHERE user_id = _user_id AND role = _role
   )
 $$;
-
 -- Política: admins podem ver todas as roles
 CREATE POLICY "Admins can view all roles"
   ON public.user_roles FOR SELECT
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin'));
-
 -- Política: utilizadores podem ver as suas próprias roles
 CREATE POLICY "Users can view own roles"
   ON public.user_roles FOR SELECT

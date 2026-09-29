@@ -1,13 +1,8 @@
 drop policy "Admins can view all roles" on "public"."user_roles";
-
 drop function if exists "public"."has_role"(_user_id uuid, _role public.app_role__old_version_to_be_dropped);
-
 drop type "public"."app_role__old_version_to_be_dropped";
-
 drop type "public"."appointment_status__old_version_to_be_dropped";
-
 set check_function_bodies = off;
-
 CREATE OR REPLACE FUNCTION public.create_whatsapp_event(p_event_type text, p_entity_type text, p_entity_id uuid, p_workflow_id uuid DEFAULT NULL::uuid, p_scheduled_for timestamp with time zone DEFAULT now())
  RETURNS uuid
  LANGUAGE plpgsql
@@ -24,9 +19,7 @@ BEGIN
   
   RETURN v_event_id;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.generate_action_token(p_action_type text, p_appointment_id uuid, p_patient_id uuid, p_workflow_id uuid DEFAULT NULL::uuid, p_metadata jsonb DEFAULT NULL::jsonb, p_expires_in_days integer DEFAULT 7)
  RETURNS text
  LANGUAGE plpgsql
@@ -43,9 +36,7 @@ BEGIN
   
   RETURN v_token;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role public.app_role)
  RETURNS boolean
  LANGUAGE sql
@@ -56,9 +47,7 @@ AS $function$
     select 1 from public.user_roles
     where user_id = _user_id and role = _role
   );
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.notify_on_appointment_change()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -88,9 +77,7 @@ begin
 
   return new;
 end;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.notify_staff_on_appointment_change()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -166,9 +153,7 @@ begin
 
   return new;
 end;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.trigger_no_show()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -194,9 +179,7 @@ BEGIN
   
   RETURN NEW;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.trigger_pre_confirmation()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -222,9 +205,7 @@ BEGIN
   
   RETURN NEW;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.trigger_review()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -250,9 +231,7 @@ BEGIN
   
   RETURN NEW;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -263,9 +242,7 @@ begin
   new.updated_at = now();
   return new;
 end;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.validate_action_token(p_token text)
  RETURNS TABLE(valid boolean, appointment_id uuid, patient_id uuid, action_type text, metadata jsonb, error_message text)
  LANGUAGE plpgsql
@@ -293,16 +270,10 @@ BEGIN
   
   RETURN QUERY SELECT true, v_rec.appointment_id, v_rec.patient_id, v_rec.action_type, v_rec.metadata, NULL::text;
 END;
-$function$
-;
-
-
-  create policy "Admins can view all roles"
+$function$;
+create policy "Admins can view all roles"
   on "public"."user_roles"
   as permissive
   for select
   to authenticated
 using (public.has_role(auth.uid(), 'admin'::public.app_role));
-
-
-

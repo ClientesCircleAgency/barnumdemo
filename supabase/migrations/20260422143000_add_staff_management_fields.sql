@@ -8,3 +8,4 @@ alter table public.user_profiles
 comment on column public.user_profiles.working_hours is 'Per-user working hours managed by staff operations.';
 comment on column public.user_profiles.time_off is 'Per-user days off, holidays and vacation ranges managed by staff operations.';
 comment on column public.user_profiles.extra_permissions is 'Extra operational permissions delegated to this staff account.';
+;
