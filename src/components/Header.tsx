@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Menu, X, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Menu, X } from 'lucide-react';
 import logo from '@/assets/logo-barnun-new.png';
 const navItems = [{
   label: 'Início',
@@ -72,13 +71,7 @@ export function Header() {
           </button>)}
         </nav>
 
-        {/* CTA Button */}
-        <div className="hidden md:flex items-center gap-4">
-          <Button onClick={() => handleNavClick('#marcacao')} className="bg-primary-gradient hover:opacity-90 shadow-lg hover:shadow-xl transition-all rounded-xl">
-            <Phone className="w-4 h-4 mr-2" />
-            Marcar Consulta
-          </Button>
-        </div>
+        <div className="hidden md:block w-[176px]" aria-hidden="true" />
 
         {/* Spacer for mobile */}
         <div className="w-10 md:hidden" />
@@ -90,12 +83,6 @@ export function Header() {
           {navItems.map(item => <button key={item.href} onClick={() => handleNavClick(item.href)} className="px-4 py-3 text-left text-foreground/80 hover:text-primary hover:bg-accent rounded-xl transition-colors">
             {item.label}
           </button>)}
-          <div className="pt-3 mt-2 border-t border-border">
-            <Button onClick={() => handleNavClick('#marcacao')} className="w-full bg-primary-gradient hover:opacity-90 rounded-xl">
-              <Phone className="w-4 h-4 mr-2" />
-              Marcar Consulta
-            </Button>
-          </div>
         </nav>
       </div>}
     </div>

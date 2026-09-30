@@ -123,18 +123,11 @@ export function TeamSection() {
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-6 border-t border-border">
+              <div className="flex items-start gap-4 pt-6 border-t border-border">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Award className="text-primary" size={18} />
                   <span>Certificação de Excelência</span>
                 </div>
-                <a
-                  href="#marcacao"
-                  onClick={() => setSelectedMember(null)}
-                  className="sm:ml-auto bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-lg"
-                >
-                  Marcar Consulta
-                </a>
               </div>
             </div>
           </div>
