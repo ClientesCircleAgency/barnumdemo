@@ -1,13 +1,30 @@
-import { MapPin, Phone, Mail, Clock } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useAddContactMessage } from '@/hooks/useContactMessages';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+const contactSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  email: z.string().email('Email inválido').max(255),
+  phone: z.string().min(9, 'Telefone inválido').max(20),
+  message: z.string().min(10, 'Mensagem deve ter pelo menos 10 caracteres').max(1000),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
 
 const contactInfo = [
   {
     icon: MapPin,
     label: 'Morada',
     value: 'Av. Dr. António Rodrigues Manito, 65, 1.º Andar\n2900-067 Setúbal',
-    className: 'sm:col-span-2 xl:col-span-2',
   },
   {
     icon: Phone,
@@ -23,12 +40,46 @@ const contactInfo = [
     icon: Clock,
     label: 'Horário',
     value: 'Seg – Sex: 09:00 às 19:00\nSáb – Dom: Fechados',
-    className: 'sm:col-span-2 xl:col-span-2',
   },
 ];
 
 export function ContactSection() {
   const { ref, isVisible } = useIntersectionObserver({ threshold: 0.1 });
+  const addMessage = useAddContactMessage();
+  const { toast } = useToast();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+  });
+
+  const onSubmit = async (data: ContactFormData) => {
+    try {
+      await addMessage.mutateAsync({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        message: data.message,
+      });
+
+      toast({
+        title: 'Mensagem enviada!',
+        description: 'Obrigado pelo seu contacto. Responderemos brevemente.',
+      });
+
+      reset();
+    } catch {
+      toast({
+        title: 'Erro ao enviar',
+        description: 'Ocorreu um erro. Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
     <section id="contactos" className="py-20 md:py-28 bg-muted/30">
@@ -51,26 +102,100 @@ export function ContactSection() {
           </div>
 
           <div className="max-w-6xl mx-auto space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {contactInfo.map((info) => (
-                <div
-                  key={info.label}
-                  className={cn(
-                    'bg-card border border-border rounded-2xl p-5 sm:p-6 flex items-start gap-4 min-h-[148px] hover:shadow-lg hover:border-primary/30 transition-all duration-300',
-                    info.className
-                  )}
-                >
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
-                    <info.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.82fr)] gap-6 lg:gap-8 items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {contactInfo.map((info) => (
+                  <div
+                    key={info.label}
+                    className="bg-card border border-border rounded-2xl p-5 sm:p-6 flex items-start gap-4 min-h-[156px] hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                  >
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
+                      <info.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-base text-muted-foreground mb-1.5">{info.label}</p>
+                      <p className="text-foreground font-semibold text-sm sm:text-[15px] whitespace-pre-line leading-6 [overflow-wrap:anywhere]">
+                        {info.value}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm sm:text-base text-muted-foreground mb-1.5">{info.label}</p>
-                    <p className="text-foreground font-semibold text-sm sm:text-[15px] whitespace-pre-line leading-6 [overflow-wrap:anywhere]">
-                      {info.value}
-                    </p>
+                ))}
+              </div>
+
+              <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8 shadow-lg">
+                <h3 className="text-xl font-semibold text-foreground mb-6">
+                  Envie-nos uma mensagem
+                </h3>
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-name">Nome</Label>
+                    <Input
+                      id="contact-name"
+                      placeholder="O seu nome"
+                      {...register('name')}
+                      className={cn('rounded-xl h-12', errors.name && 'border-destructive')}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-destructive">{errors.name.message}</p>
+                    )}
                   </div>
-                </div>
-              ))}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-email">Email</Label>
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        {...register('email')}
+                        className={cn('rounded-xl h-12', errors.email && 'border-destructive')}
+                      />
+                      {errors.email && (
+                        <p className="text-sm text-destructive">{errors.email.message}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-phone">Telefone</Label>
+                      <Input
+                        id="contact-phone"
+                        type="tel"
+                        placeholder="912 345 678"
+                        {...register('phone')}
+                        className={cn('rounded-xl h-12', errors.phone && 'border-destructive')}
+                      />
+                      {errors.phone && (
+                        <p className="text-sm text-destructive">{errors.phone.message}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact-message">Mensagem</Label>
+                    <Textarea
+                      id="contact-message"
+                      placeholder="A sua mensagem..."
+                      rows={4}
+                      {...register('message')}
+                      className={cn('rounded-xl resize-none', errors.message && 'border-destructive')}
+                    />
+                    {errors.message && (
+                      <p className="text-sm text-destructive">{errors.message.message}</p>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-primary-gradient hover:opacity-90 shadow-lg hover:shadow-xl transition-all rounded-xl h-14 text-base"
+                    size="lg"
+                  >
+                    <Send className="w-5 h-5 mr-2" />
+                    {isSubmitting ? 'A enviar...' : 'Enviar Mensagem'}
+                  </Button>
+                </form>
+              </div>
             </div>
 
             <div className="rounded-2xl overflow-hidden shadow-lg h-[340px] md:h-[440px] border border-border">
