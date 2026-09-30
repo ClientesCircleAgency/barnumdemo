@@ -102,19 +102,19 @@ export function ContactSection() {
           </div>
 
           <div className="max-w-6xl mx-auto space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.82fr)] gap-6 lg:gap-8 items-start">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.95fr)_minmax(380px,1fr)] gap-6 lg:gap-8 items-start">
+              <div className="space-y-4">
                 {contactInfo.map((info) => (
                   <div
                     key={info.label}
-                    className="bg-card border border-border rounded-2xl p-5 sm:p-6 flex items-start gap-4 min-h-[156px] hover:shadow-lg hover:border-primary/30 transition-all duration-300"
+                    className="bg-card border border-border rounded-2xl p-5 sm:p-6 flex items-start gap-4 sm:gap-5 min-h-[118px] hover:shadow-lg hover:border-primary/30 transition-all duration-300"
                   >
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-accent flex items-center justify-center flex-shrink-0">
                       <info.icon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm sm:text-base text-muted-foreground mb-1.5">{info.label}</p>
-                      <p className="text-foreground font-semibold text-sm sm:text-[15px] whitespace-pre-line leading-6 [overflow-wrap:anywhere]">
+                      <p className="text-foreground font-semibold text-sm sm:text-base whitespace-pre-line leading-6 [overflow-wrap:anywhere]">
                         {info.value}
                       </p>
                     </div>
