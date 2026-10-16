@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { buildTimeSlotsForDate, getVisibleClinicBounds, normalizeWorkingHours } from '@/lib/clinicSettings';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -7,7 +7,7 @@ export function useClinicSchedule() {
 
   const workingHours = useMemo(
     () => normalizeWorkingHours(settings.working_hours),
-    [settings],
+    [settings.working_hours],
   );
 
   const bounds = useMemo(
@@ -15,10 +15,14 @@ export function useClinicSchedule() {
     [workingHours],
   );
 
+  const getTimeSlotsForDate = useCallback(
+    (date: Date, intervalMinutes = 30) => buildTimeSlotsForDate(workingHours, date, intervalMinutes),
+    [workingHours],
+  );
+
   return {
     workingHours,
     bounds,
-    getTimeSlotsForDate: (date: Date, intervalMinutes = 30) =>
-      buildTimeSlotsForDate(workingHours, date, intervalMinutes),
+    getTimeSlotsForDate,
   };
 }

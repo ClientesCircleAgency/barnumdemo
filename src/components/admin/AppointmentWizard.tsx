@@ -1,15 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { CalendarIcon, User, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarIcon, User, UserPlus, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,6 +103,8 @@ export function AppointmentWizard({
   const { getTimeSlotsForDate } = useClinicSchedule();
 
   const [step, setStep] = useState(1);
+  const [patientMode, setPatientMode] = useState<'existing' | 'create' | null>(null);
+  const wasOpen = useRef(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
 
   const doctorProfessionalId = useMemo(
@@ -209,7 +212,10 @@ export function AppointmentWizard({
   );
 
   useEffect(() => {
-    if (!open) return;
+    // Initialize once per opening, not when schedule/query callbacks refresh.
+    const opening = open && !wasOpen.current;
+    wasOpen.current = open;
+    if (!opening) return;
 
     const initialDate = preselectedDate || new Date();
     const initialTimeSlots = getTimeSlotsForDate(initialDate, 15);
@@ -225,7 +231,8 @@ export function AppointmentWizard({
       notes: '',
       sendConfirmation: true,
     });
-    setStep(1);
+    setPatientMode(preselectedPatient ? 'existing' : null);
+    setStep(preselectedPatient ? 2 : 1);
   }, [open, preselectedPatient, preselectedDate, form, doctorProfessionalId, getTimeSlotsForDate]);
 
   useEffect(() => {
@@ -256,7 +263,8 @@ export function AppointmentWizard({
     const initialDate = preselectedDate || new Date();
     const initialTimeSlots = getTimeSlotsForDate(initialDate, 15);
 
-    setStep(1);
+    setStep(preselectedPatient ? 2 : 1);
+    setPatientMode(preselectedPatient ? 'existing' : null);
     setSelectedPatient(preselectedPatient || null);
     form.reset({
       consultationTypeId: '',
@@ -286,11 +294,11 @@ export function AppointmentWizard({
 
   const handleClose = () => {
     onOpenChange(false);
-    setTimeout(resetForm, 200);
   };
 
   const handlePatientSelect = (patient: Patient) => {
     setSelectedPatient(patient);
+    setStep(2);
   };
 
   const handleNextStep = () => {
@@ -415,6 +423,9 @@ export function AppointmentWizard({
               </>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Identifique ou crie o paciente e preencha os detalhes da consulta.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center gap-2 py-2">
@@ -439,18 +450,41 @@ export function AppointmentWizard({
 
         {step === 1 && (
           <div className="space-y-4">
-            <PatientLookupByNIF
-              onPatientSelect={handlePatientSelect}
-              selectedPatient={selectedPatient}
-              onClear={() => setSelectedPatient(null)}
-            />
+            {!patientMode ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button type="button" variant="outline" className="h-auto py-6" onClick={() => setPatientMode('create')}>
+                  <UserPlus className="h-5 w-5" />
+                  Criar paciente
+                </Button>
+                <Button type="button" className="h-auto py-6" onClick={() => setPatientMode('existing')}>
+                  <User className="h-5 w-5" />
+                  Paciente existente
+                </Button>
+              </div>
+            ) : (
+              <>
+                <PatientLookupByNIF
+                  key={patientMode}
+                  mode={patientMode}
+                  onPatientSelect={handlePatientSelect}
+                  selectedPatient={selectedPatient}
+                  onClear={() => setSelectedPatient(null)}
+                />
 
-            <div className="flex justify-end pt-4">
-              <Button onClick={handleNextStep} disabled={!selectedPatient}>
-                Continuar
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
+                <div className="flex justify-between pt-4">
+                  <Button type="button" variant="outline" onClick={() => { setPatientMode(null); setSelectedPatient(null); }}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Voltar
+                  </Button>
+                  {selectedPatient && (
+                    <Button type="button" onClick={handleNextStep}>
+                      Continuar
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 

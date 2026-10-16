@@ -32,15 +32,16 @@ interface PatientLookupByNIFProps {
   onPatientSelect: (patient: Patient) => void;
   selectedPatient?: Patient | null;
   onClear?: () => void;
+  mode?: 'existing' | 'create';
 }
 
-export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }: PatientLookupByNIFProps) {
+export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear, mode = 'existing' }: PatientLookupByNIFProps) {
   const { findPatientByNif, addPatient, getAppointmentsByPatient } = useClinic();
   const [nif, setNif] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<Patient | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(mode === 'create');
 
   const form = useForm<InlinePatientFormData>({
     resolver: zodResolver(inlinePatientFormSchema),
@@ -78,9 +79,10 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
     } else {
       setSearchResult(null);
       setNotFound(false);
-      setShowCreateForm(false);
+      setIsSearching(false);
+      if (mode !== 'create') setShowCreateForm(false);
     }
-  }, [nif, findPatientByNif]);
+  }, [nif, findPatientByNif, mode]);
 
   const handleSelectPatient = (patient: Patient) => {
     onPatientSelect(patient);
@@ -90,6 +92,12 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
   };
 
   const handleCreatePatient = async (data: InlinePatientFormData) => {
+    if (!isValidNif(nif)) return;
+    const existingPatient = findPatientByNif(nif);
+    if (existingPatient) {
+      setSearchResult(existingPatient);
+      return;
+    }
     try {
       const patient = await addPatient({
         nif,
@@ -221,7 +229,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
       )}
 
       {/* Formulário de novo paciente */}
-      {showCreateForm && (
+      {showCreateForm && !searchResult && (
         <Card>
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center justify-between">
@@ -346,7 +354,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear }
 
                 <Button
                   type="submit"
-                  disabled={!form.formState.isValid}
+                  disabled={!form.formState.isValid || !isValidNif(nif) || isSearching || form.formState.isSubmitting}
                   className="w-full"
                 >
                   Criar e Continuar
