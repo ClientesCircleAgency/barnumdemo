@@ -1,7 +1,12 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import logo from '@/assets/logo-barnun-new.png';
 export function HeroSection() {
+  const scrollToMarcacao = () => {
+    document.querySelector('#marcacao')?.scrollIntoView({
+      behavior: 'smooth'
+    });
+  };
   const scrollToSobre = () => {
     document.querySelector('#sobre')?.scrollIntoView({
       behavior: 'smooth'
@@ -56,6 +61,10 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+          <Button size="lg" onClick={scrollToMarcacao} className="w-full sm:w-auto bg-primary-gradient hover:opacity-90 text-base font-semibold px-6 sm:px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl gap-2">
+            <Calendar className="w-5 h-5" />
+            Marcar Consulta
+          </Button>
           <Button size="lg" variant="outline" onClick={scrollToSobre} className="w-full sm:w-auto text-base font-semibold px-6 sm:px-8 py-6 border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 rounded-xl gap-2">
             Conhecer a Clínica
             <ArrowRight className="w-5 h-5" />
