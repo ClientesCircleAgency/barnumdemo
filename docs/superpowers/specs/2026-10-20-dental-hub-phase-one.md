@@ -1,6 +1,8 @@
 # Dental Hub — primeira entrega: fundação de acesso
 
-Estado: especificação consolidada para revisão. As decisões de produto abaixo foram acordadas em conversa; este documento delimita a primeira implementação.
+Estado: desenho aprovado em conversa; plano de execução em preparação. As decisões de produto abaixo foram acordadas em conversa; este documento delimita a primeira implementação.
+
+Decisão comercial posterior: preços, limites e composição dos planos serão definidos após a fundação. Não fixar no código três tipos de arquitetura nem limites numéricos de unidades/colaboradores. O onboarding futuro recolhe proprietário, negócio, faturação, unidades, especialidades, tipos de consulta e equipa. Direitos de subscrição serão configuração controlada pelo servidor, separada dos papéis de acesso. Estratégia de oferta e cobrança não fazem parte desta primeira migração.
 
 ## Objetivo e ambientes
 
