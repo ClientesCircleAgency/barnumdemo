@@ -150,10 +150,11 @@ export default function AgendaPage() {
     switch (viewMode) {
       case 'day':
         return format(currentDate, "EEEE, d 'de' MMMM", { locale: pt });
-      case 'week':
+      case 'week': {
         const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
         return `${format(weekStart, 'd', { locale: pt })} - ${format(weekEnd, "d 'de' MMMM", { locale: pt })}`;
+      }
       case 'month':
         return format(currentDate, "MMMM 'de' yyyy", { locale: pt });
     }

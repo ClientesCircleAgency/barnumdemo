@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import { errorMessage } from '@/lib/errors';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Check, X, Clock, Sparkles, Smile, Search, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
+import { X, Clock, Sparkles, Smile, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/PageHeader';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -26,9 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
-import { useContactMessages, useUpdateContactMessageStatus, type ContactMessage } from '@/hooks/useContactMessages';
 import { useAppointments } from '@/hooks/useAppointments';
-import { usePatients } from '@/hooks/usePatients';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
 import { useProfessionals } from '@/hooks/useProfessionals';
@@ -38,12 +35,12 @@ import { SuggestAlternativesModal } from '@/components/admin/SuggestAlternatives
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getAvailableProfessionalIds } from '@/utils/availability';
+import { RequestsBoard } from '@/components/admin/RequestsBoard';
+import { getRequestStage, getRequestStatusLabel, requestStageStyles } from '@/utils/requestStages';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
 
 export default function RequestsPage() {
-  const { data: requests = [], isLoading: loadingRequests } = useAppointmentRequests();
-  const { data: messages = [], isLoading: loadingMessages } = useContactMessages();
-  const { data: patients = [] } = usePatients();
+  const { data: requests = [], isLoading: loadingRequests, isError, refetch } = useAppointmentRequests();
   const { data: specialties = [] } = useSpecialties();
   const { data: consultationTypes = [] } = useConsultationTypes();
   const { data: professionals = [] } = useProfessionals();
@@ -53,13 +50,12 @@ export default function RequestsPage() {
 
   const updateRequestStatus = useUpdateAppointmentRequestStatus();
   const convertRequest = useConvertRequestToAppointment();
-  const updateMessageStatus = useUpdateContactMessageStatus();
   const updateSuggestions = useUpdateAppointmentRequestSuggestions();
 
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState<AppointmentRequest | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const selectedRequest = requests.find(request => request.id === selectedRequestId) || null;
+  const setSelectedRequest = (request: AppointmentRequest | null) => setSelectedRequestId(request?.id || null);
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
@@ -73,8 +69,13 @@ export default function RequestsPage() {
     ? consultationTypes.filter(ct => ct.specialty_id === selectedRequest.specialty_id)
     : [];
 
-  // Reset state when modal opens/closes
+  const initializedRequestId = useRef<string | null>(null);
+
+  // Initialize only when opening a different request; polling must preserve edits.
   useEffect(() => {
+    const nextId = selectedRequest?.id ?? null;
+    if (initializedRequestId.current === nextId) return;
+    initializedRequestId.current = nextId;
     if (selectedRequest) {
       const relevantProf = professionals.find(p => {
         const pSpecIds = profSpecialties.filter(ps => ps.professional_id === p.id).map(ps => ps.specialty_id);
@@ -94,22 +95,17 @@ export default function RequestsPage() {
     }
   }, [selectedRequest, professionals, profSpecialties, servicePreferences]);
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
-  const processedRequests = requests.filter(r => r.status !== 'pending');
-  const newMessages = messages.filter(m => m.status === 'new');
-
-  const filteredRequests = pendingRequests.filter(r =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    r.nif.includes(searchQuery) ||
-    r.phone.includes(searchQuery)
-  );
+  const pendingRequests = requests.filter(r => getRequestStage(r.status) === 'pending');
+  const suggestedRequests = requests.filter(r => getRequestStage(r.status) === 'suggested');
+  const canConfirm = selectedRequest?.status === 'pending' || selectedRequest?.status === 'pre_confirmed';
+  const selectedSlot = selectedRequest?.accepted_slot || null;
 
   // Compute available professionals based on manual duration
   const duration = parseInt(manualDurationMinutes, 10);
   const isDurationValid = !isNaN(duration) && duration >= 5 && duration <= 1440;
   
   // Filter professionals by the request's specialty (using junction table)
-  const specialtyProfessionals = selectedRequest
+  const specialtyProfessionals = useMemo(() => selectedRequest
     ? professionals.filter(p => {
         const profSpecIds = profSpecialties
           .filter(ps => ps.professional_id === p.id)
@@ -124,7 +120,7 @@ export default function RequestsPage() {
             selectedConsultationTypeId || undefined,
           );
       })
-    : [];
+    : [], [selectedRequest, professionals, profSpecialties, servicePreferences, selectedConsultationTypeId]);
 
   useEffect(() => {
     if (!selectedProfessionalId) return;
@@ -136,8 +132,8 @@ export default function RequestsPage() {
   const availableProfessionalIds = isDurationValid && selectedRequest
     ? getAvailableProfessionalIds(
         {
-          date: selectedRequest.preferred_date,
-          startTime: selectedRequest.preferred_time,
+          date: selectedSlot?.date || selectedRequest.preferred_date,
+          startTime: selectedSlot?.time || selectedRequest.preferred_time,
           durationMinutes: duration,
         },
         specialtyProfessionals,
@@ -149,7 +145,7 @@ export default function RequestsPage() {
 
   // Convert request to confirmed appointment via RPC
   const handleConvertToAppointment = async () => {
-    if (!selectedRequest) return;
+    if (!selectedRequest || !canConfirm) return;
     if (!selectedConsultationTypeId) {
       toast.error('Por favor selecione o tipo de consulta');
       return;
@@ -174,8 +170,8 @@ export default function RequestsPage() {
 
       toast.success('Consulta confirmada criada com sucesso.');
       setSelectedRequest(null);
-    } catch (error: any) {
-      const msg = error?.message || 'Erro desconhecido';
+    } catch (error: unknown) {
+      const msg = errorMessage(error, 'Erro desconhecido');
       toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);
@@ -203,51 +199,15 @@ export default function RequestsPage() {
     }
   };
 
-  const handleMarkMessageRead = async (id: string) => {
-    try {
-      await updateMessageStatus.mutateAsync({ id, status: 'read' });
-    } catch {
-      toast.error('Erro ao atualizar mensagem');
-    }
-  };
-
-  const handleArchiveMessage = async (id: string) => {
-    try {
-      await updateMessageStatus.mutateAsync({ id, status: 'archived' });
-      toast.success('Mensagem arquivada');
-      setSelectedMessage(null);
-    } catch {
-      toast.error('Erro ao arquivar mensagem');
-    }
-  };
-
-  const handleSendWhatsApp = (message: string, phone: string) => {
-    const formattedPhone = phone.replace(/\s/g, '').replace(/^\+/, '');
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
-    toast.success('WhatsApp aberto com mensagem');
-  };
-
   const handleSuggestAlternatives = () => {
     setShowAlternativesModal(true);
   };
 
-  const getStatusBadge = (status: AppointmentRequest['status']) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">Pendente</Badge>;
-      case 'approved':
-        return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">Aprovado</Badge>;
-      case 'rejected':
-        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Rejeitado</Badge>;
-      case 'converted':
-        return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">Convertido</Badge>;
-      default:
-        return null;
-    }
-  };
+  const getStatusBadge = (status: AppointmentRequest['status']) => (
+    <Badge variant="outline" className={requestStageStyles[getRequestStage(status)]}>{getRequestStatusLabel(status)}</Badge>
+  );
 
-  if (loadingRequests || loadingMessages) {
+  if (loadingRequests) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -259,159 +219,15 @@ export default function RequestsPage() {
     <div className="space-y-4 lg:space-y-6">
       <PageHeader
         title="Pedidos"
-        subtitle={`${pendingRequests.length} pedidos pendentes • ${newMessages.length} mensagens novas`}
+        subtitle={`${pendingRequests.length} pendentes · ${suggestedRequests.length} à espera de resposta`}
       />
 
-      <Tabs defaultValue="appointments" className="space-y-4">
-        <TabsList className="grid h-auto w-full grid-cols-2 rounded-2xl bg-secondary p-1 sm:max-w-md">
-          <TabsTrigger value="appointments" className="h-11 gap-2 rounded-xl px-2 text-xs sm:text-sm data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
-            <Calendar className="w-4 h-4" />
-            Marcações
-            {pendingRequests.length > 0 && (
-              <Badge className="ml-1 bg-primary text-primary-foreground text-xs px-1.5 py-0">
-                {pendingRequests.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="messages" className="h-11 gap-2 rounded-xl px-2 text-xs sm:text-sm data-[state=active]:bg-primary-gradient data-[state=active]:text-primary-foreground">
-            <Mail className="w-4 h-4" />
-            Mensagens
-            {newMessages.length > 0 && (
-              <Badge className="ml-1 bg-destructive text-destructive-foreground text-xs px-1.5 py-0">
-                {newMessages.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Appointment Requests */}
-        <TabsContent value="appointments" className="space-y-4">
-          {/* Search */}
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Pesquisar por nome, NIF ou telefone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-11 rounded-2xl border-primary/10 bg-secondary/45 pl-10"
-            />
-          </div>
-
-          {/* Pending Requests */}
-          {filteredRequests.length === 0 ? (
-            <Card className="rounded-[1.75rem] border-primary/10 p-8 text-center">
-              <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhum pedido de marcação pendente</p>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {filteredRequests.map((request) => (
-                <Card
-                  key={request.id}
-                  className="cursor-pointer rounded-[1.35rem] border-primary/10 p-4 transition-all hover:border-primary/20 hover:bg-secondary/35 hover:shadow-md"
-                  onClick={() => setSelectedRequest(request)}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                        // Find specialty name to determine icon/color
-                        specialties.find(s => s.id === request.specialty_id)?.name.toLowerCase().includes('rejuv')
-                          ? "bg-primary/10" : "bg-purple-100"
-                      )}>
-                        {specialties.find(s => s.id === request.specialty_id)?.name.toLowerCase().includes('rejuv') ? (
-                          <Sparkles className="h-5 w-5 text-primary" />
-                        ) : (
-                          <Smile className="h-5 w-5 text-purple-600" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">{request.name}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                          <span>NIF: {request.nif}</span>
-                          <span>•</span>
-                          <span>{format(parseISO(request.preferred_date), "d MMM", { locale: pt })} às {request.preferred_time}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                      {getStatusBadge(request.status)}
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(request.created_at), "d MMM", { locale: pt })}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {/* Processed Requests */}
-          {processedRequests.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Processados ({processedRequests.length})</h3>
-              <div className="grid gap-2 opacity-60">
-                {processedRequests.slice(0, 5).map((request) => (
-                  <Card key={request.id} className="rounded-2xl border-primary/10 p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="font-medium text-sm">{request.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {format(parseISO(request.preferred_date), "d MMM", { locale: pt })}
-                        </span>
-                      </div>
-                      {getStatusBadge(request.status)}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Contact Messages */}
-        <TabsContent value="messages" className="space-y-4">
-          {messages.length === 0 ? (
-            <Card className="rounded-[1.75rem] border-primary/10 p-8 text-center">
-              <Mail className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhuma mensagem recebida</p>
-            </Card>
-          ) : (
-            <div className="grid gap-3">
-              {messages.filter(m => m.status !== 'archived').map((message) => (
-                <Card
-                  key={message.id}
-                  className={cn(
-                    "cursor-pointer rounded-[1.35rem] border-primary/10 p-4 transition-all hover:border-primary/20 hover:bg-secondary/35 hover:shadow-md",
-                    message.status === 'new' && "border-l-4 border-l-primary"
-                  )}
-                  onClick={() => {
-                    setSelectedMessage(message);
-                    if (message.status === 'new') {
-                      handleMarkMessageRead(message.id);
-                    }
-                  }}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-medium text-foreground">{message.name}</p>
-                        {message.status === 'new' && (
-                          <Badge className="bg-primary text-primary-foreground text-xs">Nova</Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{message.message}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {format(new Date(message.created_at), "d MMM HH:mm", { locale: pt })}
-                    </span>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {isError ? (
+        <div role="alert" className="rounded-2xl border p-6">
+          <p>Não foi possível carregar os pedidos.</p>
+          <Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+        </div>
+      ) : <RequestsBoard requests={requests} onSelect={setSelectedRequest} />}
 
       {/* Request Detail Modal */}
       <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
@@ -469,6 +285,20 @@ export default function RequestsPage() {
                 </div>
               </div>
 
+              {getStatusBadge(selectedRequest.status)}
+              {selectedRequest.status === 'suggested' && (
+                <div className="space-y-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                  <p className="font-medium">Horários sugeridos · à espera de resposta do paciente</p>
+                  {selectedRequest.suggested_slots.map((slot, index) => (
+                    <p key={index}>{format(parseISO(slot.date), 'dd/MM/yyyy', { locale: pt })} às {slot.time.slice(0, 5)}</p>
+                  ))}
+                  {selectedRequest.suggestion_expires_at && <p className="text-xs">Validade: {format(parseISO(selectedRequest.suggestion_expires_at), 'dd/MM/yyyy HH:mm', { locale: pt })}</p>}
+                  <p>Este pedido só passa a processado após a confirmação da consulta.</p>
+                </div>
+              )}
+              {selectedSlot?.date && selectedSlot?.time && <p className="rounded-xl bg-secondary p-3 text-sm">Horário aceite: {format(parseISO(selectedSlot.date), 'dd/MM/yyyy', { locale: pt })} às {selectedSlot.time.slice(0, 5)}</p>}
+              {selectedRequest.rejection_reason && <p className="text-sm text-muted-foreground">Motivo: {selectedRequest.rejection_reason}</p>}
+
               {/* CONSULTATION REASON */}
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm font-medium">Motivo da Consulta</Label>
@@ -477,6 +307,7 @@ export default function RequestsPage() {
                 </p>
               </div>
 
+              {canConfirm && <>
               {/* CONSULTATION TYPE SELECTION (REQUIRED) */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
@@ -589,12 +420,14 @@ export default function RequestsPage() {
                 </div>
               )}
 
+              </>}
+
               <div className="text-xs text-muted-foreground pt-2 border-t">
                 Recebido: {format(new Date(selectedRequest.created_at), "d MMM yyyy 'às' HH:mm", { locale: pt })}
               </div>
 
               {/* ACTION BUTTONS */}
-              {selectedRequest.status === 'pending' && isDurationValid && (
+              {canConfirm && isDurationValid && (
                 <DialogFooter className="flex-col gap-2 sm:flex-col">
                   <div className="flex flex-col gap-2 w-full">
                     {hasAvailableDoctors && (
@@ -604,7 +437,7 @@ export default function RequestsPage() {
                         disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId}
                       >
                         <CalendarPlus className="w-4 h-4" />
-                        {isConverting ? 'A converter...' : 'Agendar Consulta'}
+                        {isConverting ? 'A confirmar...' : 'Confirmar e agendar consulta'}
                       </Button>
                     )}
 
@@ -632,7 +465,7 @@ export default function RequestsPage() {
               )}
 
               {/* Show instruction if duration not yet set */}
-              {selectedRequest.status === 'pending' && !isDurationValid && (
+              {canConfirm && !isDurationValid && (
                 <div className="space-y-2 pt-2 pb-1">
                   <div className="text-sm text-center text-muted-foreground">
                     Defina a duração da consulta para ver os profissionais disponíveis
@@ -689,57 +522,6 @@ export default function RequestsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Message Detail Modal */}
-      <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
-        <DialogContent className="max-w-md rounded-[1.6rem] sm:rounded-[1.8rem]">
-          <DialogHeader>
-            <DialogTitle>Mensagem</DialogTitle>
-            <DialogDescription>
-              Mensagem de contacto recebida
-            </DialogDescription>
-          </DialogHeader>
-          {selectedMessage && (
-            <div className="space-y-4">
-              <div>
-                <p className="font-semibold text-lg">{selectedMessage.name}</p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                  <a href={`mailto:${selectedMessage.email}`} className="hover:text-primary">
-                    {selectedMessage.email}
-                  </a>
-                  <a href={`tel:${selectedMessage.phone}`} className="hover:text-primary">
-                    {selectedMessage.phone}
-                  </a>
-                </div>
-              </div>
-
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="text-foreground whitespace-pre-wrap">{selectedMessage.message}</p>
-              </div>
-
-              <div className="text-xs text-muted-foreground">
-                Recebido: {format(new Date(selectedMessage.created_at), "d MMM yyyy 'às' HH:mm", { locale: pt })}
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => handleArchiveMessage(selectedMessage.id)}
-                  disabled={updateMessageStatus.isPending}
-                >
-                  Arquivar
-                </Button>
-                <Button asChild>
-                  <a href={`mailto:${selectedMessage.email}`}>
-                    <Mail className="w-4 h-4 mr-1" />
-                    Responder
-                  </a>
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* Suggest Alternatives Modal */}
       <SuggestAlternativesModal
         open={showAlternativesModal}
@@ -760,7 +542,9 @@ export default function RequestsPage() {
             suggested_slots: slots,
             suggestion_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           });
-          toast.success('Sugestões guardadas com sucesso');
+          toast.success('Horários sugeridos. A aguardar resposta do paciente.');
+          setShowAlternativesModal(false);
+          setSelectedRequest(null);
         }}
       />
     </div>

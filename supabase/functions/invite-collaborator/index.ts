@@ -1,6 +1,6 @@
-// @ts-ignore: Deno types
+// @ts-expect-error: Deno resolves remote imports at deployment
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @ts-ignore: Deno types
+// @ts-expect-error: Deno resolves remote imports at deployment
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
@@ -55,14 +55,6 @@ async function upsertUserProfile(
   throw error;
 }
 
-// Decode JWT payload without verification (gateway already validated the request)
-function decodeJwtPayload(jwt: string): Record<string, unknown> {
-  const parts = jwt.split(".");
-  if (parts.length !== 3) throw new Error("Invalid JWT format");
-  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  const payload = JSON.parse(atob(base64));
-  return payload;
-}
 
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
@@ -86,41 +78,12 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Decode JWT to extract user ID
-    let jwtPayload: Record<string, unknown>;
-    try {
-      jwtPayload = decodeJwtPayload(userToken);
-    } catch {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid token format" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const userId = jwtPayload.sub as string;
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Token missing user ID" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check token expiry
-    const exp = jwtPayload.exp as number;
-    if (exp && exp < Math.floor(Date.now() / 1000)) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Token expired" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Verify user exists via admin API (uses service role, no gateway JWT issue)
+    // Verify the complete user token with Auth, including its signature and expiry.
     const { data: userData, error: userError } =
-      await supabaseAdmin.auth.admin.getUserById(userId);
-
+      await supabaseAdmin.auth.getUser(userToken);
     if (userError || !userData.user) {
       return new Response(
-        JSON.stringify({ success: false, error: "User not found" }),
+        JSON.stringify({ success: false, error: "Invalid or expired user token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

@@ -34,6 +34,7 @@ export type AppointmentRequestInsert = Pick<
 export function useAppointmentRequests() {
   return useQuery({
     queryKey: ['appointment_requests'],
+    refetchInterval: 15000,
     queryFn: async (): Promise<AppointmentRequest[]> => {
       const { data, error } = await supabase
         .from('appointment_requests')

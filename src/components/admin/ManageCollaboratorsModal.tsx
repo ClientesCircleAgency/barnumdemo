@@ -1,3 +1,4 @@
+import type { UpdateCollaboratorParams } from '@/hooks/useCollaborators';
 import { useEffect, useState } from 'react';
 import {
   Dialog,
@@ -104,7 +105,7 @@ export function ManageCollaboratorsModal({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error('Sessão inválida.');
 
-      const body: any = { email, role, color };
+      const body: { email: string; role: string; color: string; specialty_id?: string } = { email, role, color };
       if (role === 'doctor') {
         body.specialty_id = specialtyId;
       }
@@ -161,7 +162,7 @@ export function ManageCollaboratorsModal({
 
     setIsSubmitting(true);
     try {
-      const params: any = { user_id: editTarget.user_id };
+      const params: UpdateCollaboratorParams = { user_id: editTarget.user_id };
 
       // Check if role changed
       if (role !== editTarget.role && editTarget.role !== 'admin') {

@@ -48,7 +48,7 @@ export function normalizeWorkingHours(value: Json | undefined | null): WorkingDa
     return DEFAULT_CLINIC_WORKING_HOURS;
   }
 
-  const rows = value.filter(isWorkingDay);
+  const rows = (value as unknown[]).filter(isWorkingDay);
   if (rows.length === 0) {
     return DEFAULT_CLINIC_WORKING_HOURS;
   }

@@ -1,3 +1,4 @@
+import { errorMessage } from '@/lib/errors';
 import { useState, useEffect, useRef } from 'react';
 import {
   User as UserIcon,
@@ -142,8 +143,8 @@ export default function AccountPage() {
 
       if (error) throw error;
       toast.success('Nome atualizado');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao guardar nome');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao guardar nome'));
     } finally {
       setSavingProfile(false);
     }
@@ -225,8 +226,8 @@ export default function AccountPage() {
 
       setPhotoUrl(nextPhotoUrl);
       toast.success('Foto atualizada');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao atualizar foto');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao atualizar foto'));
     } finally {
       setSavingPhoto(false);
       if (photoInputRef.current) photoInputRef.current.value = '';
@@ -262,8 +263,8 @@ export default function AccountPage() {
 
       setPhotoUrl(null);
       toast.success('Foto removida');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao remover foto');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao remover foto'));
     } finally {
       setSavingPhoto(false);
       if (photoInputRef.current) photoInputRef.current.value = '';
@@ -280,8 +281,8 @@ export default function AccountPage() {
       const { error } = await supabase.auth.updateUser({ email });
       if (error) throw error;
       toast.success('Email de confirmação enviado para o novo endereço');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao atualizar email');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao atualizar email'));
     } finally {
       setSavingEmail(false);
     }
@@ -303,8 +304,8 @@ export default function AccountPage() {
       toast.success('Password atualizada com sucesso');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao atualizar password');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao atualizar password'));
     } finally {
       setSavingPassword(false);
     }
@@ -324,14 +325,14 @@ export default function AccountPage() {
       if (user?.id) {
         const { error: profileError } = await supabase
           .from('user_profiles')
-          .upsert({ user_id: user.id, color }, { onConflict: 'user_id' });
+          .upsert({ user_id: user.id, color, full_name: fullName.trim() || user.email || 'Utilizador' }, { onConflict: 'user_id' });
 
         if (profileError) throw profileError;
       }
 
       toast.success('Cor atualizada');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao atualizar cor');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao atualizar cor'));
     } finally {
       setSavingColor(false);
     }
@@ -417,8 +418,8 @@ export default function AccountPage() {
       }
 
       toast.success('Preferências atualizadas');
-    } catch (e: any) {
-      toast.error(e.message || 'Erro ao guardar preferências');
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Erro ao guardar preferências'));
     } finally {
       setSavingAvailability(false);
     }

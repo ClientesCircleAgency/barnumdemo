@@ -15,7 +15,7 @@ import { FileText, CheckCircle } from 'lucide-react';
 import type { ClinicAppointment } from '@/types/clinic';
 
 interface FinalizationModalProps {
-  appointment: ClinicAppointment | null;
+  appointment: Pick<ClinicAppointment, 'id'> | null;
   patientName: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;

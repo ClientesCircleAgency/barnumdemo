@@ -1,291 +1,75 @@
 import { useState } from 'react';
-import { Search, Send, Bot, User, Phone, Calendar, FileText, ArrowLeft, Paperclip, Smile } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { pt } from 'date-fns/locale';
+import { Mail, Search } from 'lucide-react';
+import { PageHeader } from '@/components/admin/PageHeader';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useContactMessages, useMarkContactMessageAsRead, type ContactMessage } from '@/hooks/useContactMessages';
 import { cn } from '@/lib/utils';
-
-interface Conversation {
-  id: string;
-  name: string;
-  lastMessage: string;
-  time: string;
-  unread?: boolean;
-  isBot?: boolean;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  time: string;
-  isOutgoing: boolean;
-  status?: 'sent' | 'delivered' | 'read';
-}
+import { toast } from 'sonner';
 
 export default function MessagesPage() {
-  const [conversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [messages] = useState<Message[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newMessage, setNewMessage] = useState('');
-
-  const filteredConversations = conversations.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const { data: messages = [], isLoading, isError, refetch } = useContactMessages();
+  const markRead = useMarkContactMessageAsRead();
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<'all' | 'new' | 'read'>('all');
+  const [selected, setSelected] = useState<ContactMessage | null>(null);
+  const unread = messages.filter(message => !message.is_read).length;
+  const visible = messages.filter(message =>
+    (filter === 'all' || (filter === 'read' ? message.is_read : !message.is_read)) &&
+    [message.name, message.email, message.phone, message.message].some(value => value?.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())),
   );
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
+  const openMessage = async (message: ContactMessage) => {
+    setSelected(message);
+    if (!message.is_read) {
+      try { await markRead.mutateAsync(message.id); }
+      catch { toast.error('Não foi possível marcar a mensagem como lida.'); }
+    }
   };
 
-  const handleBack = () => {
-    setSelectedConversation(null);
-  };
-
-  return (
-    <div className="flex h-[calc(100vh-64px)] flex-col bg-background md:flex-row">
-      {/* Lista de conversas - hidden on mobile when conversation selected */}
-      <div className={cn(
-        'w-full md:w-80 lg:w-72 xl:w-80 border-r border-border bg-card flex flex-col shrink-0',
-        selectedConversation && 'hidden md:flex'
-      )}>
-        {/* Search */}
-        <div className="border-b border-border p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Procurar conversa..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-10 bg-muted/50 border-0 text-sm"
-            />
-          </div>
-        </div>
-
-        {/* Conversations list */}
-        <ScrollArea className="flex-1">
-          <div>
-            {filteredConversations.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground text-sm">
-                Sem conversas
-              </div>
-            ) : (
-              filteredConversations.map((conversation) => (
-                <button
-                  key={conversation.id}
-                  onClick={() => setSelectedConversation(conversation)}
-                  className={cn(
-                    'w-full px-3 py-3 flex items-center gap-3 text-left transition-colors hover:bg-accent/50 border-b border-border/50',
-                    selectedConversation?.id === conversation.id && 'bg-accent border-l-4 border-l-primary'
-                  )}
-                >
-                  <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                      {getInitials(conversation.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm text-foreground truncate">
-                        {conversation.name}
-                      </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-xs text-muted-foreground">
-                          {conversation.time}
-                        </span>
-                        {conversation.unread && (
-                          <div className="w-2 h-2 rounded-full bg-destructive" />
-                        )}
-                      </div>
-                    </div>
-                    <p className={cn(
-                      'text-sm truncate mt-0.5',
-                      conversation.unread ? 'text-foreground' : 'text-muted-foreground'
-                    )}>
-                      {conversation.lastMessage}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+  return <div className="space-y-5">
+    <PageHeader title="Mensagens" subtitle={`${unread} por ler · ${messages.length} mensagens recebidas`} />
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input aria-label="Pesquisar mensagens" value={query} onChange={event => setQuery(event.target.value)} placeholder="Pesquisar nome, contacto ou mensagem..." className="h-11 rounded-2xl pl-10" />
       </div>
-
-      {/* Área de chat */}
-      {selectedConversation ? (
-        <div className={cn(
-          'flex-1 flex flex-col bg-[hsl(40,25%,94%)] min-w-0',
-          !selectedConversation && 'hidden md:flex'
-        )}>
-          {/* Chat header */}
-          <div className="bg-card border-b border-border px-3 py-3 sm:px-4 flex items-center justify-between shrink-0">
-            <div className="flex min-w-0 items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden shrink-0"
-                onClick={handleBack}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <Avatar className="h-9 w-9 shrink-0">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                  {getInitials(selectedConversation.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0">
-                <h3 className="font-semibold text-foreground text-sm truncate">{selectedConversation.name}</h3>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Bot className="h-3 w-3 shrink-0" />
-                  <span className="truncate">Bot respondeu há 5 min</span>
-                </div>
-              </div>
-            </div>
-            <Button size="sm" className="hidden h-8 shrink-0 text-xs sm:inline-flex">
-              Assumir Controlo
-            </Button>
-          </div>
-
-          {/* Messages area */}
-          <ScrollArea className="flex-1">
-            <div className="space-y-3 p-3 sm:p-4 md:p-6">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex',
-                    message.isOutgoing ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  <div
-                    className={cn(
-                      'max-w-[90%] sm:max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm',
-                      message.isOutgoing
-                        ? 'bg-[hsl(145,55%,90%)] text-foreground rounded-br-md'
-                        : 'bg-card text-foreground rounded-bl-md border border-border'
-                    )}
-                  >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
-                    <div className={cn(
-                      'flex items-center gap-1 mt-1',
-                      message.isOutgoing ? 'justify-end' : 'justify-start'
-                    )}>
-                      <span className="text-[10px] text-muted-foreground">{message.time}</span>
-                      {message.isOutgoing && message.status === 'read' && (
-                        <svg className="h-3 w-3 text-primary" viewBox="0 0 16 16" fill="currentColor">
-                          <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
-                          <path d="M6.854 10.146a.5.5 0 0 1 0 .708l-.647.646.647-.646a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708l3.5 3.5z"/>
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-
-          {/* Message input */}
-          <div className="bg-card border-t border-border p-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <Input
-                  placeholder="Escreva uma mensagem..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="pr-16 bg-muted/50 border-0 h-11 rounded-full text-sm"
-                />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                    <Smile className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <Button size="icon" className="h-11 w-11 rounded-full shrink-0">
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="hidden md:flex flex-1 items-center justify-center bg-muted/30">
-          <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Bot className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">Selecione uma conversa para começar</p>
-          </div>
-        </div>
-      )}
-
-      {/* Sidebar de contexto */}
-      {selectedConversation && (
-        <div className="w-64 border-l border-border bg-card p-4 hidden xl:flex flex-col shrink-0">
-          <div className="text-center mb-6">
-            <Avatar className="h-16 w-16 mx-auto mb-3">
-              <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                {getInitials(selectedConversation.name)}
-              </AvatarFallback>
-            </Avatar>
-            <h3 className="font-semibold text-foreground text-sm">{selectedConversation.name}</h3>
-            <p className="text-xs text-muted-foreground">Paciente desde 2023</p>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Telefone</p>
-                <p className="text-sm text-foreground truncate">+351 912 345 678</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Próxima Consulta</p>
-                <p className="text-sm text-foreground truncate">Amanhã, 10:00</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Última Consulta</p>
-                <p className="text-sm text-foreground truncate">15 Dez 2025</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-auto pt-4 border-t border-border">
-            <h4 className="font-medium text-xs text-muted-foreground uppercase tracking-wide mb-3">Ações Rápidas</h4>
-            <div className="space-y-2">
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-sm">
-                <Calendar className="h-4 w-4" />
-                Agendar Consulta
-              </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-9 text-sm">
-                <User className="h-4 w-4" />
-                Ver Ficha
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="flex flex-wrap gap-2" aria-label="Filtrar mensagens">
+        {([{ key: 'all', label: 'Todas' }, { key: 'new', label: 'Por ler' }, { key: 'read', label: 'Lidas' }] as const).map(item =>
+          <Button key={item.key} type="button" variant={filter === item.key ? 'default' : 'outline'} aria-pressed={filter === item.key} onClick={() => setFilter(item.key)}>{item.label}</Button>,
+        )}
+      </div>
     </div>
-  );
+    {isLoading ? <p role="status">A carregar mensagens...</p> : isError ? (
+      <div role="alert" className="rounded-2xl border p-6"><p>Não foi possível carregar as mensagens.</p><Button variant="outline" onClick={() => refetch()}>Tentar novamente</Button></div>
+    ) : visible.length === 0 ? <p className="rounded-2xl border border-dashed p-8 text-center text-muted-foreground">Nenhuma mensagem encontrada.</p> : (
+      <div className="grid gap-3">
+        {visible.map(message => <button key={message.id} type="button" onClick={() => openMessage(message)}
+          className={cn('w-full rounded-2xl border bg-card p-4 text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', !message.is_read && 'border-l-4 border-l-blue-500 bg-blue-50/50')}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0" /><span className="break-words font-semibold">{message.name}</span>{!message.is_read && <Badge className="bg-blue-100 text-blue-900">Nova</Badge>}</div>
+            <span className="text-xs text-muted-foreground">{format(parseISO(message.created_at), 'd MMM yyyy HH:mm', { locale: pt })}</span>
+          </div>
+          <p className="mt-2 line-clamp-2 break-words text-sm text-muted-foreground">{message.message}</p>
+        </button>)}
+      </div>
+    )}
+    <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl">
+        <DialogHeader><DialogTitle>Mensagem de contacto</DialogTitle><DialogDescription>Recebida através do formulário do site.</DialogDescription></DialogHeader>
+        {selected && <>
+          <p className="break-words font-semibold">{selected.name}</p>
+          <div className="flex flex-col gap-2 text-sm">
+            <a className="break-all text-primary underline" href={`mailto:${selected.email}`}>{selected.email}</a>
+            <a className="text-primary underline" href={`tel:${selected.phone}`}>{selected.phone}</a>
+          </div>
+          <p className="whitespace-pre-wrap break-words rounded-xl bg-secondary/50 p-4">{selected.message}</p>
+          <DialogFooter><Button variant="outline" onClick={() => setSelected(null)}>Fechar</Button><Button asChild><a href={`mailto:${selected.email}`}><Mail className="h-4 w-4" />Responder por email</a></Button></DialogFooter>
+        </>}
+      </DialogContent>
+    </Dialog>
+  </div>;
 }

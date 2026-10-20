@@ -6,7 +6,7 @@ import { Service } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function ServiceCard({ service, index }: { service: Service; index: number }) {
-  const IconComponent = (Icons as any)[service.icon] || Icons.Circle;
+  const IconComponent = (Icons as unknown as Record<string, Icons.LucideIcon>)[service.icon] || Icons.Circle;
 
   return (
     <div

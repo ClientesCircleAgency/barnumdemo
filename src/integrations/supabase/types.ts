@@ -525,6 +525,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_request_to_appointment: {
+        Args: {
+          p_request_id: string
+          p_accepted_date?: string | null
+          p_accepted_time?: string | null
+          p_professional_id?: string | null
+          p_consultation_type_id?: string | null
+          p_duration?: number | null
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

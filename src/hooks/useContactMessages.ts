@@ -18,6 +18,7 @@ export type ContactMessageInsert = Omit<ContactMessage, 'id' | 'is_read' | 'crea
 export function useContactMessages() {
   return useQuery({
     queryKey: ['contact_messages'],
+    refetchInterval: 30000,
     queryFn: async (): Promise<ContactMessage[]> => {
       const { data, error } = await supabase
         .from('contact_messages')

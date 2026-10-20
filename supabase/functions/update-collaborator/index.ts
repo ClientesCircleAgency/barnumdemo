@@ -1,6 +1,6 @@
-// @ts-ignore: Deno types
+// @ts-expect-error: Deno resolves remote imports at deployment
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-// @ts-ignore: Deno types
+// @ts-expect-error: Deno resolves remote imports at deployment
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
@@ -22,12 +22,6 @@ interface UpdateRequest {
   } | null;
 }
 
-function decodeJwtPayload(jwt: string): Record<string, unknown> {
-  const parts = jwt.split(".");
-  if (parts.length !== 3) throw new Error("Invalid JWT format");
-  const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  return JSON.parse(atob(base64));
-}
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
@@ -80,30 +74,13 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Decode JWT and validate caller
-    let jwtPayload: Record<string, unknown>;
-    try {
-      jwtPayload = decodeJwtPayload(userToken);
-    } catch {
-      return jsonResponse({ success: false, error: "Invalid token format" }, 401);
-    }
-
-    const callerId = jwtPayload.sub as string;
-    if (!callerId) {
-      return jsonResponse({ success: false, error: "Token missing user ID" }, 401);
-    }
-
-    const exp = jwtPayload.exp as number;
-    if (exp && exp < Math.floor(Date.now() / 1000)) {
-      return jsonResponse({ success: false, error: "Token expired" }, 401);
-    }
-
-    // Verify caller exists
+    // Verify the complete token; a decoded sub is not proof of identity.
     const { data: callerData, error: callerError } =
-      await supabaseAdmin.auth.admin.getUserById(callerId);
+      await supabaseAdmin.auth.getUser(userToken);
     if (callerError || !callerData.user) {
-      return jsonResponse({ success: false, error: "User not found" }, 401);
+      return jsonResponse({ success: false, error: "Invalid or expired user token" }, 401);
     }
+    const callerId = callerData.user.id;
 
     // Verify caller is admin
     const { data: isAdminData, error: roleError } = await supabaseAdmin.rpc(

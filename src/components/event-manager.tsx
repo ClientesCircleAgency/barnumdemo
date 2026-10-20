@@ -297,7 +297,7 @@ export function EventManager({
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {/* Mobile: Select dropdown */}
           <div className="sm:hidden">
-            <Select value={view} onValueChange={(value: any) => setView(value)}>
+            <Select value={view} onValueChange={(value) => { if (value === "day" || value === "week" || value === "month" || value === "list") setView(value); }}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -792,9 +792,8 @@ export function EventManager({
                   }
                   onChange={(e) => {
                     const date = new Date(e.target.value)
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, startTime: date }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, startTime: date } : null))
+                    if (isCreating) setNewEvent((prev) => ({ ...prev, startTime: date }))
+                    else setSelectedEvent((prev) => (prev ? { ...prev, startTime: date } : null))
                   }}
                 />
               </div>
@@ -819,9 +818,8 @@ export function EventManager({
                   }
                   onChange={(e) => {
                     const date = new Date(e.target.value)
-                    isCreating
-                      ? setNewEvent((prev) => ({ ...prev, endTime: date }))
-                      : setSelectedEvent((prev) => (prev ? { ...prev, endTime: date } : null))
+                    if (isCreating) setNewEvent((prev) => ({ ...prev, endTime: date }))
+                    else setSelectedEvent((prev) => (prev ? { ...prev, endTime: date } : null))
                   }}
                 />
               </div>

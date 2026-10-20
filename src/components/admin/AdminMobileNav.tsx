@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
+import { isOpenRequest } from '@/utils/requestStages';
 import { Button } from '@/components/ui/button';
 
 type UserRole = 'admin' | 'secretary' | 'doctor';
@@ -28,7 +29,7 @@ export function AdminMobileNav({ onMenuOpen, onNewAppointment }: AdminMobileNavP
 
   const todayDate = new Date().toISOString().split('T')[0];
   const agendaBadge = appointments.filter((appointment) => appointment.date === todayDate && appointment.status === 'confirmed').length;
-  const requestsBadge = requests.filter((request) => request.status === 'pending').length;
+  const requestsBadge = requests.filter((request) => isOpenRequest(request.status)).length;
 
   const navItems: MobileNavItem[] = [
     { path: '/admin/dashboard', label: 'Home', icon: LayoutDashboard, allowedRoles: ['admin', 'secretary', 'doctor'] },

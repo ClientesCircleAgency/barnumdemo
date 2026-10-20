@@ -39,7 +39,7 @@ export default function SettingsPage() {
   const handleSaveAll = async () => {
     setIsSaving(true);
     try {
-      await updateSetting.mutateAsync({ key: 'working_hours', value: workingHours as any });
+      await updateSetting.mutateAsync({ key: 'working_hours', value: workingHours.map(day => ({ ...day })) });
       toast.success('Definições guardadas com sucesso');
     } catch {
       toast.error('Erro ao guardar definições');

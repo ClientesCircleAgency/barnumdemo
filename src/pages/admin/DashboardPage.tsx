@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
 import { useContactMessages } from '@/hooks/useContactMessages';
+import { isOpenRequest, getRequestStage, getRequestStatusLabel, requestStageStyles } from '@/utils/requestStages';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useAuth } from '@/hooks/useAuth';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -34,7 +35,7 @@ export default function DashboardPage() {
     ACTIVE_APPOINTMENT_STATUSES.includes(appointment.status as (typeof ACTIVE_APPOINTMENT_STATUSES)[number]),
   );
   const completedTodayAppointments = todayAppointments.filter((appointment) => appointment.status === 'completed');
-  const pendingRequests = requests.filter((request) => request.status === 'pending');
+  const pendingRequests = requests.filter((request) => isOpenRequest(request.status));
   const unreadMessages = contactMessages.filter((message) => !message.is_read);
   const utilisationRate = todayAppointments.length === 0
     ? 0
@@ -118,12 +119,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <AdminMetricCard icon={CalendarDays} title="Hoje" value={todayAppointments.length} caption="Consultas" accent />
           <MetricLink to="/admin/pedidos">
-            <AdminMetricCard icon={Inbox} title="Pedidos" value={pendingRequests.length} caption="Pendentes" />
+            <AdminMetricCard icon={Inbox} title="Pedidos" value={pendingRequests.length} caption="Em aberto" />
           </MetricLink>
           <AdminMetricCard icon={Users} title="Pacientes" value={patients.length} caption="Registados" />
           <AdminMetricCard icon={TrendingUp} title="Concluídas" value={completedTodayAppointments.length} caption="Hoje" />
           <AdminMetricCard icon={Star} title="Google" value={4.8} caption="127 avaliações" />
-          <AdminMetricCard icon={MessageCircle} title="Mensagens" value={unreadMessages.length} caption="Por ler" />
+          <MetricLink to="/admin/mensagens"><AdminMetricCard icon={MessageCircle} title="Mensagens" value={unreadMessages.length} caption="Por ler" /></MetricLink>
         </div>
 
         <AppointmentsChart />
@@ -195,8 +196,8 @@ export default function DashboardPage() {
                           {specialties.find((specialty) => specialty.id === request.specialty_id)?.name || 'Especialidade desconhecida'}
                         </p>
                       </div>
-                      <Badge className="rounded-full bg-primary/10 text-primary hover:bg-primary/10">
-                        Pendente
+                      <Badge variant="outline" className={requestStageStyles[getRequestStage(request.status)]}>
+                        {getRequestStatusLabel(request.status)}
                       </Badge>
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">

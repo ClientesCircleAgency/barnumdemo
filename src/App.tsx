@@ -15,6 +15,7 @@ import PatientDetailPage from "./pages/admin/PatientDetailPage";
 import WaitingRoomPage from "./pages/admin/WaitingRoomPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import RequestsPage from "./pages/admin/RequestsPage";
+import MessagesPage from "./pages/admin/MessagesPage";
 import PlanPage from "./pages/admin/PlanPage";
 import StatisticsPage from "./pages/admin/StatisticsPage";
 import AccountPage from "./pages/admin/AccountPage";
@@ -43,6 +44,7 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="mensagens" element={<ProtectedRoute allowedRoles={['admin', 'secretary']}><MessagesPage /></ProtectedRoute>} />
             <Route path="pacientes" element={<PatientsPage />} />
             <Route path="pacientes/:id" element={<PatientDetailPage />} />
             <Route

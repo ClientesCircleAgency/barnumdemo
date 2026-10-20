@@ -15,6 +15,7 @@ import { AdminMobileNav } from './AdminMobileNav';
 import logo from '@/assets/logo-final-no-bg.png';
 
 const pageTitles: Record<string, { title: string }> = {
+  '/admin/mensagens': { title: 'Mensagens' },
   '/admin/dashboard': { title: 'Dashboard' },
   '/admin/agenda': { title: 'Agenda do Dia' },
   '/admin/pacientes': { title: 'Gestão de Pacientes' },

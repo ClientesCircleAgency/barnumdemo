@@ -11,6 +11,7 @@ import {
   Plus,
   LogOut,
   Inbox,
+  Mail,
   TrendingUp,
   UserCircle,
 } from 'lucide-react';
@@ -23,6 +24,8 @@ import {
 } from '@/components/ui/tooltip';
 import { useClinic } from '@/context/ClinicContext';
 import { useAppointmentRequests } from '@/hooks/useAppointmentRequests';
+import { useContactMessages } from '@/hooks/useContactMessages';
+import { isOpenRequest } from '@/utils/requestStages';
 import { useAuth } from '@/hooks/useAuth';
 import { PlanBadge } from './PlanBadge';
 
@@ -40,6 +43,7 @@ const navItems: NavItem[] = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'secretary', 'doctor'] },
   { path: '/admin/agenda', label: 'Agenda', icon: CalendarDays, allowedRoles: ['admin', 'secretary', 'doctor'] },
   { path: '/admin/pedidos', label: 'Pedidos', icon: Inbox, badgeKey: 'requests', allowedRoles: ['admin', 'secretary'] },
+  { path: '/admin/mensagens', label: 'Mensagens', icon: Mail, badgeKey: 'messages', allowedRoles: ['admin', 'secretary'] },
   { path: '/admin/pacientes', label: 'Pacientes', icon: Users, allowedRoles: ['admin', 'secretary', 'doctor'] },
   { path: '/admin/profissionais', label: 'Profissionais', icon: UserCog, allowedRoles: ['admin', 'secretary'] },
   { path: '/admin/estatisticas', label: 'Estatísticas', icon: TrendingUp, allowedRoles: ['admin'] },
@@ -58,13 +62,15 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
   const location = useLocation();
   const { appointments } = useClinic();
   const { data: requests = [] } = useAppointmentRequests();
+  const { data: messages = [] } = useContactMessages();
+  const unreadMessages = messages.filter(message => !message.is_read).length;
   const { userRole } = useAuth();
 
   const todayDate = new Date().toISOString().split('T')[0];
   const pendingToday = appointments.filter(
     (a) => a.date === todayDate && a.status === 'confirmed'
   ).length;
-  const pendingRequests = requests.filter(r => r.status === 'pending').length;
+  const pendingRequests = requests.filter(r => isOpenRequest(r.status)).length;
 
   const isCollapsed = collapsed && !isMobile;
 
@@ -128,6 +134,8 @@ export function AdminSidebar({ collapsed, onToggle, onNewAppointment, onLogout, 
           const badge =
             item.badgeKey === 'requests' && pendingRequests > 0
               ? pendingRequests
+              : item.badgeKey === 'messages' && unreadMessages > 0
+                ? unreadMessages
               : item.path === '/admin/agenda' && pendingToday > 0
                 ? pendingToday
                 : null;

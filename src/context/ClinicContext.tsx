@@ -1,3 +1,4 @@
+import type { PatientRow, AppointmentRow, ProfessionalRow, ConsultationTypeRow, SpecialtyRow } from '@/types/database';
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePatients, useAddPatient, useUpdatePatient } from '@/hooks/usePatients';
@@ -17,7 +18,7 @@ import type {
 } from '@/types/clinic';
 
 // Mapper functions: convert snake_case from DB to camelCase for components
-function mapPatient(row: any): Patient {
+function mapPatient(row: PatientRow): Patient {
   return {
     id: row.id,
     nif: row.nif,
@@ -31,7 +32,7 @@ function mapPatient(row: any): Patient {
   };
 }
 
-function mapAppointment(row: any): ClinicAppointment {
+function mapAppointment(row: AppointmentRow): ClinicAppointment {
   return {
     id: row.id,
     patientId: row.patient_id,
@@ -54,7 +55,7 @@ function mapAppointment(row: any): ClinicAppointment {
   };
 }
 
-function mapProfessional(row: any, profSpecialties: ProfessionalSpecialtyRow[]): Professional {
+function mapProfessional(row: ProfessionalRow, profSpecialties: ProfessionalSpecialtyRow[]): Professional {
   const specialtyIds = profSpecialties
     .filter(ps => ps.professional_id === row.id)
     .map(ps => ps.specialty_id);
@@ -70,7 +71,7 @@ function mapProfessional(row: any, profSpecialties: ProfessionalSpecialtyRow[]):
   };
 }
 
-function mapConsultationType(row: any): ConsultationType {
+function mapConsultationType(row: ConsultationTypeRow): ConsultationType {
   return {
     id: row.id,
     name: row.name,
@@ -80,7 +81,7 @@ function mapConsultationType(row: any): ConsultationType {
   };
 }
 
-function mapSpecialty(row: any): Specialty {
+function mapSpecialty(row: SpecialtyRow): Specialty {
   return {
     id: row.id,
     name: row.name,
