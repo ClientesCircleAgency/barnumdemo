@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
   User,
@@ -187,14 +187,14 @@ export function AppointmentDetailDrawer({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Data</span>
                   <span className="font-medium">
-                    {format(new Date(appointment.date), "EEEE, d 'de' MMMM", { locale: pt })}
+                    {format(parseISO(appointment.date), "EEEE, d 'de' MMMM", { locale: pt })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Hora</span>
                   <span className="font-medium flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {appointment.time} ({appointment.duration} min)
+                    {appointment.time.slice(0, 5)} ({appointment.duration} min)
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

@@ -372,7 +372,7 @@ export default function WaitingRoomPage() {
                 {getPatient(activeAppointment.patient_id)?.name || 'Paciente'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {activeAppointment.time} • {getConsultationType(activeAppointment.consultation_type_id)?.name}
+                {activeAppointment.time.slice(0, 5)} • {getConsultationType(activeAppointment.consultation_type_id)?.name}
               </p>
             </div>
           )}
