@@ -109,7 +109,7 @@ export function DaySummaryPanel({ currentDate, onAppointmentClick }: DaySummaryP
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{patient?.name}</p>
-                      <p className="text-xs text-muted-foreground">{apt.time}</p>
+                      <p className="text-xs text-muted-foreground">{apt.time.slice(0, 5)}</p>
                     </div>
                     <StatusBadge status={apt.status} size="sm" />
                   </div>

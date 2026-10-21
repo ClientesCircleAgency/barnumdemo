@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { useClinic } from '@/context/ClinicContext';
 import type { Patient } from '@/types/clinic';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { inlinePatientFormSchema, type InlinePatientFormData } from '@/lib/validations/patient';
 import { normalizePhone, PHONE_COUNTRIES, type PhoneCountry } from '@/lib/phone';
@@ -142,7 +142,7 @@ export function PatientLookupByNIF({ onPatientSelect, selectedPatient, onClear, 
                 <p className="text-sm text-muted-foreground">{selectedPatient.phone}</p>
                 {lastAppointment && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Última consulta: {format(new Date(lastAppointment.date), 'dd/MM/yyyy', { locale: pt })}
+                    Última consulta: {format(parseISO(lastAppointment.date), 'dd/MM/yyyy', { locale: pt })}
                   </p>
                 )}
               </div>

@@ -10,7 +10,7 @@ import { AppointmentWizard } from '@/components/admin/AppointmentWizard';
 import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
 import { appointmentStatusLabels } from '@/types/clinic';
 import type { ClinicAppointment } from '@/types/clinic';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
 export default function PatientDetailPage() {
@@ -77,7 +77,7 @@ export default function PatientDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3"><Phone className="h-4 w-4 text-muted-foreground" /><span>{patient.phone}</span></div>
             {patient.email && <div className="flex items-center gap-3"><Mail className="h-4 w-4 text-muted-foreground" /><span>{patient.email}</span></div>}
-            {patient.birthDate && <div className="flex items-center gap-3"><Calendar className="h-4 w-4 text-muted-foreground" /><span>{format(new Date(patient.birthDate), 'dd/MM/yyyy', { locale: pt })}</span></div>}
+            {patient.birthDate && <div className="flex items-center gap-3"><Calendar className="h-4 w-4 text-muted-foreground" /><span>{format(parseISO(patient.birthDate), 'dd/MM/yyyy', { locale: pt })}</span></div>}
             <Separator />
             <div><h4 className="text-sm font-medium text-muted-foreground mb-2">Registado em</h4><p>{format(new Date(patient.createdAt), "d 'de' MMMM 'de' yyyy", { locale: pt })}</p></div>
             {patient.tags && patient.tags.length > 0 && <div><h4 className="text-sm font-medium text-muted-foreground mb-2">Tags</h4><div className="flex flex-wrap gap-1">{patient.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}</div></div>}
@@ -100,8 +100,8 @@ export default function PatientDetailPage() {
                   const consultationType = getConsultationTypeById(apt.consultationTypeId);
                   return (
                     <div key={apt.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => { setSelectedAppointment(apt); setDrawerOpen(true); }}>
-                      <div className="text-center min-w-20"><p className="text-lg font-bold">{format(new Date(apt.date), 'dd', { locale: pt })}</p><p className="text-xs text-muted-foreground uppercase">{format(new Date(apt.date), 'MMM yyyy', { locale: pt })}</p></div>
-                      <div className="flex-1"><div className="flex items-center gap-2"><span className="font-medium">{apt.time}</span><span className="text-muted-foreground">•</span><span>{consultationType?.name || 'Consulta'}</span></div><p className="text-sm text-muted-foreground">{professional?.name}</p></div>
+                      <div className="text-center min-w-20"><p className="text-lg font-bold">{format(parseISO(apt.date), 'dd', { locale: pt })}</p><p className="text-xs text-muted-foreground uppercase">{format(parseISO(apt.date), 'MMM yyyy', { locale: pt })}</p></div>
+                      <div className="flex-1"><div className="flex items-center gap-2"><span className="font-medium">{apt.time.slice(0, 5)}</span><span className="text-muted-foreground">•</span><span>{consultationType?.name || 'Consulta'}</span></div><p className="text-sm text-muted-foreground">{professional?.name}</p></div>
                       <Badge className={getStatusColor(apt.status)}>{appointmentStatusLabels[apt.status]}</Badge>
                     </div>
                   );

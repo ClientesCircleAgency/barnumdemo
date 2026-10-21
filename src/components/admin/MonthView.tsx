@@ -153,7 +153,7 @@ export function MonthView({
                           backgroundColor: `${professional?.color}30`,
                           color: professional?.color,
                         }}
-                        title={`${apt.time} - ${patient?.name}`}
+                        title={`${apt.time.slice(0, 5)} - ${patient?.name}`}
                       >
                         {apt.time.slice(0, 5)} {patient?.name?.split(' ')[0]}
                       </div>
