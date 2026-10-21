@@ -39,6 +39,9 @@ import { toast } from 'sonner';
 import type { ProfessionalRow } from '@/types/database';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
 
+/** Erro com mensagem segura para mostrar ao utilizador (mantém o modal aberto). */
+export class SlotSubmitError extends Error {}
+
 export interface SlotSelection {
   date: string;
   time: string;
@@ -361,8 +364,8 @@ export function SuggestAlternativesModal({
       await onSubmit(slots);
       onOpenChange(false);
       setSelectedSlots(new Map());
-    } catch {
-      toast.error('Erro ao processar');
+    } catch (error) {
+      toast.error(error instanceof SlotSubmitError ? error.message : 'Erro ao processar');
     } finally {
       setIsSending(false);
     }

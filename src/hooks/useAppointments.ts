@@ -77,19 +77,26 @@ export function useAddAppointment() {
   });
 }
 
+/** Lançado quando a consulta já não está no estado esperado (alterada noutro ecrã). */
+export class AppointmentChangedError extends Error {}
+
 export function useUpdateAppointment() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: AppointmentUpdate }) => {
-      const { data: updated, error } = await supabase
+    mutationFn: async ({ id, data, ifStatus }: { id: string; data: AppointmentUpdate; ifStatus?: AppointmentStatus }) => {
+      let query = supabase
         .from('appointments')
         .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-      
+        .eq('id', id);
+
+      // Só atualiza se a consulta ainda estiver no estado que o utilizador viu
+      if (ifStatus) query = query.eq('status', ifStatus);
+
+      const { data: updated, error } = await query.select().maybeSingle();
+
       if (error) throw error;
+      if (!updated) throw new AppointmentChangedError('Consulta não encontrada ou já alterada');
       return updated;
     },
     onSuccess: () => {
