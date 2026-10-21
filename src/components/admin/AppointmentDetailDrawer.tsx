@@ -33,8 +33,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useClinic } from '@/context/ClinicContext';
-import { useUpdateAppointment, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
-import { SuggestAlternativesModal } from './SuggestAlternativesModal';
+import { useUpdateAppointment, useUpdateAppointmentStatus, AppointmentChangedError } from '@/hooks/useAppointments';
+import { SuggestAlternativesModal, SlotSubmitError } from './SuggestAlternativesModal';
 import type { SlotSelection } from './SuggestAlternativesModal';
 import { StatusBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -118,17 +118,36 @@ export function AppointmentDetailDrawer({
     const slot = slots[0];
     if (!slot) return;
 
-    await updateAppointment.mutateAsync({
-      id: appointment.id,
-      data: {
-        date: slot.date,
-        time: slot.time,
-        professional_id: slot.professional_id,
-        professional_name: slot.professional_name,
-        status: 'confirmed',
-        is_rescheduled: true,
-      },
-    });
+    if (appointment.status !== 'confirmed') {
+      throw new SlotSubmitError('Só é possível reagendar consultas confirmadas.');
+    }
+
+    const sameSlot =
+      slot.date === appointment.date &&
+      slot.time.slice(0, 5) === appointment.time.slice(0, 5) &&
+      slot.professional_id === appointment.professionalId;
+    if (sameSlot) {
+      throw new SlotSubmitError('Escolha uma data, hora ou profissional diferente do atual.');
+    }
+
+    try {
+      await updateAppointment.mutateAsync({
+        id: appointment.id,
+        ifStatus: 'confirmed',
+        data: {
+          date: slot.date,
+          time: slot.time,
+          professional_id: slot.professional_id,
+          professional_name: slot.professional_name,
+          is_rescheduled: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof AppointmentChangedError) {
+        throw new SlotSubmitError('A consulta foi alterada noutro ecrã. Feche e abra de novo antes de reagendar.');
+      }
+      throw error;
+    }
     toast.success('Consulta reagendada com sucesso');
     setShowReschedule(false);
     onOpenChange(false);
@@ -311,6 +330,8 @@ export function AppointmentDetailDrawer({
                       variant="outline"
                       className="flex-col h-auto py-3 gap-1.5 text-amber-600 border-amber-500/30 hover:bg-amber-50 hover:border-amber-500/50"
                       onClick={handleReschedule}
+                      disabled={appointment.status !== 'confirmed'}
+                      title={appointment.status !== 'confirmed' ? 'Só é possível reagendar consultas confirmadas' : undefined}
                     >
                       <CalendarClock className="h-4 w-4" />
                       <span className="text-xs font-medium">Reagendar</span>
