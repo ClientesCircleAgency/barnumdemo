@@ -2,12 +2,11 @@ import { errorMessage } from '@/lib/errors';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { X, Clock, Sparkles, Smile, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
+import { Clock, Sparkles, Smile, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
+import { useAppointmentRequests, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
@@ -48,7 +47,6 @@ export default function RequestsPage() {
   const { data: servicePreferences = [] } = useProfessionalServicePreferences();
   const { data: allAppointments = [] } = useAppointments();
 
-  const updateRequestStatus = useUpdateAppointmentRequestStatus();
   const convertRequest = useConvertRequestToAppointment();
   const updateSuggestions = useUpdateAppointmentRequestSuggestions();
 
@@ -61,8 +59,6 @@ export default function RequestsPage() {
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [selectedConsultationTypeId, setSelectedConsultationTypeId] = useState<string>('');
   const [manualDurationMinutes, setManualDurationMinutes] = useState<string>('');
-  const [rejectionReason, setRejectionReason] = useState<string>('');
-  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
 
   // Consultation types filtered by the request's specialty
   const filteredConsultationTypes = selectedRequest
@@ -86,12 +82,10 @@ export default function RequestsPage() {
       setSelectedProfessionalId(relevantProf?.id || '');
       setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
-      setRejectionReason('');
     } else {
       setSelectedProfessionalId('');
       setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
-      setRejectionReason('');
     }
   }, [selectedRequest, professionals, profSpecialties, servicePreferences]);
 
@@ -175,27 +169,6 @@ export default function RequestsPage() {
       toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedRequest) return;
-    if (!rejectionReason.trim()) {
-      toast.error('Por favor indique o motivo da rejeição');
-      return;
-    }
-
-    try {
-      await updateRequestStatus.mutateAsync({
-        id: selectedRequest.id,
-        status: 'rejected',
-        rejection_reason: rejectionReason.trim(),
-      });
-      toast.success('Pedido rejeitado');
-      setSelectedRequest(null);
-      setShowRejectionDialog(false);
-    } catch (error) {
-      toast.error('Erro ao rejeitar pedido: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     }
   };
 
@@ -450,15 +423,6 @@ export default function RequestsPage() {
                         <MessageCircle className="w-4 h-4" />
                         Sugerir Alternativas
                       </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => setShowRejectionDialog(true)}
-                        disabled={updateRequestStatus.isPending}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Rejeitar
-                      </Button>
                     </div>
                   </div>
                 </DialogFooter>
@@ -482,43 +446,6 @@ export default function RequestsPage() {
               )}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Rejection Reason Dialog */}
-      <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
-        <DialogContent className="max-w-md rounded-[1.6rem] sm:rounded-[1.8rem]">
-          <DialogHeader>
-            <DialogTitle>Rejeitar Pedido</DialogTitle>
-            <DialogDescription>
-              Por favor indique o motivo da rejeição (obrigatório)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Motivo da Rejeição <span className="text-destructive">*</span></Label>
-              <Textarea
-                id="rejection-reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Ex: Não atendemos essa especialidade, não há disponibilidade nas próximas semanas, etc."
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectionDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectionReason.trim() || updateRequestStatus.isPending}
-            >
-              {updateRequestStatus.isPending ? 'A rejeitar...' : 'Confirmar Rejeição'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

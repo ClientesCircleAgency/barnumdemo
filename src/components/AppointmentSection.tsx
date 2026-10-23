@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { CalendarIcon, Clock, Send, Smile, Sparkles, Loader2 } from 'lucide-react';
+import { CalendarIcon, Clock, Send, Smile, Sparkles, Loader2, Check } from 'lucide-react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useAddAppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useSpecialties } from '@/hooks/useSpecialties';
@@ -35,7 +35,7 @@ const appointmentSchema = z.object({
   countryCode: z.enum(['PT', 'BR'] as const),
   phone: z.string().min(1, 'Telefone obrigatório').max(20),
   nif: z.string().length(9, 'NIF deve ter 9 dígitos').regex(/^\d+$/, 'NIF deve conter apenas números'),
-  serviceType: z.string({ required_error: 'Selecione o tipo de consulta' }).uuid('Selecione o tipo de consulta'),
+  serviceType: z.string({ required_error: 'Selecione uma especialidade' }).uuid('Selecione uma especialidade'),
   reason: z.string().min(10, 'Por favor descreva o motivo da consulta (mínimo 10 caracteres)'),
   preferredDate: z.string().min(1, 'Selecione uma data'),
   preferredTime: z.string().min(1, 'Selecione uma hora'),
@@ -148,8 +148,9 @@ export function AppointmentSection() {
             className="max-w-2xl mx-auto bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg"
           >
             {/* Service Type Selection */}
-            <div className="mb-8">
-              <Label className="text-base font-medium mb-4 block">Tipo de Consulta</Label>
+            <fieldset className="mb-8" aria-describedby="specialty-help">
+              <legend className="text-base font-medium mb-2">Especialidade <span className="text-destructive">*</span></legend>
+              <p id="specialty-help" className="text-sm text-muted-foreground mb-4">Clique numa das opções para selecionar.</p>
               {loadingSpecialties ? (
                 <div className="flex items-center justify-center py-8 text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -171,9 +172,10 @@ export function AppointmentSection() {
                       <button
                         key={spec.id}
                         type="button"
+                        aria-pressed={isSelected}
                         onClick={() => setValue('serviceType', spec.id, { shouldValidate: true })}
                         className={cn(
-                          "p-4 sm:p-6 rounded-2xl border-2 transition-all text-center",
+                          "p-4 sm:p-6 rounded-2xl border-2 transition-all text-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                           isSelected
                             ? "border-primary bg-accent"
                             : "border-border hover:border-primary/50"
@@ -187,6 +189,10 @@ export function AppointmentSection() {
                           "font-medium",
                           isSelected ? "text-primary" : "text-foreground"
                         )}>{spec.name}</span>
+                        <span className={cn('mt-3 flex items-center justify-center gap-1.5 text-sm', isSelected ? 'text-primary font-semibold' : 'text-muted-foreground')}>
+                          {isSelected && <Check className="h-4 w-4" aria-hidden="true" />}
+                          {isSelected ? 'Selecionada' : 'Selecionar'}
+                        </span>
                       </button>
                     );
                   })}
@@ -195,7 +201,7 @@ export function AppointmentSection() {
               {errors.serviceType && (
                 <p className="text-sm text-destructive mt-2">{errors.serviceType.message}</p>
               )}
-            </div>
+            </fieldset>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name */}
