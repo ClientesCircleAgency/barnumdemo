@@ -117,11 +117,11 @@ export function Footer() {
                   <Phone className="w-5 h-5 text-primary" />
                 </div>
                 <div className="text-background/70 text-sm">
-                  <a href="tel:+35126523164" className="hover:text-primary block">
-                    265 231 64 (Fixo)
+                  <a href="tel:+351265231644" className="hover:text-primary block">
+                    265 231 644 (Fixo)
                   </a>
-                  <a href="tel:+351936667034" className="hover:text-primary block">
-                    936 667 034 (Móvel)
+                  <a href="tel:+351935611034" className="hover:text-primary block">
+                    935 611 034 (Móvel)
                   </a>
                 </div>
               </li>
