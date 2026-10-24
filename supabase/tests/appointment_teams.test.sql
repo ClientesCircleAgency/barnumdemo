@@ -1,0 +1,11 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(6);
+select has_table('public', 'appointment_additional_professionals', 'additional professionals relation exists');
+select has_column('public', 'appointments', 'version', 'appointments carry a concurrency version');
+select col_is_pk('public', 'appointment_additional_professionals', array['appointment_id','professional_id'], 'participation cannot repeat');
+select ok((select relrowsecurity from pg_class where oid = 'public.appointment_additional_professionals'::regclass), 'participants protected by RLS');
+select ok(not has_table_privilege('anon', 'public.appointment_additional_professionals', 'SELECT'), 'anonymous callers cannot read participants');
+select ok(not has_table_privilege('authenticated', 'public.appointment_additional_professionals', 'INSERT'), 'staff must use atomic operation');
+select * from finish();
+rollback;
