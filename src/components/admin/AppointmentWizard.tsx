@@ -40,6 +40,8 @@ import type { Patient, AppointmentStatus } from '@/types/clinic';
 import type { Json } from '@/integrations/supabase/types';
 import { appointmentFormSchema, type AppointmentFormData } from '@/lib/validations/appointment';
 import { isWithinProfessionalWorkingHours } from '@/utils/professionalWorkingHours';
+import { AppointmentProfessionalsField } from './AppointmentProfessionalsField';
+import { useAppointmentTeamAvailability } from '@/hooks/useAppointmentTeamAvailability';
 import {
   filterConsultationTypesForProfessional,
   professionalSupportsService,
@@ -105,6 +107,8 @@ export function AppointmentWizard({
   const { getTimeSlotsForDate } = useClinicSchedule();
 
   const [step, setStep] = useState(1);
+  const [additionalProfessionalIds, setAdditionalProfessionalIds] = useState<string[]>([]);
+  useEffect(() => { if (!open) setAdditionalProfessionalIds([]); }, [open]);
   const [patientMode, setPatientMode] = useState<'existing' | 'create' | null>(null);
   const wasOpen = useRef(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(preselectedPatient || null);
@@ -138,6 +142,12 @@ export function AppointmentWizard({
   const selectedDate = form.watch('date');
   const selectedTime = form.watch('time');
   const selectedDuration = form.watch('duration');
+  const teamAvailability = useAppointmentTeamAvailability({ specialtyId: selectedSpecialtyId, consultationTypeId: selectedConsultationTypeId,
+    date: selectedDate && !Number.isNaN(selectedDate.getTime()) ? format(selectedDate,'yyyy-MM-dd') : undefined,
+    time: selectedTime, duration: selectedDuration, enabled: open });
+  const eligibleTeamIds = (teamAvailability.data ?? []).filter(p => p.available).map(p => p.professional_id);
+  const invalidTeam=teamAvailability.isFetching || teamAvailability.isError || !teamAvailability.data ||
+    [selectedProfessionalId,...additionalProfessionalIds].some(id=>!eligibleTeamIds.includes(id)) || additionalProfessionalIds.includes(selectedProfessionalId);
   const availableTimeSlots = useMemo(
     () => getTimeSlotsForDate(selectedDate, 15),
     [getTimeSlotsForDate, selectedDate],
@@ -247,16 +257,6 @@ export function AppointmentWizard({
     if (!open || !doctorProfessionalId) return;
     form.setValue('professionalId', doctorProfessionalId, { shouldValidate: true });
   }, [doctorProfessionalId, form, open]);
-
-  useEffect(() => {
-    if (
-      selectedProfessionalId &&
-      selectedProfessionalId !== doctorProfessionalId &&
-      !availableProfessionals.some((professional) => professional.id === selectedProfessionalId)
-    ) {
-      form.setValue('professionalId', doctorProfessionalId, { shouldValidate: true });
-    }
-  }, [availableProfessionals, doctorProfessionalId, form, selectedProfessionalId]);
 
   useEffect(() => {
     const currentConsultationTypeId = form.getValues('consultationTypeId');
@@ -386,9 +386,14 @@ export function AppointmentWizard({
     }
 
     try {
+      if (teamAvailability.isFetching || teamAvailability.isError || !teamAvailability.data ||
+        [data.professionalId,...additionalProfessionalIds].some(id => !eligibleTeamIds.includes(id)) || additionalProfessionalIds.includes(data.professionalId)) {
+        throw new Error('Confirme a disponibilidade de todos os profissionais.');
+      }
       await addAppointment({
         patientId: selectedPatient.id,
         professionalId: data.professionalId,
+        additionalProfessionalIds,
         specialtyId,
         consultationTypeId: data.consultationTypeId,
         date: format(data.date, 'yyyy-MM-dd'),
@@ -404,6 +409,7 @@ export function AppointmentWizard({
       });
 
       if (createAnother) {
+        setAdditionalProfessionalIds([]);
         resetForm();
       } else {
         handleClose();
@@ -587,7 +593,7 @@ export function AppointmentWizard({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="bg-popover z-50">
-                        {availableProfessionals.map((prof) => (
+                        {availableProfessionals.filter(p=>eligibleTeamIds.includes(p.id)).map((prof) => (
                           <SelectItem key={prof.id} value={prof.id}>
                             <div className="flex items-center gap-2">
                               <div
@@ -611,6 +617,10 @@ export function AppointmentWizard({
                   </FormItem>
                 )}
               />
+
+              {!isDoctor && <AppointmentProfessionalsField primaryProfessionalId={selectedProfessionalId} value={additionalProfessionalIds}
+                onChange={setAdditionalProfessionalIds} professionals={professionals} availableIds={eligibleTeamIds}
+                disabled={teamAvailability.isFetching || teamAvailability.isError} />}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -732,10 +742,11 @@ export function AppointmentWizard({
                     type="button"
                     variant="outline"
                     onClick={form.handleSubmit((data) => handleCreateAppointment(data, true))}
+                    disabled={invalidTeam}
                   >
                     Criar e Criar Outra
                   </Button>
-                  <Button type="submit">Criar Consulta</Button>
+                  <Button type="submit" disabled={invalidTeam}>Criar Consulta</Button>
                 </div>
               </div>
             </form>

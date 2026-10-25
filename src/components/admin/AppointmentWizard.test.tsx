@@ -26,6 +26,7 @@ vi.mock('@/context/ClinicContext', () => ({ useClinic: () => ({
   getAppointmentsByPatient: () => [], addPatient: mocks.addPatient,
 }) }));
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user-1' }, isDoctor: mocks.isDoctor }) }));
+vi.mock('@/hooks/useAppointmentTeamAvailability', () => ({ useAppointmentTeamAvailability: () => ({ data: mocks.professionals.map(p => ({ professional_id: p.id, available: true })), isFetching: false, isError: false }) }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock('@/hooks/useProfessionalServicePreferences', () => ({ useProfessionalServicePreferences: () => ({ data: [] }) }));
 vi.mock('@/hooks/useClinicSchedule', () => ({ useClinicSchedule: () => ({ getTimeSlotsForDate: mocks.schedule }) }));

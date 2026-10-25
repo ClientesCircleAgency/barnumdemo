@@ -1,3 +1,4 @@
+import { appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { CalendarDays, Clock3, Inbox, MessageCircle, Sparkles, Star, TrendingUp, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -156,7 +157,7 @@ export default function DashboardPage() {
                         {patient?.name || 'Paciente por identificar'}
                       </p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {professional?.name || 'Profissional não atribuído'}
+                        {appointmentTeamLabel(appointment,getProfessionalById)}
                       </p>
                       <p className="mt-2 text-xs text-muted-foreground">
                         {appointment.reason || 'Consulta sem motivo registado'}

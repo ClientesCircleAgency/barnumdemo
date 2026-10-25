@@ -141,14 +141,16 @@ export function useConvertRequestToAppointment() {
       professional_id?: string;
       consultation_type_id?: string;
       duration?: number;
+      additional_professional_ids?: string[];
     }) => {
-      const { data, error } = await supabase.rpc('convert_request_to_appointment', {
+      const { data, error } = await supabase.rpc('convert_request_to_appointment_with_team', {
         p_request_id: params.request_id,
         p_accepted_date: params.accepted_date ?? null,
         p_accepted_time: params.accepted_time ?? null,
         p_professional_id: params.professional_id ?? null,
         p_consultation_type_id: params.consultation_type_id ?? null,
         p_duration: params.duration ?? null,
+        p_additional_professional_ids: params.additional_professional_ids ?? [],
       });
 
       if (error) throw error;

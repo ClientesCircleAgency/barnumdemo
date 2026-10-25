@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -240,7 +241,7 @@ export default function StatisticsPage() {
     return professionals
       .map((professional) => {
         const professionalAppointments = periodAppointments.filter(
-          (appointment) => appointment.professionalId === professional.id
+          (appointment) => appointmentProfessionalIds(appointment).includes(professional.id)
         );
         const completed = professionalAppointments.filter((appointment) => appointment.status === 'completed').length;
         const progress = professionalAppointments.length > 0
@@ -410,7 +411,7 @@ export default function StatisticsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   patientName={getPatientById(appointment.patientId)?.name ?? 'Paciente'}
-                  professionalName={getProfessionalById(appointment.professionalId)?.name ?? 'Profissional'}
+                  professionalName={appointmentTeamLabel(appointment,getProfessionalById)}
                   consultationName={
                     appointment.consultationTypeName
                     || getConsultationTypeById(appointment.consultationTypeId)?.name

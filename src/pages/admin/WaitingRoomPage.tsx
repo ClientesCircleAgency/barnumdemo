@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { useState, useEffect, forwardRef } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
@@ -199,7 +200,7 @@ export default function WaitingRoomPage() {
     if (apt.date !== today) return false;
     if (!['confirmed', 'waiting', 'in_progress', 'completed'].includes(apt.status)) return false;
     // If doctor: ONLY show own appointments
-    if (isDoctor && doctorProfessionalId && apt.professional_id !== doctorProfessionalId) return false;
+    if (isDoctor && doctorProfessionalId && !appointmentProfessionalIds(apt).includes(doctorProfessionalId)) return false;
     return true;
   });
 
@@ -252,7 +253,7 @@ export default function WaitingRoomPage() {
     }
 
     updateAppointmentStatus.mutate(
-      { id: appointment.id, status: newStatus },
+      { id: appointment.id, status: newStatus, expectedVersion: appointment.version },
       {
         onSuccess: () => {
           const patient = getPatient(appointment.patient_id);
@@ -271,6 +272,7 @@ export default function WaitingRoomPage() {
     updateAppointment.mutate(
       {
         id: appointmentToFinalize.id,
+        expectedVersion: appointmentToFinalize.version,
         data: {
           status: 'completed',
           final_notes: finalNotes || null,
@@ -295,7 +297,7 @@ export default function WaitingRoomPage() {
   const activeAppointment = activeId ? todayAppointments.find((apt) => apt.id === activeId) : null;
 
   // Profissionais ativos hoje
-  const activeProfessionalIds = [...new Set(todayAppointments.map((apt) => apt.professional_id))];
+  const activeProfessionalIds = [...new Set(todayAppointments.flatMap(appointmentProfessionalIds))];
   const activeProfessionals = professionals.filter((p) => activeProfessionalIds.includes(p.id));
 
   if (isLoading) {
@@ -357,6 +359,7 @@ export default function WaitingRoomPage() {
                     appointment={apt}
                     patient={getPatient(apt.patient_id)}
                     professional={getProfessional(apt.professional_id)}
+                    professionalNames={appointmentTeamLabel(apt,getProfessional)}
                     consultationType={getConsultationType(apt.consultation_type_id)}
                   />
                 ))}

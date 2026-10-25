@@ -37,6 +37,8 @@ import { getAvailableProfessionalIds } from '@/utils/availability';
 import { RequestsBoard } from '@/components/admin/RequestsBoard';
 import { getRequestStage, getRequestStatusLabel, requestStageStyles } from '@/utils/requestStages';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
+import { AppointmentProfessionalsField } from '@/components/admin/AppointmentProfessionalsField';
+import { useAppointmentTeamAvailability } from '@/hooks/useAppointmentTeamAvailability';
 
 export default function RequestsPage() {
   const { data: requests = [], isLoading: loadingRequests, isError, refetch } = useAppointmentRequests();
@@ -57,6 +59,8 @@ export default function RequestsPage() {
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+  const [additionalProfessionalIds,setAdditionalProfessionalIds] = useState<string[]>([]);
+  useEffect(() => { setAdditionalProfessionalIds([]); }, [selectedRequestId]);
   const [selectedConsultationTypeId, setSelectedConsultationTypeId] = useState<string>('');
   const [manualDurationMinutes, setManualDurationMinutes] = useState<string>('');
 
@@ -97,6 +101,12 @@ export default function RequestsPage() {
   // Compute available professionals based on manual duration
   const duration = parseInt(manualDurationMinutes, 10);
   const isDurationValid = !isNaN(duration) && duration >= 5 && duration <= 1440;
+  const teamAvailability = useAppointmentTeamAvailability({ specialtyId: selectedRequest?.specialty_id, consultationTypeId: selectedConsultationTypeId,
+    date: selectedSlot?.date || selectedRequest?.preferred_date, time: selectedSlot?.time || selectedRequest?.preferred_time,
+    duration, enabled: !!selectedRequest && isDurationValid });
+  const teamIds = (teamAvailability.data ?? []).filter(p => p.available).map(p => p.professional_id);
+  const invalidTeam = teamAvailability.isFetching || teamAvailability.isError || !teamAvailability.data ||
+    [selectedProfessionalId,...additionalProfessionalIds].some(id => !teamIds.includes(id)) || additionalProfessionalIds.includes(selectedProfessionalId);
   
   // Filter professionals by the request's specialty (using junction table)
   const specialtyProfessionals = useMemo(() => selectedRequest
@@ -153,11 +163,13 @@ export default function RequestsPage() {
       return;
     }
 
+    if (invalidTeam) { toast.error('Confirme a disponibilidade de todos os profissionais.'); return; }
     setIsConverting(true);
     try {
       await convertRequest.mutateAsync({
         request_id: selectedRequest.id,
         professional_id: selectedProfessionalId,
+        additional_professional_ids: additionalProfessionalIds,
         consultation_type_id: selectedConsultationTypeId,
         duration,
       });
@@ -382,7 +394,7 @@ export default function RequestsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {professionals
-                        .filter(prof => availableProfessionalIds.includes(prof.id))
+                        .filter(prof => (availableProfessionalIds.includes(prof.id) && teamIds.includes(prof.id)) || prof.id===selectedProfessionalId)
                         .map((professional) => (
                           <SelectItem key={professional.id} value={professional.id}>
                             {professional.name}
@@ -393,6 +405,9 @@ export default function RequestsPage() {
                 </div>
               )}
 
+              <AppointmentProfessionalsField primaryProfessionalId={selectedProfessionalId} value={additionalProfessionalIds} onChange={setAdditionalProfessionalIds}
+                professionals={professionals} availableIds={teamIds} disabled={teamAvailability.isFetching || teamAvailability.isError} />
+              {teamAvailability.isError && <p role="alert" className="text-sm text-destructive">Não foi possível verificar a disponibilidade. Tente novamente.</p>}
               </>}
 
               <div className="text-xs text-muted-foreground pt-2 border-t">
@@ -407,7 +422,7 @@ export default function RequestsPage() {
                       <Button
                         className="w-full gap-2"
                         onClick={handleConvertToAppointment}
-                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId}
+                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId || invalidTeam}
                       >
                         <CalendarPlus className="w-4 h-4" />
                         {isConverting ? 'A confirmar...' : 'Confirmar e agendar consulta'}

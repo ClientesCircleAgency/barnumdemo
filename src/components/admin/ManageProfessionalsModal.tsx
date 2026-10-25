@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { useState } from 'react';
 import {
   Dialog,
@@ -154,7 +155,7 @@ export function ManageProfessionalsModal({ open, onOpenChange }: ManageProfessio
 
   const handleDelete = (id: string) => {
     const hasActiveAppointments = appointments.some(
-      (a) => a.professionalId === id && (a.status === 'confirmed' || a.status === 'waiting' || a.status === 'in_progress')
+      (a) => appointmentProfessionalIds(a).includes(id) && (a.status === 'confirmed' || a.status === 'waiting' || a.status === 'in_progress')
     );
     if (hasActiveAppointments) {
       toast.error('Não é possível remover um profissional com consultas activas (confirmadas, em espera ou em curso).');

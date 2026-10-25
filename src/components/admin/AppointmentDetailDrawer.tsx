@@ -1,4 +1,7 @@
+import { appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { AppointmentTeamDetails } from './AppointmentTeamDetails';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
@@ -49,7 +52,7 @@ interface AppointmentDetailDrawerProps {
 type ActionType = 'cancel' | 'no_show' | null;
 
 export function AppointmentDetailDrawer({
-  appointment,
+  appointment: initialAppointment,
   open,
   onOpenChange,
 }: AppointmentDetailDrawerProps) {
@@ -58,14 +61,17 @@ export function AppointmentDetailDrawer({
     getProfessionalById,
     getConsultationTypeById,
     getSpecialtyById,
+    appointments,
   } = useClinic();
 
   const updateAppointment = useUpdateAppointment();
+  const {isAdmin,isSecretary}=useAuth();
   const updateStatus = useUpdateAppointmentStatus();
 
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [reason, setReason] = useState('');
   const [showReschedule, setShowReschedule] = useState(false);
+  const appointment=appointments.find(a=>a.id===initialAppointment?.id) ?? null;
 
   if (!appointment) return null;
 
@@ -85,6 +91,7 @@ export function AppointmentDetailDrawer({
     try {
       await updateAppointment.mutateAsync({
         id: appointment.id,
+        expectedVersion: appointment.version,
         data: { status: 'cancelled', cancellation_reason: reason.trim() },
       });
       toast.success('Consulta cancelada');
@@ -134,6 +141,8 @@ export function AppointmentDetailDrawer({
       await updateAppointment.mutateAsync({
         id: appointment.id,
         ifStatus: 'confirmed',
+        expectedVersion: appointment.version,
+        additionalProfessionalIds: slot.additional_professional_ids,
         data: {
           date: slot.date,
           time: slot.time,
@@ -224,7 +233,7 @@ export function AppointmentDetailDrawer({
                   <span className="text-sm text-muted-foreground">Profissional</span>
                   <span className="font-medium flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: professional?.color }} />
-                    {professional?.name}
+                    {appointmentTeamLabel(appointment, getProfessionalById)}
                   </span>
                 </div>
                 {specialty && (
@@ -312,7 +321,8 @@ export function AppointmentDetailDrawer({
             )}
 
             {/* Action buttons — only for active appointments */}
-            {!isTerminal && (
+            <AppointmentTeamDetails key={appointment.id} appointment={appointment} />
+            {!isTerminal && (isAdmin || isSecretary) && (
               <>
                 <Separator />
                 <div className="space-y-2">
@@ -425,6 +435,7 @@ export function AppointmentDetailDrawer({
           preferred_date: appointment.date,
           preferred_time: appointment.time,
           duration_minutes: appointment.duration,
+          additional_professional_ids: appointment.additionalProfessionalIds ?? [],
         } : null}
         onSubmit={handleRescheduleSubmit}
         title="Reagendar Consulta"

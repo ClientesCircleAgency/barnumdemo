@@ -21,6 +21,7 @@ vi.mock('@/hooks/useAppointmentRequests', () => ({
   useUpdateAppointmentRequestSuggestions: () => ({ mutateAsync: mocks.suggest }),
 }));
 vi.mock('@/hooks/useAppointments', () => ({ useAppointments: () => ({ data: mocks.empty }) }));
+vi.mock('@/hooks/useAppointmentTeamAvailability', () => ({ useAppointmentTeamAvailability: () => ({ data: mocks.professionals.map(p => ({ professional_id: p.id, available: true })), isFetching: false, isError: false }) }));
 vi.mock('@/hooks/useSpecialties', () => ({ useSpecialties: () => ({ data: mocks.specialties }) }));
 vi.mock('@/hooks/useConsultationTypes', () => ({ useConsultationTypes: () => ({ data: mocks.types }) }));
 vi.mock('@/hooks/useProfessionals', () => ({ useProfessionals: () => ({ data: mocks.professionals }) }));
@@ -52,7 +53,7 @@ it('removes rejection while preserving confirmation', async () => {
   expect(screen.queryByRole('button', { name: /Rejeitar/ })).toBeNull();
   await user.selectOptions(screen.getByRole('option', { name: 'Check-Up' }).closest('select')!, 'checkup');
   await user.click(screen.getByRole('button', { name: 'Confirmar e agendar consulta' }));
-  await waitFor(() => expect(mocks.convert).toHaveBeenCalledWith({ request_id: 'request-1', professional_id: 'doctor-1', consultation_type_id: 'checkup', duration: 30 }));
+  await waitFor(() => expect(mocks.convert).toHaveBeenCalledWith({ request_id: 'request-1', professional_id: 'doctor-1', consultation_type_id: 'checkup', duration: 30, additional_professional_ids: [] }));
   expect(mocks.updateStatus).not.toHaveBeenCalled();
 });
 
@@ -63,6 +64,21 @@ it('preserves sending alternative times without rejecting the request', async ()
   await user.click(screen.getByRole('button', { name: 'Enviar alternativas de teste', hidden: true }));
   await waitFor(() => expect(mocks.suggest).toHaveBeenCalledWith(expect.objectContaining({ id: 'request-1', suggested_slots: [{ date: '2026-11-11', time: '10:00' }] })));
   expect(mocks.updateStatus).not.toHaveBeenCalled();
+});
+
+it('confirms one request with the selected additional doctor', async () => {
+  mocks.professionals.push({id:'doctor-2',specialty_id:'dental',name:'Segundo Médico'});
+  try {
+    const user=await openRequest();
+    await user.type(screen.getByRole('spinbutton'),'30');
+    await user.selectOptions(screen.getByRole('option',{name:'Check-Up'}).closest('select')!,'checkup');
+    await user.click(screen.getByRole('button',{name:'Adicionar profissional'}));
+    expect((screen.getByRole('button',{name:'Confirmar e agendar consulta'}) as HTMLButtonElement).disabled).toBe(true);
+    await user.selectOptions(screen.getByLabelText('Profissional adicional 1'),'doctor-2');
+    await user.click(screen.getByRole('button',{name:'Confirmar e agendar consulta'}));
+    await waitFor(()=>expect(mocks.convert).toHaveBeenCalledWith(expect.objectContaining({professional_id:'doctor-1',additional_professional_ids:['doctor-2']})));
+    expect(mocks.convert).toHaveBeenCalledTimes(1);
+  } finally {mocks.professionals.pop();}
 });
 
 it('retains the reason on historical rejected requests', async () => {

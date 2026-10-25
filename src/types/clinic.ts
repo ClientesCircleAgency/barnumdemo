@@ -54,6 +54,10 @@ export interface ClinicAppointment {
   id: string;
   patientId: string;
   professionalId: string;
+  additionalProfessionalIds?: string[];
+  additionalProfessionalNames?: Record<string, string>;
+  professionalName?: string | null;
+  version?: number;
   specialtyId: string;
   consultationTypeId: string;
   consultationTypeName?: string | null;

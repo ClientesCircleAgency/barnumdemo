@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { AppointmentProfessionalsField } from './AppointmentProfessionalsField';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import {
   addDays,
   addMonths,
@@ -47,6 +51,9 @@ export interface SlotSelection {
   time: string;
   professional_id: string;
   professional_name: string;
+  additional_professional_ids: string[];
+  consultation_type_id?: string;
+  duration?: number;
 }
 
 export interface SuggestSlotsSource {
@@ -57,6 +64,7 @@ export interface SuggestSlotsSource {
   preferred_date: string;
   preferred_time: string;
   duration_minutes: number;
+  additional_professional_ids?: string[];
 }
 
 interface SuggestAlternativesModalProps {
@@ -148,7 +156,9 @@ export function SuggestAlternativesModal({
   const { data: servicePreferences = [] } = useProfessionalServicePreferences();
   const { getTimeSlotsForDate } = useClinicSchedule();
 
-  const [selectedSlots, setSelectedSlots] = useState<Map<string, true>>(new Map());
+  const [selectedSlots, setSelectedSlots] = useState<Map<string, string[]>>(new Map());
+  const [additionalProfessionalIds,setAdditionalProfessionalIds] = useState<string[]>([]);
+  const initializedSource = useRef<string | null>(null);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
   const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(new Date()));
@@ -188,7 +198,10 @@ export function SuggestAlternativesModal({
   );
 
   useEffect(() => {
-    if (!open || !source) return;
+    if (!open) { initializedSource.current=null; return; }
+    if (!source || initializedSource.current===source.appointment_id) return;
+    initializedSource.current=source.appointment_id;
+    setAdditionalProfessionalIds(source.additional_professional_ids ?? []);
 
     const preferredDate = startOfDay(parseISO(source.preferred_date));
     const safeDate = isBefore(preferredDate, startOfDay(new Date()))
@@ -212,9 +225,30 @@ export function SuggestAlternativesModal({
     [selectedProfessionalId, specialtyProfessionals],
   );
 
+  const dayKey = format(selectedDate,'yyyy-MM-dd');
+  const candidateTimes = getTimeSlotsForDate(selectedDate,30);
+  const dayAvailability = useQuery({
+    queryKey: ['appointment-team-availability','day',source?.specialty_id,source?.consultation_type_id,source?.appointment_id,dayKey,durationMinutes,candidateTimes.join(',')],
+    enabled: open && !!source,
+    queryFn: async () => Promise.all(candidateTimes.map(async time => {
+      const { data,error } = await supabase.rpc('get_appointment_team_availability', {
+        p_specialty_id: source!.specialty_id, p_consultation_type_id: source!.consultation_type_id ?? null,
+        p_date: dayKey,p_time: time,p_duration: durationMinutes,p_exclude_appointment_id: source!.appointment_id,
+      });
+      if(error) throw error;
+      return {time,ids:data.filter(p=>p.available).map(p=>p.professional_id)};
+    })),
+  });
+  const dayEligibleIds = [...new Set((dayAvailability.data ?? []).flatMap(slot=>slot.ids))];
+
   const isProfFree = (professionalId: string, dateStr: string, time: string) => {
     if (!source) {
       return false;
+    }
+    if (dateStr===dayKey) {
+      const slot=dayAvailability.data?.find(s=>s.time===time);
+      if(dayAvailability.isFetching || dayAvailability.isError || !slot ||
+        [professionalId,...additionalProfessionalIds].some(id=>!slot.ids.includes(id)) || additionalProfessionalIds.includes(professionalId)) return false;
     }
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -230,7 +264,7 @@ export function SuggestAlternativesModal({
     const slotEnd = slotStart + durationMinutes;
 
     return !activeAppointments.some((appointment) => {
-      if (appointment.professional_id !== professionalId || appointment.date !== dateStr) return false;
+      if (!appointmentProfessionalIds(appointment).includes(professionalId) || appointment.date !== dateStr) return false;
       if (appointment.id === source.appointment_id) return false;
 
       const appointmentStart = timeToMinutes(appointment.time);
@@ -306,12 +340,12 @@ export function SuggestAlternativesModal({
         getDayAvailability(selectedProfessional.id, startOfDay(day)),
       ]),
     );
-  }, [calendarDays, durationMinutes, getTimeSlotsForDate, selectedProfessional, activeAppointments, source]);
+  }, [calendarDays, durationMinutes, getTimeSlotsForDate, selectedProfessional, activeAppointments, source, dayAvailability.data, dayAvailability.isFetching, dayAvailability.isError, additionalProfessionalIds]);
 
   const availableTimes = useMemo(() => {
     if (!selectedProfessional) return [];
     return getAvailableSlotsForDay(selectedProfessional.id, selectedDate);
-  }, [selectedProfessional, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
+  }, [selectedProfessional, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source, dayAvailability.data, dayAvailability.isFetching, dayAvailability.isError, additionalProfessionalIds]);
 
   const professionalAvailability = useMemo(() => {
     return specialtyProfessionals.map((professional) => {
@@ -325,19 +359,20 @@ export function SuggestAlternativesModal({
         selectedDaySlots: nextSelectedDaySlots,
       };
     });
-  }, [specialtyProfessionals, calendarDays, visibleMonth, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
+  }, [specialtyProfessionals, calendarDays, visibleMonth, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source, dayAvailability.data, dayAvailability.isFetching, dayAvailability.isError, additionalProfessionalIds]);
 
   const toggleSlot = (professional: ProfessionalRow, date: Date, time: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const slotKey = buildSlotKey(professional.id, dateStr, time);
+    if (!isProfFree(professional.id,dateStr,time)) return;
+    const slotKey = buildSlotKey(professional.id, dateStr, time)+'|'+[...additionalProfessionalIds].sort().join(',');
 
     setSelectedSlots((previous) => {
-      const next = singleSelect ? new Map<string, true>() : new Map(previous);
+      const next = singleSelect ? new Map<string, string[]>() : new Map(previous);
 
       if (previous.has(slotKey)) {
         next.delete(slotKey);
       } else {
-        next.set(slotKey, true);
+        next.set(slotKey, [...additionalProfessionalIds]);
       }
 
       return next;
@@ -358,9 +393,16 @@ export function SuggestAlternativesModal({
           time,
           professional_id: professionalId,
           professional_name: professional?.name || '',
+          additional_professional_ids: selectedSlots.get(slotKey) ?? [],
+          consultation_type_id: source.consultation_type_id,
+          duration: durationMinutes,
         };
       });
 
+      for (const slot of slots) {
+        const {data,error} = await supabase.rpc('get_appointment_team_availability', {p_specialty_id:source.specialty_id,p_consultation_type_id:source.consultation_type_id ?? null,p_date:slot.date,p_time:slot.time,p_duration:durationMinutes,p_exclude_appointment_id:source.appointment_id});
+        if(error || [slot.professional_id,...slot.additional_professional_ids].some(id=>!data?.some(p=>p.professional_id===id && p.available))) throw new SlotSubmitError('Um dos profissionais já não está disponível. Reveja os horários escolhidos.');
+      }
       await onSubmit(slots);
       onOpenChange(false);
       setSelectedSlots(new Map());
@@ -443,6 +485,9 @@ export function SuggestAlternativesModal({
                 </div>
               </section>
 
+              <AppointmentProfessionalsField primaryProfessionalId={selectedProfessionalId} value={additionalProfessionalIds} onChange={setAdditionalProfessionalIds}
+                professionals={professionals} availableIds={dayEligibleIds} disabled={dayAvailability.isFetching || dayAvailability.isError} />
+              {dayAvailability.isError && <p role="alert">Não foi possível carregar a disponibilidade. Tente novamente.</p>}
               <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
                 <div className="space-y-3 rounded-3xl border border-white bg-white/75 p-4 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -538,7 +583,7 @@ export function SuggestAlternativesModal({
                       {availableTimes.map((time) => {
                         if (!selectedProfessional) return null;
 
-                        const slotKey = buildSlotKey(selectedProfessional.id, selectedDateStr, time);
+                        const slotKey = buildSlotKey(selectedProfessional.id, selectedDateStr, time)+'|'+[...additionalProfessionalIds].sort().join(',');
                         const isSelected = selectedSlots.has(slotKey);
 
                         return (

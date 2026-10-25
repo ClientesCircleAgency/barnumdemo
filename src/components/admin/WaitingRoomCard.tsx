@@ -9,13 +9,15 @@ interface WaitingRoomCardProps {
   patient: PatientRow | undefined;
   professional: ProfessionalRow | undefined;
   consultationType: ConsultationTypeRow | undefined;
+  professionalNames?: string;
 }
 
 export function WaitingRoomCard({ 
   appointment, 
   patient, 
   professional, 
-  consultationType 
+  consultationType,
+  professionalNames
 }: WaitingRoomCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: appointment.id,
@@ -92,7 +94,7 @@ export function WaitingRoomCard({
                 style={{ backgroundColor: professional?.color || '#94a3b8' }}
               />
               <p className="text-xs text-muted-foreground truncate">
-                {professional?.name || 'Profissional'}
+                {professionalNames || professional?.name || 'Profissional'}
               </p>
             </div>
           </div>

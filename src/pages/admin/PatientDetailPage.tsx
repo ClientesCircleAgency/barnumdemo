@@ -1,3 +1,4 @@
+import { appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Phone, Mail, Calendar, Plus, FileText } from 'lucide-react';
@@ -101,7 +102,7 @@ export default function PatientDetailPage() {
                   return (
                     <div key={apt.id} className="flex items-center gap-4 p-3 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => { setSelectedAppointment(apt); setDrawerOpen(true); }}>
                       <div className="text-center min-w-20"><p className="text-lg font-bold">{format(parseISO(apt.date), 'dd', { locale: pt })}</p><p className="text-xs text-muted-foreground uppercase">{format(parseISO(apt.date), 'MMM yyyy', { locale: pt })}</p></div>
-                      <div className="flex-1"><div className="flex items-center gap-2"><span className="font-medium">{apt.time.slice(0, 5)}</span><span className="text-muted-foreground">•</span><span>{consultationType?.name || 'Consulta'}</span></div><p className="text-sm text-muted-foreground">{professional?.name}</p></div>
+                      <div className="flex-1"><div className="flex items-center gap-2"><span className="font-medium">{apt.time.slice(0, 5)}</span><span className="text-muted-foreground">•</span><span>{consultationType?.name || 'Consulta'}</span></div><p className="text-sm text-muted-foreground">{appointmentTeamLabel(apt, getProfessionalById)}</p></div>
                       <Badge className={getStatusColor(apt.status)}>{appointmentStatusLabels[apt.status]}</Badge>
                     </div>
                   );

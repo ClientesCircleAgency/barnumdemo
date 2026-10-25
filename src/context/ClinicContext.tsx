@@ -1,4 +1,5 @@
 import type { PatientRow, AppointmentRow, ProfessionalRow, ConsultationTypeRow, SpecialtyRow } from '@/types/database';
+import type { AppointmentWithTeamRow } from '@/types/appointmentTeam';
 import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePatients, useAddPatient, useUpdatePatient } from '@/hooks/usePatients';
@@ -32,11 +33,15 @@ function mapPatient(row: PatientRow): Patient {
   };
 }
 
-function mapAppointment(row: AppointmentRow): ClinicAppointment {
+function mapAppointment(row: AppointmentRow & Partial<AppointmentWithTeamRow>): ClinicAppointment {
   return {
     id: row.id,
     patientId: row.patient_id,
     professionalId: row.professional_id,
+    additionalProfessionalIds: row.additional_professional_ids ?? [],
+    additionalProfessionalNames: row.additional_professional_names ?? {},
+    professionalName: row.professional_name,
+    version: row.version,
     specialtyId: row.specialty_id,
     consultationTypeId: row.consultation_type_id,
     consultationTypeName: row.consultation_type_name || undefined,
@@ -177,6 +182,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['appointment-team-availability'] });
         queryClient.invalidateQueries({ queryKey: ['patients'] });
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointment_requests' }, () => {
@@ -184,7 +190,13 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         queryClient.invalidateQueries({ queryKey: ['patients'] });
       })
-      .subscribe();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointment_additional_professionals' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['appointment-team-availability'] });
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -234,6 +246,7 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
       const result = await addAppointmentMutation.mutateAsync({
         patient_id: appointmentData.patientId,
         professional_id: appointmentData.professionalId,
+        additional_professional_ids: appointmentData.additionalProfessionalIds ?? [],
         specialty_id: appointmentData.specialtyId,
         consultation_type_id: appointmentData.consultationTypeId,
         date: appointmentData.date,
@@ -247,6 +260,8 @@ export function ClinicProvider({ children }: { children: React.ReactNode }) {
     updateAppointment: (id: string, data: Partial<ClinicAppointment>) => {
       updateAppointmentMutation.mutate({ 
         id, 
+        expectedVersion: appointments.find(a => a.id === id)?.version,
+        additionalProfessionalIds: data.additionalProfessionalIds,
         data: {
           patient_id: data.patientId,
           professional_id: data.professionalId,

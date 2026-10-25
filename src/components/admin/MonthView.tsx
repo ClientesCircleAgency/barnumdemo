@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import {
   format,
   startOfMonth,
@@ -52,7 +53,7 @@ export function MonthView({
     return appointments
       .filter((apt) => {
         if (apt.date !== dateStr) return false;
-        if (selectedProfessional !== 'all' && apt.professionalId !== selectedProfessional) return false;
+        if (selectedProfessional !== 'all' && !appointmentProfessionalIds(apt).includes(selectedProfessional)) return false;
         if (selectedStatus !== 'all' && apt.status !== selectedStatus) return false;
         if (searchQuery) {
           const patient = getPatientById(apt.patientId);

@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { useState, useMemo, useEffect } from 'react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Plus, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
@@ -61,9 +62,9 @@ export default function AgendaPage() {
       .filter((apt) => {
         if (apt.date !== dateStr) return false;
         // If doctor: ONLY show own appointments
-        if (isDoctor && doctorProfessionalId && apt.professionalId !== doctorProfessionalId) return false;
+        if (isDoctor && doctorProfessionalId && !appointmentProfessionalIds(apt).includes(doctorProfessionalId)) return false;
         // If admin/secretary: respect professional selector
-        if (!isDoctor && selectedProfessional !== 'all' && apt.professionalId !== selectedProfessional) return false;
+        if (!isDoctor && selectedProfessional !== 'all' && !appointmentProfessionalIds(apt).includes(selectedProfessional)) return false;
         return true;
       })
       .sort((a, b) => a.time.localeCompare(b.time));
