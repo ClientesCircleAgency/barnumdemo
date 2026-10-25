@@ -154,3 +154,7 @@ Alterações nos tipos gerados, hooks, contexto e ecrãs estão discriminadas na
 Cobertura: dados/compatibilidade (1), disponibilidade e permissões (2), pedidos/alternativas/notificações (3), leitura/gravação (4), interação (5), agendas/histórico/contagens (6), ciclo de vida/notas/sincronização (7), validação integrada (8). Os cinco riscos de Review Focus estão associados a testes nas tarefas indicadas. Nenhuma tarefa requer limpar dados de produção; nenhuma automação externa é declarada validada sem execução controlada.
 
 Estado: plano preparado e revisto; aguarda revisão escrita e escolha de método de execução. Nenhuma alteração funcional foi aplicada nesta etapa.
+
+## Estado ? 2026-10-25
+
+Implementa??o local e revis?o conclu?das no Workbench. Evid?ncia consolidada, altera??es ao plano de testes e limita??es: [valida??o](../../operations/2026-10-25-appointment-teams-validation.md). Sem publica??o. A reconstru??o de uma inst?ncia vazia e a valida??o externa n8n permanecem pendentes.

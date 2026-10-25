@@ -141,3 +141,8 @@ Barnun is a dental clinic management SaaS built with React + Supabase + Vercel. 
 - Updated ChatGPT_5.2_context.md with rules and current state
 - Archived 20+ obsolete docs
 - Removed fixed duration from consultation types (name + color only)
+
+### 2026-10-25 ? Shared appointments in Workbench
+- Implemented atomic multi-professional appointments, team availability, role-based lifecycle, authored notes and realtime refresh.
+- Local only, branch workbench/barnun; no remote deployment.
+- See [validation and integration contract](../operations/2026-10-25-appointment-teams-validation.md), including the local webhook isolation incident and pending n8n verification.

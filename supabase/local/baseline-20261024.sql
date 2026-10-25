@@ -1091,11 +1091,9 @@ CREATE INDEX "idx_user_roles_user_id" ON "public"."user_roles" USING "btree" ("u
 
 
 
-CREATE OR REPLACE TRIGGER "N8N appointment_requests" AFTER INSERT OR DELETE OR UPDATE ON "public"."appointment_requests" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://agentemestrev4-n8n.dojjkc.easypanel.host/webhook/appointment_requests', 'POST', '{"Content-type":"application/json"}', '{}', '5000');
 
 
 
-CREATE OR REPLACE TRIGGER "N8N appointments" AFTER INSERT OR DELETE OR UPDATE ON "public"."appointments" FOR EACH ROW EXECUTE FUNCTION "supabase_functions"."http_request"('https://agentemestrev4-n8n.dojjkc.easypanel.host/webhook/appointments', 'POST', '{"Content-type":"application/json"}', '{}', '5000');
 
 
 

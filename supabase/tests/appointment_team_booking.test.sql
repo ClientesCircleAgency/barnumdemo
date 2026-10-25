@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(19);
 insert into auth.users(id,email) values
  ('10000000-0000-0000-0000-000000000001','admin@test.invalid'),
  ('10000000-0000-0000-0000-000000000002','doctor@test.invalid');
@@ -37,5 +37,11 @@ select throws_ok($$insert into public.appointments(patient_id,professional_id,sp
 select set_config('request.jwt.claims','{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated"}',true);
 set local role authenticated;
 select lives_ok($$select public.save_appointment_team(null,null,'{"patient_id":"50000000-0000-0000-0000-000000000001","professional_id":"40000000-0000-0000-0000-000000000002","specialty_id":"20000000-0000-0000-0000-000000000001","consultation_type_id":"30000000-0000-0000-0000-000000000001","date":"2026-10-26","time":"16:30","duration":30}','{}'::uuid[])$$,'existing doctor own single-appointment creation remains available');
+reset role;
+select is(barnun_private.availability_reason('40000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','2027-03-28','01:30',30,null),'invalid_interval','reject nonexistent Lisbon spring time');
+select is(barnun_private.availability_reason('40000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','2027-10-31','01:30',30,null),'invalid_interval','reject ambiguous Lisbon autumn time');
+select is(barnun_private.availability_reason('40000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','2027-03-28','02:30',30,null),null,'allow valid time after transition');
+update public.professionals set user_id=null where id='40000000-0000-0000-0000-000000000002';
+select is(barnun_private.availability_reason('40000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','2026-10-26','18:00',30,null),'inactive','unlinked collaborator remains inactive');
 select * from finish();
 rollback;

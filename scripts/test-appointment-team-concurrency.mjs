@@ -1,6 +1,9 @@
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import assert from 'node:assert/strict';
+
+const networkCount=execFileSync('docker',['exec','supabase_db_barnun-workbench','psql','-U','postgres','-d','postgres','-Atq','-c',"select count(*) from pg_trigger where not tgisinternal and pg_get_triggerdef(oid) ~* 'http_request|http_post|net.http'"],{encoding:'utf8'}).trim();
+assert.equal(networkCount,'0','Refusing tests while local outbound webhooks exist');
 
 // Deliberately fixed local Docker target: this harness cannot accept a remote URL.
 const container = 'supabase_db_barnun-workbench';

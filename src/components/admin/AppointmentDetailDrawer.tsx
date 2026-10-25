@@ -71,6 +71,7 @@ export function AppointmentDetailDrawer({
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [reason, setReason] = useState('');
   const [showReschedule, setShowReschedule] = useState(false);
+  const [rescheduleVersion, setRescheduleVersion] = useState<number>();
   const appointment=appointments.find(a=>a.id===initialAppointment?.id) ?? null;
 
   if (!appointment) return null;
@@ -118,6 +119,7 @@ export function AppointmentDetailDrawer({
   };
 
   const handleReschedule = () => {
+    setRescheduleVersion(appointment.version);
     setShowReschedule(true);
   };
 
@@ -141,7 +143,7 @@ export function AppointmentDetailDrawer({
       await updateAppointment.mutateAsync({
         id: appointment.id,
         ifStatus: 'confirmed',
-        expectedVersion: appointment.version,
+        expectedVersion: rescheduleVersion,
         additionalProfessionalIds: slot.additional_professional_ids,
         data: {
           date: slot.date,

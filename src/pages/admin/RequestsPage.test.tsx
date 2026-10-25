@@ -4,10 +4,11 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RequestsPage from './RequestsPage';
+import type { RequestSlot } from '@/hooks/useAppointmentRequests';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 const mocks = vi.hoisted(() => ({
-  request: { id: 'request-1', status: 'pending', name: 'Paciente Teste', email: 'test@example.com', phone: '910000000', nif: '123456789', specialty_id: 'dental', reason: 'Consulta de avaliação', preferred_date: '2026-11-10', preferred_time: '09:00', created_at: '2026-10-23T10:00:00Z', accepted_slot: null, rejection_reason: null as string | null },
+  request: { id: 'request-1', status: 'pending', name: 'Paciente Teste', email: 'test@example.com', phone: '910000000', nif: '123456789', specialty_id: 'dental', reason: 'Consulta de avaliação', preferred_date: '2026-11-10', preferred_time: '09:00', created_at: '2026-10-23T10:00:00Z', suggested_slots: [] as RequestSlot[], accepted_slot: null as RequestSlot | null, rejection_reason: null as string | null },
   specialties: [{ id: 'dental', name: 'Medicina Dentária' }],
   types: [{ id: 'checkup', specialty_id: 'dental', name: 'Check-Up' }],
   professionals: [{ id: 'doctor-1', specialty_id: 'dental', name: 'Médico Teste' }],
@@ -86,4 +87,17 @@ it('retains the reason on historical rejected requests', async () => {
   await openRequest();
   expect(screen.getByText('Motivo: Motivo histórico')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Rejeitar/ })).toBeNull();
+});
+
+it('preserves the additional team from the accepted saved alternative', async () => {
+  mocks.request.status = 'pre_confirmed';
+  mocks.request.accepted_slot = {date:'2026-11-10', time:'09:00'};
+  mocks.request.suggested_slots = [{date:'2026-11-10', time:'09:00', professional_id:'doctor-1', additional_professional_ids:['doctor-2'], consultation_type_id:'checkup', duration_minutes:30}];
+  mocks.professionals.push({id:'doctor-2',specialty_id:'dental',name:'Segundo M?dico'});
+  try {
+    const user = await openRequest();
+    expect((screen.getByLabelText('Profissional adicional 1') as HTMLSelectElement).value).toBe('doctor-2');
+    await user.click(screen.getByRole('button',{name:'Confirmar e agendar consulta'}));
+    await waitFor(()=>expect(mocks.convert).toHaveBeenCalledWith(expect.objectContaining({additional_professional_ids:['doctor-2'],duration:30})));
+  } finally { mocks.professionals.pop(); mocks.request.accepted_slot=null; mocks.request.suggested_slots=[]; }
 });

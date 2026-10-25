@@ -60,7 +60,6 @@ export default function RequestsPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [additionalProfessionalIds,setAdditionalProfessionalIds] = useState<string[]>([]);
-  useEffect(() => { setAdditionalProfessionalIds([]); }, [selectedRequestId]);
   const [selectedConsultationTypeId, setSelectedConsultationTypeId] = useState<string>('');
   const [manualDurationMinutes, setManualDurationMinutes] = useState<string>('');
 
@@ -83,10 +82,15 @@ export default function RequestsPage() {
         return allIds.includes(selectedRequest.specialty_id)
           && professionalSupportsService(p, servicePreferences, selectedRequest.specialty_id);
       });
-      setSelectedProfessionalId(relevantProf?.id || '');
-      setSelectedConsultationTypeId('');
-      setManualDurationMinutes('');
+      const accepted = selectedRequest.accepted_slot;
+      const matches = accepted ? selectedRequest.suggested_slots.filter(slot => slot.date === accepted.date && slot.time.slice(0,5) === accepted.time.slice(0,5) && (!accepted.professional_id || slot.professional_id === accepted.professional_id)) : [];
+      const slot = accepted ? { ...(matches.length === 1 ? matches[0] : {}), ...accepted } : null;
+      setSelectedProfessionalId(slot?.professional_id || selectedRequest.assigned_professional_id || relevantProf?.id || '');
+      setAdditionalProfessionalIds(slot?.additional_professional_ids ?? []);
+      setSelectedConsultationTypeId(slot?.consultation_type_id || '');
+      setManualDurationMinutes(String(slot?.duration_minutes || slot?.duration || selectedRequest.estimated_duration || ''));
     } else {
+      setAdditionalProfessionalIds([]);
       setSelectedProfessionalId('');
       setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
@@ -126,12 +130,7 @@ export default function RequestsPage() {
       })
     : [], [selectedRequest, professionals, profSpecialties, servicePreferences, selectedConsultationTypeId]);
 
-  useEffect(() => {
-    if (!selectedProfessionalId) return;
-    if (!specialtyProfessionals.some((professional) => professional.id === selectedProfessionalId)) {
-      setSelectedProfessionalId(specialtyProfessionals[0]?.id || '');
-    }
-  }, [selectedProfessionalId, specialtyProfessionals]);
+
 
   const availableProfessionalIds = isDurationValid && selectedRequest
     ? getAvailableProfessionalIds(
