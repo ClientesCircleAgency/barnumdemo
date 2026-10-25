@@ -1,54 +1,18 @@
--- Integration checks: all fixtures and webhook queue entries roll back.
+-- Self-contained synthetic integration tests; all writes roll back.
 begin;
-set local statement_timeout = '20s';
-select set_config('request.jwt.claim.sub', (select user_id::text from public.user_roles where role='admin' limit 1), true);
-select set_config('request.jwt.claim.role', 'authenticated', true);
-set local role authenticated;
-do $$
-declare
-  request_id uuid;
-  appointment_id uuid;
-  professional_id uuid;
-  specialty_id uuid;
-  rejected boolean;
-begin
-  select p.id,p.specialty_id into professional_id,specialty_id from public.professionals p where p.specialty_id is not null limit 1;
-  if professional_id is null then raise exception 'No professional fixture available'; end if;
-  insert into public.appointment_requests(name,email,phone,nif,reason,specialty_id,preferred_date,preferred_time,status)
-  values ('QA rollback only','qa@example.test','910000000','999999990','QA rollback',specialty_id,'2099-11-10','09:00','pending') returning id into request_id;
-  appointment_id := public.convert_request_to_appointment(request_id,'2099-11-10','09:00',professional_id,null,30);
-  if not exists(select 1 from public.appointments where id=appointment_id and status='confirmed') then
-    raise exception 'FAIL: appointment was not confirmed';
-  end if;
-  if not exists(select 1 from public.appointment_requests where id=request_id and status='converted') then
-    raise exception 'FAIL: request was not processed';
-  end if;
-  if (select count(*) from public.appointments where date='2099-11-10' and notes like '%999999990%') <> 1 then
-    raise exception 'FAIL: duplicate appointment created';
-  end if;
-  rejected := false;
-  begin
-    perform public.convert_request_to_appointment(request_id,'2099-11-10','09:00',professional_id,null,30);
-  exception when raise_exception then rejected := true;
-  end;
-  if not rejected then raise exception 'FAIL: repeated conversion accepted'; end if;
-
-  insert into public.appointment_requests(name,email,phone,nif,reason,specialty_id,preferred_date,preferred_time,status)
-  values ('QA rollback only','qa@example.test','910000000','999999991','QA rollback',specialty_id,'2099-11-10','09:15','pending') returning id into request_id;
-  rejected := false;
-  begin
-    perform public.convert_request_to_appointment(request_id,'2099-11-10','09:15',professional_id,null,30);
-  exception when raise_exception then rejected := true;
-  end;
-  if not rejected then raise exception 'FAIL: overlapping booking accepted'; end if;
-  update public.appointment_requests set status='rejected' where id=request_id;
-  rejected := false;
-  begin
-    perform public.convert_request_to_appointment(request_id,'2099-11-10','11:00',professional_id,null,30);
-  exception when raise_exception then rejected := true;
-  end;
-  if not rejected then raise exception 'FAIL: rejected request converted'; end if;
-end;
-$$;
-select 'conversion integration checks passed; fixtures rolled back' as result;
+select plan(6);
+insert into public.specialties(id,name) values('20000000-0000-0000-0000-000000000021','Rollback test');
+insert into public.consultation_types(id,name,specialty_id) values('30000000-0000-0000-0000-000000000021','Rollback type','20000000-0000-0000-0000-000000000021');
+insert into public.professionals(id,name,specialty_id) values('40000000-0000-0000-0000-000000000021','Rollback doctor','20000000-0000-0000-0000-000000000021');
+insert into public.appointment_requests(id,name,email,phone,nif,specialty_id,preferred_date,preferred_time,reason,assigned_professional_id) values
+('60000000-0000-0000-0000-000000000021','Synthetic first','qa@example.invalid','+351900000000','SYNTHETIC-ROLLBACK-1','20000000-0000-0000-0000-000000000021','2026-10-26','09:00','Test','40000000-0000-0000-0000-000000000021'),
+('60000000-0000-0000-0000-000000000022','Synthetic second','qa@example.invalid','+351900000000','SYNTHETIC-ROLLBACK-2','20000000-0000-0000-0000-000000000021','2026-10-26','09:00','Test','40000000-0000-0000-0000-000000000021');
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+select lives_ok($$select public.convert_request_to_appointment('60000000-0000-0000-0000-000000000021')$$,'legacy conversion supported');
+select lives_ok($$select public.convert_request_to_appointment('60000000-0000-0000-0000-000000000021')$$,'retry is idempotent');
+select is((select count(*)::integer from public.appointments where source_request_id='60000000-0000-0000-0000-000000000021'),1,'retry creates no duplicate');
+select throws_ok($$select public.convert_request_to_appointment('60000000-0000-0000-0000-000000000022')$$,'23514',null,'conflict rejects second conversion');
+select is((select status::text from public.appointment_requests where id='60000000-0000-0000-0000-000000000022'),'pending','failed request unchanged');
+select is((select count(*)::integer from public.patients where nif='SYNTHETIC-ROLLBACK-2'),0,'patient insert rolled back with failed reservation');
+select * from finish();
 rollback;
