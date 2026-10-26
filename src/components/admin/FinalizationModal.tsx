@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { FileText, CheckCircle } from 'lucide-react';
-import type { ClinicAppointment } from '@/types/clinic';
+import type { AppointmentRow } from '@/types/database';
 
 interface FinalizationModalProps {
-  appointment: Pick<ClinicAppointment, 'id'> | null;
+  appointment: Pick<AppointmentRow, 'id' | 'final_notes' | 'send_review'> | null;
   patientName: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,10 +32,15 @@ export function FinalizationModal({
   const [finalNotes, setFinalNotes] = useState('');
   const [sendReview, setSendReview] = useState(true);
 
+  useEffect(() => {
+    if (open) {
+      setFinalNotes(appointment?.final_notes ?? '');
+      setSendReview(appointment?.send_review ?? true);
+    }
+  }, [open, appointment?.id, appointment?.final_notes, appointment?.send_review]);
+
   const handleFinalize = () => {
     onFinalize(finalNotes, sendReview);
-    setFinalNotes('');
-    setSendReview(true);
   };
 
   const handleClose = () => {
