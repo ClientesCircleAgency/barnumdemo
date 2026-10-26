@@ -1,5 +1,7 @@
 # Correções da revisão final do Samuel — B a E
 
+**Publicado em produção em 26/10/2026.** Commit `05d2218`, migração `20261026181414` confirmada no histórico remoto e [deploy Vercel concluído](https://vercel.com/tiagocarvalhos-projects/barnumdemo/EgvWARXR5ZdCupGyijcEArsirVxE). Compilação e revisão independente aprovadas. Validação n8n ponta a ponta continua pendente do Samuel.
+
 ## Contrato
 
 - **B:** política de INSERT público exige `pending`; aceita `suggested_slots` vazio/NULL, mas não opções, aceite, rejeição, profissional atribuído, expiração ou motivo de cancelamento. A política separada de admins/secretárias mantém a gestão. Não corrige retroativamente pedidos existentes.

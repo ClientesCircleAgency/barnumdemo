@@ -1,5 +1,7 @@
 # Samuel — alterações da base de dados Barnun
 
+**Adenda: correções B–E publicadas no commit `05d2218`, com a migração `20261026181414`.** Pedidos públicos limitados, dados de pacientes preservados na conversão, conclusão preservada e sincronização de contactos. Ver [contrato e testes para a validação final](2026-10-26-samuel-final-hardening.md). Webhooks autenticados e rotação de chaves continuam pendentes de coordenação.
+
 **Atualizado a 26 de outubro de 2026: publicado em produção.**
 
 Commit `13b9b9c`, deploy Vercel concluído e seis migrações confirmadas no Supabase remoto. [Relatório da publicação](2026-10-26-production-release.md).
