@@ -205,6 +205,7 @@ export type Database = {
           patient_phone: string | null
           professional_id: string
           professional_name: string | null
+          professional_names: string[] | null
           reason: string | null
           room_id: string | null
           send_review: boolean
@@ -234,6 +235,7 @@ export type Database = {
           patient_phone?: string | null
           professional_id: string
           professional_name?: string | null
+          professional_names?: string[] | null
           reason?: string | null
           room_id?: string | null
           send_review?: boolean
@@ -263,6 +265,7 @@ export type Database = {
           patient_phone?: string | null
           professional_id?: string
           professional_name?: string | null
+          professional_names?: string[] | null
           reason?: string | null
           room_id?: string | null
           send_review?: boolean

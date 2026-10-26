@@ -12,12 +12,12 @@ if ([int]$tableCount -eq 0) {
     if ($schema -match '(?i)http_request|http_post|net\s*"?\s*\.\s*"?\s*http') { throw 'Unexpected network-enabled baseline.' }
     $schema | & docker exec -i $container psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q
     if ($LASTEXITCODE -ne 0) { throw 'Baseline import failed.' }
-    foreach ($migration in Get-ChildItem supabase/migrations/20261024*.sql | Sort-Object Name) {
+    foreach ($migration in Get-ChildItem supabase/migrations/*.sql | Where-Object { $_.Name -ge '20261024090000' } | Sort-Object Name) {
         Get-Content -LiteralPath $migration.FullName -Raw | & docker exec -i $container psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q
         if ($LASTEXITCODE -ne 0) { throw ('Local migration failed: ' + $migration.Name) }
     }
 } else {
-    $ready = & docker exec $container psql -U postgres -d postgres -Atq -c "select count(*) from information_schema.columns where table_schema='public' and table_name='professionals' and column_name='is_active';"
+    $ready = & docker exec $container psql -U postgres -d postgres -Atq -c "select count(*) from information_schema.columns where table_schema='public' and table_name='appointments' and column_name='professional_names';"
     if ($LASTEXITCODE -ne 0 -or [int]$ready -ne 1) { throw 'Existing local schema needs manual review. No data was reset.' }
 }
 $networkTriggers = & docker exec $container psql -U postgres -d postgres -Atq -c "select count(*) from pg_trigger where not tgisinternal and pg_get_triggerdef(oid) ~* 'http_request|http_post|net.http';"
