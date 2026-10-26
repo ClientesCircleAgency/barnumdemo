@@ -1,5 +1,8 @@
+import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+import { AppointmentTeamDetails } from './AppointmentTeamDetails';
+import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
   User,
@@ -19,6 +22,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import {
   Dialog,
@@ -33,8 +37,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useClinic } from '@/context/ClinicContext';
-import { useUpdateAppointment, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
-import { SuggestAlternativesModal } from './SuggestAlternativesModal';
+import { useUpdateAppointment, useUpdateAppointmentStatus, AppointmentChangedError } from '@/hooks/useAppointments';
+import { SuggestAlternativesModal, SlotSubmitError } from './SuggestAlternativesModal';
 import type { SlotSelection } from './SuggestAlternativesModal';
 import { StatusBadge } from './StatusBadge';
 import { toast } from 'sonner';
@@ -49,7 +53,7 @@ interface AppointmentDetailDrawerProps {
 type ActionType = 'cancel' | 'no_show' | null;
 
 export function AppointmentDetailDrawer({
-  appointment,
+  appointment: initialAppointment,
   open,
   onOpenChange,
 }: AppointmentDetailDrawerProps) {
@@ -58,19 +62,23 @@ export function AppointmentDetailDrawer({
     getProfessionalById,
     getConsultationTypeById,
     getSpecialtyById,
+    appointments,
   } = useClinic();
 
   const updateAppointment = useUpdateAppointment();
+  const {isAdmin,isSecretary}=useAuth();
   const updateStatus = useUpdateAppointmentStatus();
 
   const [activeAction, setActiveAction] = useState<ActionType>(null);
   const [reason, setReason] = useState('');
   const [showReschedule, setShowReschedule] = useState(false);
+  const [rescheduleVersion, setRescheduleVersion] = useState<number>();
+  const appointment=appointments.find(a=>a.id===initialAppointment?.id) ?? null;
 
   if (!appointment) return null;
 
   const patient = getPatientById(appointment.patientId);
-  const professional = getProfessionalById(appointment.professionalId);
+
   const consultationType = getConsultationTypeById(appointment.consultationTypeId);
   const specialty = getSpecialtyById(appointment.specialtyId);
 
@@ -85,6 +93,7 @@ export function AppointmentDetailDrawer({
     try {
       await updateAppointment.mutateAsync({
         id: appointment.id,
+        expectedVersion: appointment.version,
         data: { status: 'cancelled', cancellation_reason: reason.trim() },
       });
       toast.success('Consulta cancelada');
@@ -111,6 +120,7 @@ export function AppointmentDetailDrawer({
   };
 
   const handleReschedule = () => {
+    setRescheduleVersion(appointment.version);
     setShowReschedule(true);
   };
 
@@ -118,17 +128,38 @@ export function AppointmentDetailDrawer({
     const slot = slots[0];
     if (!slot) return;
 
-    await updateAppointment.mutateAsync({
-      id: appointment.id,
-      data: {
-        date: slot.date,
-        time: slot.time,
-        professional_id: slot.professional_id,
-        professional_name: slot.professional_name,
-        status: 'confirmed',
-        is_rescheduled: true,
-      },
-    });
+    if (appointment.status !== 'confirmed') {
+      throw new SlotSubmitError('Só é possível reagendar consultas confirmadas.');
+    }
+
+    const sameSlot =
+      slot.date === appointment.date &&
+      slot.time.slice(0, 5) === appointment.time.slice(0, 5) &&
+      slot.professional_id === appointment.professionalId;
+    if (sameSlot) {
+      throw new SlotSubmitError('Escolha uma data, hora ou profissional diferente do atual.');
+    }
+
+    try {
+      await updateAppointment.mutateAsync({
+        id: appointment.id,
+        ifStatus: 'confirmed',
+        expectedVersion: rescheduleVersion,
+        additionalProfessionalIds: slot.additional_professional_ids,
+        data: {
+          date: slot.date,
+          time: slot.time,
+          professional_id: slot.professional_id,
+          professional_name: slot.professional_name,
+          is_rescheduled: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof AppointmentChangedError) {
+        throw new SlotSubmitError('A consulta foi alterada noutro ecrã. Feche e abra de novo antes de reagendar.');
+      }
+      throw error;
+    }
     toast.success('Consulta reagendada com sucesso');
     setShowReschedule(false);
     onOpenChange(false);
@@ -146,6 +177,7 @@ export function AppointmentDetailDrawer({
           <SheetHeader className="space-y-1">
             <div className="flex items-center justify-between">
               <SheetTitle>Detalhes da Consulta</SheetTitle>
+              <SheetDescription className="sr-only">Dados, equipa e notas da consulta selecionada.</SheetDescription>
               <StatusBadge status={appointment.status} />
             </div>
           </SheetHeader>
@@ -187,14 +219,14 @@ export function AppointmentDetailDrawer({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Data</span>
                   <span className="font-medium">
-                    {format(new Date(appointment.date), "EEEE, d 'de' MMMM", { locale: pt })}
+                    {format(parseISO(appointment.date), "EEEE, d 'de' MMMM", { locale: pt })}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Hora</span>
                   <span className="font-medium flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {appointment.time} ({appointment.duration} min)
+                    {appointment.time.slice(0, 5)} ({appointment.duration} min)
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -202,11 +234,10 @@ export function AppointmentDetailDrawer({
                   <span className="font-medium">{consultationType?.name}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Profissional</span>
-                  <span className="font-medium flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: professional?.color }} />
-                    {professional?.name}
-                  </span>
+                  <span className="text-sm text-muted-foreground">Equipa</span>
+                  <div className="font-medium max-w-[70%]">
+                    <AppointmentTeamList appointment={appointment} getProfessional={getProfessionalById} />
+                  </div>
                 </div>
                 {specialty && (
                   <div className="flex items-center justify-between">
@@ -293,7 +324,8 @@ export function AppointmentDetailDrawer({
             )}
 
             {/* Action buttons — only for active appointments */}
-            {!isTerminal && (
+            <AppointmentTeamDetails key={appointment.id} appointment={appointment} />
+            {!isTerminal && (isAdmin || isSecretary) && (
               <>
                 <Separator />
                 <div className="space-y-2">
@@ -311,6 +343,8 @@ export function AppointmentDetailDrawer({
                       variant="outline"
                       className="flex-col h-auto py-3 gap-1.5 text-amber-600 border-amber-500/30 hover:bg-amber-50 hover:border-amber-500/50"
                       onClick={handleReschedule}
+                      disabled={appointment.status !== 'confirmed'}
+                      title={appointment.status !== 'confirmed' ? 'Só é possível reagendar consultas confirmadas' : undefined}
                     >
                       <CalendarClock className="h-4 w-4" />
                       <span className="text-xs font-medium">Reagendar</span>
@@ -398,12 +432,14 @@ export function AppointmentDetailDrawer({
         onOpenChange={setShowReschedule}
         source={appointment ? {
           appointment_id: appointment.id,
+          professional_id: appointment.professionalId,
           name: patient?.name || 'Paciente',
           specialty_id: appointment.specialtyId,
           consultation_type_id: appointment.consultationTypeId,
           preferred_date: appointment.date,
           preferred_time: appointment.time,
           duration_minutes: appointment.duration,
+          additional_professional_ids: appointment.additionalProfessionalIds ?? [],
         } : null}
         onSubmit={handleRescheduleSubmit}
         title="Reagendar Consulta"

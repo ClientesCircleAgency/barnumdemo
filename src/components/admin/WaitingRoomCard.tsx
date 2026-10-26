@@ -1,3 +1,4 @@
+import { AppointmentTeamList, type AppointmentTeamListProps } from './AppointmentTeamList';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Clock, User } from 'lucide-react';
@@ -9,13 +10,17 @@ interface WaitingRoomCardProps {
   patient: PatientRow | undefined;
   professional: ProfessionalRow | undefined;
   consultationType: ConsultationTypeRow | undefined;
+  getProfessional: AppointmentTeamListProps["getProfessional"];
+  onOpen?: () => void;
 }
 
 export function WaitingRoomCard({ 
   appointment, 
   patient, 
   professional, 
-  consultationType 
+  consultationType,
+  getProfessional,
+  onOpen
 }: WaitingRoomCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: appointment.id,
@@ -54,6 +59,7 @@ export function WaitingRoomCard({
           <div
             {...attributes}
             {...listeners}
+            onClick={event=>event.stopPropagation()}
             className={cn(
               'mt-0.5 p-1.5 rounded-lg transition-all',
               'text-muted-foreground/50 hover:text-muted-foreground',
@@ -65,7 +71,7 @@ export function WaitingRoomCard({
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0 space-y-2">
+          <button type="button" aria-label={`Abrir consulta de ${patient?.name || "paciente"}`} onClick={()=>{if(!isDragging)onOpen?.();}} className="flex-1 min-w-0 space-y-2 text-left">
             {/* Patient name */}
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
@@ -85,17 +91,8 @@ export function WaitingRoomCard({
               <span className="truncate">{consultationType?.name || 'Consulta'}</span>
             </div>
 
-            {/* Professional */}
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: professional?.color || '#94a3b8' }}
-              />
-              <p className="text-xs text-muted-foreground truncate">
-                {professional?.name || 'Profissional'}
-              </p>
-            </div>
-          </div>
+            <AppointmentTeamList appointment={appointment} getProfessional={getProfessional} className="text-xs text-muted-foreground" />
+          </button>
         </div>
       </div>
     </div>

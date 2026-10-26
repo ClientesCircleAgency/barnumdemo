@@ -1,608 +1,157 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  addDays,
-  addMonths,
-  endOfMonth,
-  format,
-  isBefore,
-  isSameDay,
-  parseISO,
-  startOfDay,
-  startOfMonth,
-  subMonths,
-} from 'date-fns';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { addDays, addMonths, endOfMonth, format, isBefore, parseISO, startOfDay, startOfMonth } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import {
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  MessageCircle,
-  Send,
-  User,
-} from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { ChevronLeft, ChevronRight, Clock, Users } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAppointments } from '@/hooks/useAppointments';
+import { AppointmentProfessionalsField } from './AppointmentProfessionalsField';
+import { AppointmentTeamList } from './AppointmentTeamList';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useProfessionalSpecialties } from '@/hooks/useProfessionalSpecialties';
 import { useProfessionalServicePreferences } from '@/hooks/useProfessionalServicePreferences';
 import { useClinicSchedule } from '@/hooks/useClinicSchedule';
-import { toast } from 'sonner';
-import type { ProfessionalRow } from '@/types/database';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
+export class SlotSubmitError extends Error {}
 export interface SlotSelection {
-  date: string;
-  time: string;
-  professional_id: string;
-  professional_name: string;
+  date: string; time: string; professional_id: string; professional_name: string;
+  additional_professional_ids: string[]; consultation_type_id?: string; duration?: number;
 }
-
 export interface SuggestSlotsSource {
-  appointment_id: string;
-  name: string;
-  specialty_id: string;
-  consultation_type_id?: string;
-  preferred_date: string;
-  preferred_time: string;
-  duration_minutes: number;
+  appointment_id: string; name: string; specialty_id: string; consultation_type_id?: string;
+  preferred_date: string; preferred_time: string; duration_minutes: number;
+  professional_id?: string; additional_professional_ids?: string[];
 }
-
-interface SuggestAlternativesModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  source: SuggestSlotsSource | null;
-  onSubmit: (slots: SlotSelection[]) => Promise<void>;
-  title?: string;
-  submitLabel?: string;
-  singleSelect?: boolean;
+interface Props {
+  open: boolean; onOpenChange: (open: boolean) => void; source: SuggestSlotsSource | null;
+  onSubmit: (slots: SlotSelection[]) => Promise<void>; title?: string; submitLabel?: string; singleSelect?: boolean;
 }
+const minutes = (time: string) => { const [h,m]=time.split(':').map(Number); return h*60+m; };
 
-interface DayAvailability {
-  totalSlots: number;
-  availableSlots: number;
-  status: 'past' | 'empty' | 'healthy' | 'busy' | 'full';
-}
-
-const WEEK_DAYS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
-
-function timeToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function normalizeTime(t: string) {
-  return t.slice(0, 5);
-}
-
-function buildSlotKey(professionalId: string, dateStr: string, time: string) {
-  return `${professionalId}|${dateStr}|${time}`;
-}
-
-function getMonthGrid(monthDate: Date) {
-  const monthStart = startOfMonth(monthDate);
-  const monthEnd = endOfMonth(monthDate);
-  const offset = (monthStart.getDay() + 6) % 7;
-  const firstGridDay = addDays(monthStart, -offset);
-  const totalDays = Math.ceil((offset + monthEnd.getDate()) / 7) * 7;
-
-  return Array.from({ length: totalDays }, (_, index) => addDays(firstGridDay, index));
-}
-
-function getDayTone(availability: DayAvailability, isSelected: boolean) {
-  if (isSelected) {
-    return 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/20';
-  }
-
-  if (availability.status === 'past') {
-    return 'border-slate-100 bg-slate-50 text-slate-300';
-  }
-
-  if (availability.status === 'full') {
-    return 'border-red-200 bg-red-500 text-white shadow-sm shadow-red-500/20 hover:bg-red-600';
-  }
-
-  if (availability.status === 'busy') {
-    return 'border-orange-200 bg-orange-400 text-white shadow-sm shadow-orange-400/20 hover:bg-orange-500';
-  }
-
-  if (availability.status === 'healthy') {
-    return 'border-emerald-200 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-600';
-  }
-
-  return 'border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50';
-}
-
-function getProfessionalInitials(name: string) {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
-}
-
-export function SuggestAlternativesModal({
-  open,
-  onOpenChange,
-  source,
-  onSubmit,
-  title = 'Sugerir Horários Alternativos',
-  submitLabel = 'Enviar Sugestões',
-  singleSelect = false,
-}: SuggestAlternativesModalProps) {
-  const { data: appointments = [] } = useAppointments();
-  const { data: professionals = [] } = useProfessionals();
-  const { data: profSpecialties = [] } = useProfessionalSpecialties();
-  const { data: servicePreferences = [] } = useProfessionalServicePreferences();
-  const { getTimeSlotsForDate } = useClinicSchedule();
-
-  const [selectedSlots, setSelectedSlots] = useState<Map<string, true>>(new Map());
-  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
-  const [visibleMonth, setVisibleMonth] = useState<Date>(startOfMonth(new Date()));
-  const [isSending, setIsSending] = useState(false);
-
-  const durationMinutes =
-    source?.duration_minutes && Number.isFinite(source.duration_minutes)
-      ? source.duration_minutes
-      : 30;
-
-  const specialtyProfessionals = useMemo(() => {
-    if (!source) return [];
-
-    return professionals.filter((professional) => {
-      const professionalSpecialtyIds = profSpecialties
-        .filter((item) => item.professional_id === professional.id)
-        .map((item) => item.specialty_id);
-      const acceptedSpecialties = professionalSpecialtyIds.length > 0
-        ? professionalSpecialtyIds
-        : professional.specialty_id
-          ? [professional.specialty_id]
-          : [];
-
-      return acceptedSpecialties.includes(source.specialty_id)
-        && professionalSupportsService(
-          professional,
-          servicePreferences,
-          source.specialty_id,
-          source.consultation_type_id,
-        );
-    });
-  }, [source, professionals, profSpecialties, servicePreferences]);
-
-  const activeAppointments = useMemo(
-    () => appointments.filter((appointment) => !['cancelled', 'completed', 'no_show'].includes(appointment.status)),
-    [appointments],
-  );
-
-  useEffect(() => {
-    if (!open || !source) return;
-
-    const preferredDate = startOfDay(parseISO(source.preferred_date));
-    const safeDate = isBefore(preferredDate, startOfDay(new Date()))
-      ? startOfDay(new Date())
-      : preferredDate;
-
-    setSelectedSlots(new Map());
-    setSelectedDate(safeDate);
-    setVisibleMonth(startOfMonth(safeDate));
-    setSelectedProfessionalId((current) => {
-      if (current && specialtyProfessionals.some((professional) => professional.id === current)) {
-        return current;
-      }
-
-      return specialtyProfessionals[0]?.id ?? '';
-    });
-  }, [open, source, specialtyProfessionals]);
-
-  const selectedProfessional = useMemo(
-    () => specialtyProfessionals.find((professional) => professional.id === selectedProfessionalId) ?? null,
-    [selectedProfessionalId, specialtyProfessionals],
-  );
-
-  const isProfFree = (professionalId: string, dateStr: string, time: string) => {
-    if (!source) {
-      return false;
-    }
-
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    if (dateStr === todayStr) {
-      const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      if (timeToMinutes(time) <= nowMinutes) {
-        return false;
-      }
-    }
-
-    const slotStart = timeToMinutes(time);
-    const slotEnd = slotStart + durationMinutes;
-
-    return !activeAppointments.some((appointment) => {
-      if (appointment.professional_id !== professionalId || appointment.date !== dateStr) return false;
-      if (appointment.id === source.appointment_id) return false;
-
-      const appointmentStart = timeToMinutes(appointment.time);
-      const appointmentEnd = appointmentStart + appointment.duration;
-      return appointmentStart < slotEnd && appointmentEnd > slotStart;
-    });
-  };
-
-  const getAvailableSlotsForDay = (professionalId: string, date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    return getTimeSlotsForDate(date, 30).filter((time) => {
-      const slotStart = timeToMinutes(time);
-      const slotEnd = slotStart + durationMinutes;
-      const fitsWorkingDay = slotEnd <= timeToMinutes(getTimeSlotsForDate(date, 30).slice(-1)[0] || time) + 30;
-
-      return fitsWorkingDay && isProfFree(professionalId, dateStr, time);
-    });
-  };
-
-  const getDayAvailability = (professionalId: string, date: Date): DayAvailability => {
-    const today = startOfDay(new Date());
-    const dateStr = format(date, 'yyyy-MM-dd');
-
-    if (isBefore(date, today)) {
-      return { totalSlots: 0, availableSlots: 0, status: 'past' };
-    }
-
-    const configuredSlots = getTimeSlotsForDate(date, 30);
-    const lastSlot = configuredSlots.at(-1);
-    const dayEndMinutes = lastSlot ? timeToMinutes(lastSlot) + 30 : 0;
-
-    const totalSlots = configuredSlots.filter((time) => {
-      const slotStart = timeToMinutes(time);
-      const slotEnd = slotStart + durationMinutes;
-      if (slotEnd > dayEndMinutes) return false;
-
-      if (dateStr === format(today, 'yyyy-MM-dd')) {
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        return timeToMinutes(time) > nowMinutes;
-      }
-
-      return true;
-    }).length;
-    const availableSlots = getAvailableSlotsForDay(professionalId, date).length;
-    const bookedSlots = Math.max(totalSlots - availableSlots, 0);
-    const availableRatio = totalSlots === 0 ? 0 : availableSlots / totalSlots;
-
-    if (totalSlots === 0 || availableSlots === 0) {
-      return { totalSlots, availableSlots, status: 'full' };
-    }
-
-    if (bookedSlots === 0) {
-      return { totalSlots, availableSlots, status: 'empty' };
-    }
-
-    if (availableRatio >= 0.8) {
-      return { totalSlots, availableSlots, status: 'healthy' };
-    }
-
-    return { totalSlots, availableSlots, status: 'busy' };
-  };
-
-  const calendarDays = useMemo(() => getMonthGrid(visibleMonth), [visibleMonth]);
-  const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-
-  const availabilityByDay = useMemo(() => {
-    if (!selectedProfessional) return new Map<string, DayAvailability>();
-
-    return new Map(
-      calendarDays.map((day) => [
-        format(day, 'yyyy-MM-dd'),
-        getDayAvailability(selectedProfessional.id, startOfDay(day)),
-      ]),
-    );
-  }, [calendarDays, durationMinutes, getTimeSlotsForDate, selectedProfessional, activeAppointments, source]);
-
-  const availableTimes = useMemo(() => {
-    if (!selectedProfessional) return [];
-    return getAvailableSlotsForDay(selectedProfessional.id, selectedDate);
-  }, [selectedProfessional, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
-
-  const professionalAvailability = useMemo(() => {
-    return specialtyProfessionals.map((professional) => {
-      const monthDays = calendarDays.filter((day) => day.getMonth() === visibleMonth.getMonth());
-      const freeDays = monthDays.filter((day) => getAvailableSlotsForDay(professional.id, day).length > 0).length;
-      const nextSelectedDaySlots = getAvailableSlotsForDay(professional.id, selectedDate).length;
-
-      return {
-        professional,
-        freeDays,
-        selectedDaySlots: nextSelectedDaySlots,
-      };
-    });
-  }, [specialtyProfessionals, calendarDays, visibleMonth, selectedDate, activeAppointments, durationMinutes, getTimeSlotsForDate, source]);
-
-  const toggleSlot = (professional: ProfessionalRow, date: Date, time: string) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const slotKey = buildSlotKey(professional.id, dateStr, time);
-
-    setSelectedSlots((previous) => {
-      const next = singleSelect ? new Map<string, true>() : new Map(previous);
-
-      if (previous.has(slotKey)) {
-        next.delete(slotKey);
-      } else {
-        next.set(slotKey, true);
-      }
-
-      return next;
-    });
-  };
-
-  const handleSend = async () => {
-    if (!source) return;
-    setIsSending(true);
-
-    try {
-      const slots = Array.from(selectedSlots.keys()).map((slotKey) => {
-        const [professionalId, date, time] = slotKey.split('|');
-        const professional = professionals.find((item) => item.id === professionalId);
-
-        return {
-          date,
-          time,
-          professional_id: professionalId,
-          professional_name: professional?.name || '',
-        };
+export function SuggestAlternativesModal({open,onOpenChange,source,onSubmit,title='Sugerir Horários Alternativos',submitLabel='Enviar Sugestões',singleSelect=false}: Props) {
+  const {data:professionals=[]}=useProfessionals();
+  const {data:links=[]}=useProfessionalSpecialties();
+  const {data:preferences=[]}=useProfessionalServicePreferences();
+  const {getTimeSlotsForDate}=useClinicSchedule();
+  const [primary,setPrimary]=useState('');
+  const [additional,setAdditional]=useState<string[]>([]);
+  const [date,setDate]=useState(startOfDay(new Date()));
+  const [month,setMonth]=useState(startOfMonth(new Date()));
+  const [slots,setSlots]=useState<SlotSelection[]>([]);
+  const [sending,setSending]=useState(false);
+  const initialized=useRef<string|null>(null);
+  const eligible=professionals.filter(p=>p.is_active!==false && !!source &&
+    (p.specialty_id===source.specialty_id || links.some(l=>l.professional_id===p.id && l.specialty_id===source.specialty_id)) &&
+    professionalSupportsService(p,preferences,source.specialty_id,source.consultation_type_id));
+  useEffect(()=>{
+    if(!open){initialized.current=null;return;}
+    if(!source || initialized.current===source.appointment_id || !professionals.length) return;
+    initialized.current=source.appointment_id;
+    const preferred=startOfDay(parseISO(source.preferred_date));
+    const next=isBefore(preferred,startOfDay(new Date()))?startOfDay(new Date()):preferred;
+    setPrimary(source.professional_id || eligible.find(p=>!source.additional_professional_ids?.includes(p.id))?.id || '');
+    setAdditional(source.additional_professional_ids??[]);setSlots([]);setDate(next);setMonth(startOfMonth(next));
+  },[open,source,professionals,eligible]);
+  const duration=source?.duration_minutes || 30;
+  const dateKey=format(date,'yyyy-MM-dd');
+  const team={professionalId:primary,additionalProfessionalIds:additional};
+  const ids=[primary,...additional];
+  const validTeam=ids.every(id=>eligible.some(p=>p.id===id)) && new Set(ids).size===ids.length;
+  const lookup=(id:string)=>professionals.find(p=>p.id===id);
+  const configured=getTimeSlotsForDate(date,30);
+  const end=minutes(configured.at(-1) || '00:00')+30;
+  const candidates=configured.filter(time=>minutes(time)+duration<=end &&
+    (dateKey!==format(new Date(),'yyyy-MM-dd') || minutes(time)>new Date().getHours()*60+new Date().getMinutes()));
+  const availability=useQuery({
+    queryKey:['appointment-team-availability','suggestions',source?.appointment_id,source?.specialty_id,source?.consultation_type_id,dateKey,duration,candidates.join(',')],
+    enabled:open && !!source && validTeam,
+    queryFn:async()=>Promise.all(candidates.map(async time=>{
+      const {data,error}=await supabase.rpc('get_appointment_team_availability',{
+        p_specialty_id:source!.specialty_id,p_consultation_type_id:source!.consultation_type_id??null,
+        p_date:dateKey,p_time:time,p_duration:duration,p_exclude_appointment_id:source!.appointment_id,
       });
-
-      await onSubmit(slots);
-      onOpenChange(false);
-      setSelectedSlots(new Map());
-    } catch {
-      toast.error('Erro ao processar');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  if (!source) return null;
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col overflow-hidden border-slate-200 bg-[#f4f8fb] p-0 shadow-2xl">
-        <DialogHeader className="shrink-0 border-b border-slate-200/80 bg-white/80 px-6 py-5 backdrop-blur">
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-slate-900">
-            <MessageCircle className="h-5 w-5 text-amber-500" />
-            {title}
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <div className="rounded-2xl border border-white bg-white/70 p-4 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-                <User className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">{source.name}</p>
-                <p className="text-sm text-slate-500">
-                  Pedido atual: {format(parseISO(source.preferred_date), "d 'de' MMMM", { locale: pt })} às {normalizeTime(source.preferred_time)}
-                </p>
-              </div>
+      if(error) throw error;
+      return {time,ids:data.filter(p=>p.available).map(p=>p.professional_id)};
+    })),
+  });
+  const times=validTeam && !availability.isFetching && !availability.isError
+    ? (availability.data??[]).filter(slot=>ids.every(id=>slot.ids.includes(id))).map(slot=>slot.time) : [];
+  function changeTeam(next:string,extras:string[]) {setPrimary(next);setAdditional(extras);setSlots([]);}
+  function toggle(time:string) {
+    if(!times.includes(time)) return;
+    const exists=slots.some(s=>s.date===dateKey && s.time===time);
+    const slot:SlotSelection={date:dateKey,time,professional_id:primary,professional_name:lookup(primary)?.name??'',additional_professional_ids:[...additional],consultation_type_id:source?.consultation_type_id,duration};
+    setSlots(exists?slots.filter(s=>s.date!==dateKey || s.time!==time):singleSelect?[slot]:[...slots,slot]);
+  }
+  async function send() {
+    if(!source || !validTeam || !slots.length) return;
+    setSending(true);
+    try {
+      for(const slot of slots){
+        const {data,error}=await supabase.rpc('get_appointment_team_availability',{
+          p_specialty_id:source.specialty_id,p_consultation_type_id:source.consultation_type_id??null,
+          p_date:slot.date,p_time:slot.time,p_duration:duration,p_exclude_appointment_id:source.appointment_id,
+        });
+        if(error || [slot.professional_id,...slot.additional_professional_ids].some(id=>!data?.some(p=>p.professional_id===id && p.available)))
+          throw new SlotSubmitError('A disponibilidade da equipa mudou. Reveja os horários selecionados.');
+      }
+      await onSubmit(slots);onOpenChange(false);setSlots([]);
+    }catch(error){toast.error(error instanceof SlotSubmitError?error.message:'Não foi possível verificar os horários. Tente novamente.');}
+    finally{setSending(false);}
+  }
+  const first=startOfMonth(month), offset=(first.getDay()+6)%7;
+  const days=Array.from({length:Math.ceil((offset+endOfMonth(month).getDate())/7)*7},(_,i)=>addDays(first,i-offset));
+  if(!source) return null;
+  return <Dialog open={open} onOpenChange={value=>{if(!sending)onOpenChange(value);}}>
+    <DialogContent className="flex max-h-[92vh] max-w-4xl flex-col overflow-hidden bg-[#f4f8fb] p-0">
+      <DialogHeader className="border-b bg-white px-6 py-5">
+        <DialogTitle className="flex items-center gap-2 text-xl"><Users className="h-5 w-5 text-primary"/>{title}</DialogTitle>
+        <DialogDescription>{source.name} · Consulta de {duration} minutos</DialogDescription>
+      </DialogHeader>
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
+        <section className="space-y-3">
+          <h3 className="font-semibold">1. Equipa da consulta</h3>
+          <div className="grid gap-5 rounded-2xl border bg-white p-4 sm:grid-cols-2">
+            <div className="space-y-3">
+              <label htmlFor="team-primary" className="text-sm font-medium">Profissional principal</label>
+              <select id="team-primary" value={primary} disabled={sending} className="h-11 w-full rounded-xl border bg-background px-3" onChange={e=>changeTeam(e.target.value,additional.filter(id=>id!==e.target.value))}>
+                <option value="">Selecionar profissional</option>
+                {professionals.filter(p=>eligible.includes(p)||p.id===primary).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <AppointmentProfessionalsField showSummary={false} primaryProfessionalId={primary} value={additional} onChange={extra=>changeTeam(primary,extra)} professionals={professionals} availableIds={eligible.map(p=>p.id)} disabled={sending}/>
+            </div>
+            <div className="rounded-xl bg-secondary/60 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Participam durante toda a consulta</p>
+              <AppointmentTeamList appointment={team} getProfessional={lookup} className="text-sm font-medium"/>
+              <p className="mt-4 text-xs text-muted-foreground">Os horários apresentados são comuns a todos. Alterar a equipa limpa as seleções anteriores.</p>
             </div>
           </div>
-
-          {specialtyProfessionals.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-8 text-center text-slate-500">
-              Não há profissionais ativos para esta especialidade.
+          {!validTeam && <p role="alert" className="text-sm text-destructive">Selecione profissionais elegíveis, sem repetir membros da equipa.</p>}
+        </section>
+        <section className="grid gap-5 md:grid-cols-2">
+          <div className="space-y-4 rounded-2xl border bg-white p-4">
+            <div className="flex items-center justify-between"><div><h3 className="font-semibold">2. Data</h3><p className="capitalize">{format(month,'MMMM yyyy',{locale:pt})}</p></div><div className="flex gap-1">
+              <Button variant="ghost" size="icon" aria-label="Mês anterior" onClick={()=>setMonth(addMonths(month,-1))}><ChevronLeft className="h-4 w-4"/></Button>
+              <Button variant="ghost" size="icon" aria-label="Mês seguinte" onClick={()=>setMonth(addMonths(month,1))}><ChevronRight className="h-4 w-4"/></Button>
+            </div></div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {['SEG','TER','QUA','QUI','SEX','SÁB','DOM'].map(d=><span key={d} className="py-2 text-[10px] text-muted-foreground">{d}</span>)}
+              {days.map(day=>{const key=format(day,'yyyy-MM-dd');return <button key={key} type="button" aria-label={format(day,'d MMMM yyyy',{locale:pt})} aria-pressed={key===dateKey} disabled={sending || day.getMonth()!==month.getMonth() || isBefore(day,startOfDay(new Date()))}
+                onClick={()=>setDate(day)} className={`aspect-square rounded-xl border text-sm disabled:opacity-25 ${key===dateKey?'border-primary bg-primary text-primary-foreground':'hover:bg-secondary'}`}>{day.getDate()}</button>;})}
             </div>
-          ) : (
-            <>
-              <section className="space-y-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-600">1. Profissional</p>
-                  <h3 className="text-lg font-semibold text-slate-900">Escolha quem vai atender</h3>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {professionalAvailability.map(({ professional, freeDays, selectedDaySlots }) => {
-                    const isSelected = selectedProfessionalId === professional.id;
-
-                    return (
-                      <button
-                        key={professional.id}
-                        type="button"
-                        onClick={() => setSelectedProfessionalId(professional.id)}
-                        className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-all ${
-                          isSelected
-                            ? 'border-slate-900 bg-white shadow-lg shadow-slate-900/10'
-                            : 'border-white bg-white/65 hover:border-slate-200 hover:bg-white'
-                        }`}
-                      >
-                        <div
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                          style={{ backgroundColor: professional.color || '#0f172a' }}
-                        >
-                          {getProfessionalInitials(professional.name)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold text-slate-900">{professional.name}</p>
-                          <p className="text-xs text-slate-500">
-                            {selectedDaySlots} hora{selectedDaySlots !== 1 ? 's' : ''} neste dia · {freeDays} dia{freeDays !== 1 ? 's' : ''} com vagas no mês
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              <section className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
-                <div className="space-y-3 rounded-3xl border border-white bg-white/75 p-4 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-600">2. Data</p>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        {format(visibleMonth, 'MMMM yyyy', { locale: pt })}
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-full bg-white"
-                        onClick={() => setVisibleMonth((current) => subMonths(current, 1))}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9 rounded-full bg-white"
-                        onClick={() => setVisibleMonth((current) => addMonths(current, 1))}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-bold text-slate-400">
-                    {WEEK_DAYS.map((day) => (
-                      <span key={day}>{day}</span>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-7 gap-2">
-                    {calendarDays.map((day) => {
-                      const dayStr = format(day, 'yyyy-MM-dd');
-                      const isCurrentMonth = day.getMonth() === visibleMonth.getMonth();
-                      const isSelected = isSameDay(day, selectedDate);
-                      const availability = availabilityByDay.get(dayStr) ?? { totalSlots: 0, availableSlots: 0, status: 'past' as const };
-                      const isDisabled = availability.status === 'past' || !isCurrentMonth;
-
-                      return (
-                        <button
-                          key={dayStr}
-                          type="button"
-                          disabled={isDisabled}
-                          onClick={() => setSelectedDate(startOfDay(day))}
-                          className={`group relative flex min-h-14 flex-col items-center justify-center rounded-2xl border text-sm font-semibold transition-all disabled:cursor-not-allowed ${
-                            isCurrentMonth ? getDayTone(availability, isSelected) : 'border-transparent bg-transparent text-slate-200'
-                          }`}
-                        >
-                          <span>{format(day, 'd')}</span>
-                          {isCurrentMonth && availability.status !== 'past' && (
-                            <span className="mt-0.5 text-[10px] font-medium opacity-80">
-                              {availability.availableSlots}/{availability.totalSlots}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                    <LegendDot className="bg-white" label="Vazio" />
-                    <LegendDot className="bg-emerald-500" label="80% ou mais livre" />
-                    <LegendDot className="bg-orange-400" label="Mais lotado" />
-                    <LegendDot className="bg-red-500" label="Lotado" />
-                  </div>
-                </div>
-
-                <div className="space-y-3 rounded-3xl border border-white bg-white/75 p-4 shadow-sm">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-600">3. Hora</p>
-                    <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
-                      <CalendarIcon className="h-4 w-4 text-slate-500" />
-                      {format(selectedDate, "d 'de' MMMM", { locale: pt })}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {selectedProfessional?.name ?? 'Selecione um profissional'}
-                    </p>
-                  </div>
-
-                  {availableTimes.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-6 text-center text-sm text-slate-500">
-                      Não há horários livres neste dia. Escolha outro dia no calendário.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
-                      {availableTimes.map((time) => {
-                        if (!selectedProfessional) return null;
-
-                        const slotKey = buildSlotKey(selectedProfessional.id, selectedDateStr, time);
-                        const isSelected = selectedSlots.has(slotKey);
-
-                        return (
-                          <button
-                            key={time}
-                            type="button"
-                            onClick={() => toggleSlot(selectedProfessional, selectedDate, time)}
-                            className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-all ${
-                              isSelected
-                                ? 'border-slate-900 bg-slate-900 text-white shadow-lg shadow-slate-900/15'
-                                : 'border-slate-200 bg-white text-slate-800 hover:border-amber-300 hover:bg-amber-50'
-                            }`}
-                          >
-                            <Clock className="h-3.5 w-3.5" />
-                            {time}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {selectedSlots.size > 0 && (
-                    <div className="rounded-2xl bg-slate-900 p-3 text-white">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">Selecionados</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.from(selectedSlots.keys()).map((slotKey) => {
-                          const [professionalId, date, time] = slotKey.split('|');
-                          const professional = professionals.find((item) => item.id === professionalId);
-
-                          return (
-                            <Badge key={slotKey} className="bg-white/12 text-white hover:bg-white/20">
-                              {format(parseISO(date), 'dd/MM')} · {time} · {professional?.name ?? 'Profissional'}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
-        </div>
-
-        <DialogFooter className="shrink-0 border-t border-slate-200/80 bg-white/80 px-6 py-4 backdrop-blur">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSend}
-            disabled={selectedSlots.size === 0 || isSending}
-            className="gap-2 bg-amber-500 text-white hover:bg-amber-600"
-          >
-            <Send className="h-4 w-4" />
-            {isSending ? 'A processar...' : `${submitLabel}${selectedSlots.size > 0 && !singleSelect ? ` (${selectedSlots.size})` : ''}`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function LegendDot({ className, label }: { className: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1.5">
-      <span className={`h-3 w-3 rounded-full border border-slate-200 ${className}`} />
-      <span>{label}</span>
-    </div>
-  );
+            <p className="text-xs text-muted-foreground">Escolha um dia para consultar a disponibilidade conjunta.</p>
+          </div>
+          <div className="space-y-4 rounded-2xl border bg-white p-4">
+            <div><h3 className="font-semibold">3. Horários da equipa</h3><p className="text-sm text-muted-foreground">{format(date,"d 'de' MMMM",{locale:pt})} · {duration} min</p></div>
+            {availability.isFetching ? <p role="status" className="py-6 text-sm text-muted-foreground">A verificar todos os profissionais…</p> : availability.isError ? <div role="alert"><p>Não foi possível consultar a disponibilidade.</p><Button variant="outline" onClick={()=>availability.refetch()}>Tentar novamente</Button></div> : times.length===0 ? <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">Sem disponibilidade conjunta. Escolha outra data ou ajuste a equipa.</p> : <div className="grid grid-cols-3 gap-2">{times.map(time=><button key={time} type="button" disabled={sending} aria-pressed={slots.some(s=>s.date===dateKey&&s.time===time)} onClick={()=>toggle(time)} className={`flex items-center justify-center gap-1 rounded-xl border py-3 text-sm font-medium ${slots.some(s=>s.date===dateKey&&s.time===time)?'border-primary bg-primary text-primary-foreground':'hover:border-primary'}`}><Clock className="h-3.5 w-3.5"/>{time}</button>)}</div>}
+          </div>
+        </section>
+        {slots.length>0 && <section className="space-y-3 rounded-2xl border bg-white p-4"><h3 className="font-semibold">Horários selecionados ({slots.length})</h3><div className="grid gap-3 sm:grid-cols-2">{slots.map(slot=><div key={`${slot.date}-${slot.time}`} className="rounded-xl border bg-secondary/30 p-3"><div className="mb-3 flex items-center justify-between gap-2"><span className="text-sm font-semibold">{format(parseISO(slot.date),'dd/MM')} · {slot.time}</span><Button variant="ghost" size="sm" disabled={sending} aria-label={`Remover ${slot.date} ${slot.time}`} onClick={()=>setSlots(slots.filter(s=>s!==slot))}>Remover</Button></div><AppointmentTeamList appointment={slot} getProfessional={lookup} className="text-sm"/></div>)}</div></section>}
+      </div>
+      <DialogFooter className="border-t bg-white px-6 py-4"><Button variant="outline" disabled={sending} onClick={()=>onOpenChange(false)}>Cancelar</Button><Button disabled={!validTeam||!slots.length||sending||availability.isFetching||availability.isError} onClick={send}>{sending?'A verificar…':`${submitLabel}${slots.length?` (${slots.length})`:''}`}</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>;
 }

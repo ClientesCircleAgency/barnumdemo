@@ -1,3 +1,4 @@
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import type { AppointmentRow } from '@/types/database';
 
 /**
@@ -56,7 +57,7 @@ export function isProfessionalAvailable(
 
   // Filter appointments for this professional on this date
   const relevantAppointments = existingAppointments.filter(
-    apt => apt.professional_id === professionalId && apt.date === date
+    apt => appointmentProfessionalIds(apt).includes(professionalId) && apt.date === date && !['cancelled','no_show'].includes(apt.status)
   );
 
   // Check for overlaps

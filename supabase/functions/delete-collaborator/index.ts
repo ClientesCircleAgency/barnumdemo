@@ -85,10 +85,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // Step 1: Unlink professional (don't delete the professional record)
-    await supabaseAdmin
+    const { error: unlinkError } = await supabaseAdmin
       .from("professionals")
-      .update({ user_id: null })
+      .update({ user_id: null, is_active: false })
       .eq("user_id", body.user_id);
+
+    if (unlinkError) return jsonResponse({ success: false, error: unlinkError.message }, 500);
 
     // Step 2: Delete user roles
     await supabaseAdmin

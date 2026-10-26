@@ -2,12 +2,11 @@ import { errorMessage } from '@/lib/errors';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { X, Clock, Sparkles, Smile, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
+import { Clock, Sparkles, Smile, Calendar, Phone, Mail, User, MessageCircle, CalendarPlus } from 'lucide-react';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useAppointmentRequests, useUpdateAppointmentRequestStatus, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
+import { useAppointmentRequests, useConvertRequestToAppointment, useUpdateAppointmentRequestSuggestions, type AppointmentRequest } from '@/hooks/useAppointmentRequests';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useSpecialties } from '@/hooks/useSpecialties';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
@@ -38,6 +37,8 @@ import { getAvailableProfessionalIds } from '@/utils/availability';
 import { RequestsBoard } from '@/components/admin/RequestsBoard';
 import { getRequestStage, getRequestStatusLabel, requestStageStyles } from '@/utils/requestStages';
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
+import { AppointmentProfessionalsField } from '@/components/admin/AppointmentProfessionalsField';
+import { useAppointmentTeamAvailability } from '@/hooks/useAppointmentTeamAvailability';
 
 export default function RequestsPage() {
   const { data: requests = [], isLoading: loadingRequests, isError, refetch } = useAppointmentRequests();
@@ -48,7 +49,6 @@ export default function RequestsPage() {
   const { data: servicePreferences = [] } = useProfessionalServicePreferences();
   const { data: allAppointments = [] } = useAppointments();
 
-  const updateRequestStatus = useUpdateAppointmentRequestStatus();
   const convertRequest = useConvertRequestToAppointment();
   const updateSuggestions = useUpdateAppointmentRequestSuggestions();
 
@@ -59,10 +59,9 @@ export default function RequestsPage() {
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
+  const [additionalProfessionalIds,setAdditionalProfessionalIds] = useState<string[]>([]);
   const [selectedConsultationTypeId, setSelectedConsultationTypeId] = useState<string>('');
   const [manualDurationMinutes, setManualDurationMinutes] = useState<string>('');
-  const [rejectionReason, setRejectionReason] = useState<string>('');
-  const [showRejectionDialog, setShowRejectionDialog] = useState(false);
 
   // Consultation types filtered by the request's specialty
   const filteredConsultationTypes = selectedRequest
@@ -83,15 +82,18 @@ export default function RequestsPage() {
         return allIds.includes(selectedRequest.specialty_id)
           && professionalSupportsService(p, servicePreferences, selectedRequest.specialty_id);
       });
-      setSelectedProfessionalId(relevantProf?.id || '');
-      setSelectedConsultationTypeId('');
-      setManualDurationMinutes('');
-      setRejectionReason('');
+      const accepted = selectedRequest.accepted_slot;
+      const matches = accepted ? selectedRequest.suggested_slots.filter(slot => slot.date === accepted.date && slot.time.slice(0,5) === accepted.time.slice(0,5) && (!accepted.professional_id || slot.professional_id === accepted.professional_id)) : [];
+      const slot = accepted ? { ...(matches.length === 1 ? matches[0] : {}), ...accepted } : null;
+      setSelectedProfessionalId(slot?.professional_id || selectedRequest.assigned_professional_id || relevantProf?.id || '');
+      setAdditionalProfessionalIds(slot?.additional_professional_ids ?? []);
+      setSelectedConsultationTypeId(slot?.consultation_type_id || '');
+      setManualDurationMinutes(String(slot?.duration_minutes || slot?.duration || selectedRequest.estimated_duration || ''));
     } else {
+      setAdditionalProfessionalIds([]);
       setSelectedProfessionalId('');
       setSelectedConsultationTypeId('');
       setManualDurationMinutes('');
-      setRejectionReason('');
     }
   }, [selectedRequest, professionals, profSpecialties, servicePreferences]);
 
@@ -103,6 +105,12 @@ export default function RequestsPage() {
   // Compute available professionals based on manual duration
   const duration = parseInt(manualDurationMinutes, 10);
   const isDurationValid = !isNaN(duration) && duration >= 5 && duration <= 1440;
+  const teamAvailability = useAppointmentTeamAvailability({ specialtyId: selectedRequest?.specialty_id, consultationTypeId: selectedConsultationTypeId,
+    date: selectedSlot?.date || selectedRequest?.preferred_date, time: selectedSlot?.time || selectedRequest?.preferred_time,
+    duration, enabled: !!selectedRequest && isDurationValid });
+  const teamIds = (teamAvailability.data ?? []).filter(p => p.available).map(p => p.professional_id);
+  const invalidTeam = teamAvailability.isFetching || teamAvailability.isError || !teamAvailability.data ||
+    [selectedProfessionalId,...additionalProfessionalIds].some(id => !teamIds.includes(id)) || additionalProfessionalIds.includes(selectedProfessionalId);
   
   // Filter professionals by the request's specialty (using junction table)
   const specialtyProfessionals = useMemo(() => selectedRequest
@@ -122,12 +130,7 @@ export default function RequestsPage() {
       })
     : [], [selectedRequest, professionals, profSpecialties, servicePreferences, selectedConsultationTypeId]);
 
-  useEffect(() => {
-    if (!selectedProfessionalId) return;
-    if (!specialtyProfessionals.some((professional) => professional.id === selectedProfessionalId)) {
-      setSelectedProfessionalId(specialtyProfessionals[0]?.id || '');
-    }
-  }, [selectedProfessionalId, specialtyProfessionals]);
+
 
   const availableProfessionalIds = isDurationValid && selectedRequest
     ? getAvailableProfessionalIds(
@@ -159,11 +162,13 @@ export default function RequestsPage() {
       return;
     }
 
+    if (invalidTeam) { toast.error('Confirme a disponibilidade de todos os profissionais.'); return; }
     setIsConverting(true);
     try {
       await convertRequest.mutateAsync({
         request_id: selectedRequest.id,
         professional_id: selectedProfessionalId,
+        additional_professional_ids: additionalProfessionalIds,
         consultation_type_id: selectedConsultationTypeId,
         duration,
       });
@@ -175,27 +180,6 @@ export default function RequestsPage() {
       toast.error(`Erro ao converter pedido: ${msg}`);
     } finally {
       setIsConverting(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedRequest) return;
-    if (!rejectionReason.trim()) {
-      toast.error('Por favor indique o motivo da rejeição');
-      return;
-    }
-
-    try {
-      await updateRequestStatus.mutateAsync({
-        id: selectedRequest.id,
-        status: 'rejected',
-        rejection_reason: rejectionReason.trim(),
-      });
-      toast.success('Pedido rejeitado');
-      setSelectedRequest(null);
-      setShowRejectionDialog(false);
-    } catch (error) {
-      toast.error('Erro ao rejeitar pedido: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
     }
   };
 
@@ -409,7 +393,7 @@ export default function RequestsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {professionals
-                        .filter(prof => availableProfessionalIds.includes(prof.id))
+                        .filter(prof => (availableProfessionalIds.includes(prof.id) && teamIds.includes(prof.id)) || prof.id===selectedProfessionalId)
                         .map((professional) => (
                           <SelectItem key={professional.id} value={professional.id}>
                             {professional.name}
@@ -420,6 +404,9 @@ export default function RequestsPage() {
                 </div>
               )}
 
+              <AppointmentProfessionalsField primaryProfessionalId={selectedProfessionalId} value={additionalProfessionalIds} onChange={setAdditionalProfessionalIds}
+                professionals={professionals} availableIds={teamIds} disabled={teamAvailability.isFetching || teamAvailability.isError} />
+              {teamAvailability.isError && <p role="alert" className="text-sm text-destructive">Não foi possível verificar a disponibilidade. Tente novamente.</p>}
               </>}
 
               <div className="text-xs text-muted-foreground pt-2 border-t">
@@ -434,7 +421,7 @@ export default function RequestsPage() {
                       <Button
                         className="w-full gap-2"
                         onClick={handleConvertToAppointment}
-                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId}
+                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId || invalidTeam}
                       >
                         <CalendarPlus className="w-4 h-4" />
                         {isConverting ? 'A confirmar...' : 'Confirmar e agendar consulta'}
@@ -449,15 +436,6 @@ export default function RequestsPage() {
                       >
                         <MessageCircle className="w-4 h-4" />
                         Sugerir Alternativas
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => setShowRejectionDialog(true)}
-                        disabled={updateRequestStatus.isPending}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Rejeitar
                       </Button>
                     </div>
                   </div>
@@ -485,49 +463,14 @@ export default function RequestsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Rejection Reason Dialog */}
-      <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
-        <DialogContent className="max-w-md rounded-[1.6rem] sm:rounded-[1.8rem]">
-          <DialogHeader>
-            <DialogTitle>Rejeitar Pedido</DialogTitle>
-            <DialogDescription>
-              Por favor indique o motivo da rejeição (obrigatório)
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Motivo da Rejeição <span className="text-destructive">*</span></Label>
-              <Textarea
-                id="rejection-reason"
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Ex: Não atendemos essa especialidade, não há disponibilidade nas próximas semanas, etc."
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectionDialog(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleReject}
-              disabled={!rejectionReason.trim() || updateRequestStatus.isPending}
-            >
-              {updateRequestStatus.isPending ? 'A rejeitar...' : 'Confirmar Rejeição'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Suggest Alternatives Modal */}
       <SuggestAlternativesModal
         open={showAlternativesModal}
         onOpenChange={setShowAlternativesModal}
         source={selectedRequest && isDurationValid ? {
           appointment_id: selectedRequest.id,
+          professional_id: selectedProfessionalId,
+          additional_professional_ids: additionalProfessionalIds,
           name: selectedRequest.name,
           specialty_id: selectedRequest.specialty_id,
           preferred_date: selectedRequest.preferred_date,

@@ -29,7 +29,7 @@ const contactInfo = [
   {
     icon: Phone,
     label: 'Telefone',
-    value: '265 231 64 (Fixo)\n936 667 034 (Móvel)',
+    value: '265 231 644 (Fixo)\n935 611 034 (Móvel)',
   },
   {
     icon: Mail,

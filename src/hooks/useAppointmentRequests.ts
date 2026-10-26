@@ -2,6 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizePortuguesePhone } from '@/lib/phone';
 
+export interface RequestSlot {
+  date: string;
+  time: string;
+  professional_id?: string;
+  additional_professional_ids?: string[];
+  consultation_type_id?: string;
+  duration_minutes?: number;
+  duration?: number;
+}
+
 export interface AppointmentRequest {
   id: string;
   name: string;
@@ -16,8 +26,8 @@ export interface AppointmentRequest {
   estimated_duration: number | null;
   assigned_professional_id: string | null;
   professional_name: string | null;
-  suggested_slots: Array<{ date: string; time: string }>;
-  accepted_slot: { date: string; time: string } | null;
+  suggested_slots: RequestSlot[];
+  accepted_slot: RequestSlot | null;
   suggestion_expires_at: string | null;
   status: 'pending' | 'pre_confirmed' | 'suggested' | 'converted' | 'cancelled' | 'expired' | 'rejected';
   rejection_reason: string | null;
@@ -44,8 +54,8 @@ export function useAppointmentRequests() {
       if (error) throw error;
       return (data || []).map(r => ({
         ...r,
-        suggested_slots: (r.suggested_slots as Array<{ date: string; time: string }>) ?? [],
-        accepted_slot: r.accepted_slot as { date: string; time: string } | null,
+        suggested_slots: (r.suggested_slots as unknown as RequestSlot[]) ?? [],
+        accepted_slot: r.accepted_slot as unknown as RequestSlot | null,
       }));
     },
   });
@@ -107,7 +117,7 @@ export function useUpdateAppointmentRequestSuggestions() {
   return useMutation({
     mutationFn: async ({ id, suggested_slots, suggestion_expires_at }: {
       id: string;
-      suggested_slots: Array<{ date: string; time: string }>;
+      suggested_slots: RequestSlot[];
       suggestion_expires_at?: string;
     }) => {
       const update: Record<string, unknown> = {
@@ -141,14 +151,16 @@ export function useConvertRequestToAppointment() {
       professional_id?: string;
       consultation_type_id?: string;
       duration?: number;
+      additional_professional_ids?: string[];
     }) => {
-      const { data, error } = await supabase.rpc('convert_request_to_appointment', {
+      const { data, error } = await supabase.rpc('convert_request_to_appointment_with_team', {
         p_request_id: params.request_id,
         p_accepted_date: params.accepted_date ?? null,
         p_accepted_time: params.accepted_time ?? null,
         p_professional_id: params.professional_id ?? null,
         p_consultation_type_id: params.consultation_type_id ?? null,
         p_duration: params.duration ?? null,
+        p_additional_professional_ids: params.additional_professional_ids ?? [],
       });
 
       if (error) throw error;

@@ -1,3 +1,5 @@
+import { AppointmentTeamList } from './AppointmentTeamList';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import {
   format,
   startOfMonth,
@@ -52,7 +54,7 @@ export function MonthView({
     return appointments
       .filter((apt) => {
         if (apt.date !== dateStr) return false;
-        if (selectedProfessional !== 'all' && apt.professionalId !== selectedProfessional) return false;
+        if (selectedProfessional !== 'all' && !appointmentProfessionalIds(apt).includes(selectedProfessional)) return false;
         if (selectedStatus !== 'all' && apt.status !== selectedStatus) return false;
         if (searchQuery) {
           const patient = getPatientById(apt.patientId);
@@ -153,9 +155,10 @@ export function MonthView({
                           backgroundColor: `${professional?.color}30`,
                           color: professional?.color,
                         }}
-                        title={`${apt.time} - ${patient?.name}`}
+                        title={`${apt.time.slice(0, 5)} - ${patient?.name}`}
                       >
                         {apt.time.slice(0, 5)} {patient?.name?.split(' ')[0]}
+                        <AppointmentTeamList appointment={apt} getProfessional={getProfessionalById} className="mt-1 text-[10px] text-foreground" />
                       </div>
                     );
                   })}

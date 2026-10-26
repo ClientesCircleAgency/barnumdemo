@@ -7,13 +7,98 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      appointment_additional_professionals: {
+        Row: {
+          appointment_id: string
+          professional_id: string
+          professional_name: string
+        }
+        Insert: {
+          appointment_id: string
+          professional_id: string
+          professional_name: string
+        }
+        Update: {
+          appointment_id?: string
+          professional_id?: string
+          professional_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_additional_professionals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_additional_professionals_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointment_notes: {
+        Row: {
+          appointment_id: string
+          author_user_id: string
+          created_at: string
+          id: string
+          note: string
+        }
+        Insert: {
+          appointment_id: string
+          author_user_id: string
+          created_at?: string
+          id?: string
+          note: string
+        }
+        Update: {
+          appointment_id?: string
+          author_user_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_requests: {
         Row: {
           accepted_slot: Json | null
@@ -34,7 +119,7 @@ export type Database = {
           specialty_id: string
           specialty_name: string | null
           status: Database["public"]["Enums"]["request_status"]
-          suggested_slots: Json
+          suggested_slots: Json | null
           suggestion_expires_at: string | null
           updated_at: string
         }
@@ -57,7 +142,7 @@ export type Database = {
           specialty_id: string
           specialty_name?: string | null
           status?: Database["public"]["Enums"]["request_status"]
-          suggested_slots?: Json
+          suggested_slots?: Json | null
           suggestion_expires_at?: string | null
           updated_at?: string
         }
@@ -80,7 +165,7 @@ export type Database = {
           specialty_id?: string
           specialty_name?: string | null
           status?: Database["public"]["Enums"]["request_status"]
-          suggested_slots?: Json
+          suggested_slots?: Json | null
           suggestion_expires_at?: string | null
           updated_at?: string
         }
@@ -111,19 +196,26 @@ export type Database = {
           duration: number
           final_notes: string | null
           finalized_at: string | null
+          finalized_by: string | null
           id: string
           is_rescheduled: boolean
           notes: string | null
           patient_id: string
+          patient_name: string | null
+          patient_phone: string | null
           professional_id: string
           professional_name: string | null
+          professional_names: string[] | null
           reason: string | null
-          send_review: boolean
           room_id: string | null
+          send_review: boolean
+          source_request_id: string | null
           specialty_id: string
+          specialty_name: string | null
           status: Database["public"]["Enums"]["appointment_status"]
           time: string
           updated_at: string
+          version: number
         }
         Insert: {
           cancellation_reason?: string | null
@@ -134,19 +226,26 @@ export type Database = {
           duration?: number
           final_notes?: string | null
           finalized_at?: string | null
+          finalized_by?: string | null
           id?: string
           is_rescheduled?: boolean
           notes?: string | null
           patient_id: string
+          patient_name?: string | null
+          patient_phone?: string | null
           professional_id: string
           professional_name?: string | null
+          professional_names?: string[] | null
           reason?: string | null
-          send_review?: boolean
           room_id?: string | null
+          send_review?: boolean
+          source_request_id?: string | null
           specialty_id: string
+          specialty_name?: string | null
           status?: Database["public"]["Enums"]["appointment_status"]
           time: string
           updated_at?: string
+          version?: number
         }
         Update: {
           cancellation_reason?: string | null
@@ -157,19 +256,26 @@ export type Database = {
           duration?: number
           final_notes?: string | null
           finalized_at?: string | null
+          finalized_by?: string | null
           id?: string
           is_rescheduled?: boolean
           notes?: string | null
           patient_id?: string
+          patient_name?: string | null
+          patient_phone?: string | null
           professional_id?: string
           professional_name?: string | null
+          professional_names?: string[] | null
           reason?: string | null
-          send_review?: boolean
           room_id?: string | null
+          send_review?: boolean
+          source_request_id?: string | null
           specialty_id?: string
+          specialty_name?: string | null
           status?: Database["public"]["Enums"]["appointment_status"]
           time?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -191,6 +297,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_source_request_id_fkey"
+            columns: ["source_request_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_requests"
             referencedColumns: ["id"]
           },
           {
@@ -407,6 +520,7 @@ export type Database = {
           color: string
           created_at: string
           id: string
+          is_active: boolean
           name: string
           specialty_id: string | null
           user_id: string | null
@@ -416,6 +530,7 @@ export type Database = {
           color?: string
           created_at?: string
           id?: string
+          is_active?: boolean
           name: string
           specialty_id?: string | null
           user_id?: string | null
@@ -425,6 +540,7 @@ export type Database = {
           color?: string
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           specialty_id?: string | null
           user_id?: string | null
@@ -527,14 +643,41 @@ export type Database = {
     Functions: {
       convert_request_to_appointment: {
         Args: {
+          p_accepted_date?: string
+          p_accepted_time?: string
+          p_consultation_type_id?: string
+          p_duration?: number
+          p_professional_id?: string
           p_request_id: string
-          p_accepted_date?: string | null
-          p_accepted_time?: string | null
-          p_professional_id?: string | null
-          p_consultation_type_id?: string | null
-          p_duration?: number | null
         }
         Returns: string
+      }
+      convert_request_to_appointment_with_team: {
+        Args: {
+          p_accepted_date?: string
+          p_accepted_time?: string
+          p_additional_professional_ids?: string[]
+          p_consultation_type_id?: string
+          p_duration?: number
+          p_professional_id?: string
+          p_request_id: string
+        }
+        Returns: string
+      }
+      get_appointment_team_availability: {
+        Args: {
+          p_consultation_type_id: string
+          p_date: string
+          p_duration: number
+          p_exclude_appointment_id?: string
+          p_specialty_id: string
+          p_time: string
+        }
+        Returns: {
+          available: boolean
+          professional_id: string
+          reason: string
+        }[]
       }
       has_role: {
         Args: {
@@ -543,24 +686,67 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_accepted_slot_value: {
+        Args: { slot_value: Json }
+        Returns: Json
+      }
+      normalize_portuguese_phone_value: {
+        Args: { phone_value: string }
+        Returns: string
+      }
+      save_appointment_team: {
+        Args: {
+          p_additional_professional_ids: string[]
+          p_appointment: Json
+          p_appointment_id: string
+          p_expected_version: number
+        }
+        Returns: string
+      }
+      set_appointment_state: {
+        Args: {
+          p_appointment_id: string
+          p_expected_version: number
+          p_final_notes?: string
+          p_send_review?: boolean
+          p_status: Database["public"]["Enums"]["appointment_status"]
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "secretary" | "doctor"
       appointment_status:
-      | "confirmed"
-      | "waiting"
-      | "in_progress"
-      | "completed"
-      | "cancelled"
-      | "no_show"
+        | "confirmed"
+        | "waiting"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
+        | "no_show"
       request_status:
-      | "pending"
-      | "pre_confirmed"
-      | "suggested"
-      | "converted"
-      | "cancelled"
-      | "expired"
-      | "rejected"
+        | "pending"
+        | "pre_confirmed"
+        | "suggested"
+        | "converted"
+        | "cancelled"
+        | "expired"
+        | "rejected"
+      time_preference: "morning" | "afternoon" | "any"
+      waitlist_priority: "low" | "medium" | "high"
+      whatsapp_workflow_status:
+        | "pending"
+        | "sent"
+        | "delivered"
+        | "responded"
+        | "expired"
+        | "failed"
+        | "cancelled"
+      whatsapp_workflow_type:
+        | "pre_confirmation_sent"
+        | "confirmation_24h"
+        | "reschedule_prompt"
+        | "slot_suggestion"
+        | "request_cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -574,118 +760,121 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: ["admin", "secretary", "doctor"],
@@ -705,6 +894,24 @@ export const Constants = {
         "cancelled",
         "expired",
         "rejected",
+      ],
+      time_preference: ["morning", "afternoon", "any"],
+      waitlist_priority: ["low", "medium", "high"],
+      whatsapp_workflow_status: [
+        "pending",
+        "sent",
+        "delivered",
+        "responded",
+        "expired",
+        "failed",
+        "cancelled",
+      ],
+      whatsapp_workflow_type: [
+        "pre_confirmation_sent",
+        "confirmation_24h",
+        "reschedule_prompt",
+        "slot_suggestion",
+        "request_cancelled",
       ],
     },
   },

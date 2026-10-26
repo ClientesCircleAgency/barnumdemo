@@ -1,3 +1,6 @@
+import { useClinic } from '@/context/ClinicContext';
+import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { useState, useEffect, forwardRef } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
@@ -153,6 +156,8 @@ function DroppableColumn({ column, children, count }: Omit<DroppableColumnProps,
 }
 
 export default function WaitingRoomPage() {
+  const { appointments: clinicAppointments } = useClinic();
+  const [detailId,setDetailId] = useState<string | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: pt });
 
@@ -199,7 +204,7 @@ export default function WaitingRoomPage() {
     if (apt.date !== today) return false;
     if (!['confirmed', 'waiting', 'in_progress', 'completed'].includes(apt.status)) return false;
     // If doctor: ONLY show own appointments
-    if (isDoctor && doctorProfessionalId && apt.professional_id !== doctorProfessionalId) return false;
+    if (isDoctor && doctorProfessionalId && !appointmentProfessionalIds(apt).includes(doctorProfessionalId)) return false;
     return true;
   });
 
@@ -252,7 +257,7 @@ export default function WaitingRoomPage() {
     }
 
     updateAppointmentStatus.mutate(
-      { id: appointment.id, status: newStatus },
+      { id: appointment.id, status: newStatus, expectedVersion: appointment.version },
       {
         onSuccess: () => {
           const patient = getPatient(appointment.patient_id);
@@ -271,6 +276,7 @@ export default function WaitingRoomPage() {
     updateAppointment.mutate(
       {
         id: appointmentToFinalize.id,
+        expectedVersion: appointmentToFinalize.version,
         data: {
           status: 'completed',
           final_notes: finalNotes || null,
@@ -295,7 +301,7 @@ export default function WaitingRoomPage() {
   const activeAppointment = activeId ? todayAppointments.find((apt) => apt.id === activeId) : null;
 
   // Profissionais ativos hoje
-  const activeProfessionalIds = [...new Set(todayAppointments.map((apt) => apt.professional_id))];
+  const activeProfessionalIds = [...new Set(todayAppointments.flatMap(appointmentProfessionalIds))];
   const activeProfessionals = professionals.filter((p) => activeProfessionalIds.includes(p.id));
 
   if (isLoading) {
@@ -357,6 +363,8 @@ export default function WaitingRoomPage() {
                     appointment={apt}
                     patient={getPatient(apt.patient_id)}
                     professional={getProfessional(apt.professional_id)}
+                    getProfessional={getProfessional}
+                    onOpen={()=>setDetailId(apt.id)}
                     consultationType={getConsultationType(apt.consultation_type_id)}
                   />
                 ))}
@@ -372,12 +380,14 @@ export default function WaitingRoomPage() {
                 {getPatient(activeAppointment.patient_id)?.name || 'Paciente'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {activeAppointment.time} • {getConsultationType(activeAppointment.consultation_type_id)?.name}
+                {activeAppointment.time.slice(0, 5)} • {getConsultationType(activeAppointment.consultation_type_id)?.name}
               </p>
             </div>
           )}
         </DragOverlay>
       </DndContext>
+
+      <AppointmentDetailDrawer appointment={clinicAppointments.find(a=>a.id===detailId) ?? null} open={!!detailId} onOpenChange={open=>{if(!open)setDetailId(null);}} />
 
       {/* Finalization Modal */}
       <FinalizationModal

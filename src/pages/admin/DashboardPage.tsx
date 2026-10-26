@@ -1,3 +1,4 @@
+import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
 import { CalendarDays, Clock3, Inbox, MessageCircle, Sparkles, Star, TrendingUp, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -139,7 +140,7 @@ export default function DashboardPage() {
             <div className="space-y-2 p-3.5 lg:p-5">
               {nextAppointments.map((appointment) => {
                 const patient = getPatientById(appointment.patientId);
-                const professional = getProfessionalById(appointment.professionalId);
+
 
                 return (
                   <div
@@ -155,9 +156,9 @@ export default function DashboardPage() {
                       <p className="truncate text-sm font-semibold text-foreground">
                         {patient?.name || 'Paciente por identificar'}
                       </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {professional?.name || 'Profissional não atribuído'}
-                      </p>
+                      <div className="mt-1 truncate text-xs text-muted-foreground">
+                        <AppointmentTeamList appointment={appointment} getProfessional={getProfessionalById} />
+                      </div>
                       <p className="mt-2 text-xs text-muted-foreground">
                         {appointment.reason || 'Consulta sem motivo registado'}
                       </p>

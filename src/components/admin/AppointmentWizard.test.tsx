@@ -8,29 +8,94 @@ import { AppointmentWizard } from './AppointmentWizard';
 const mocks = vi.hoisted(() => ({
   patient: { id: 'patient-1', name: 'Paciente Teste', nif: '123456789', phone: '+351910000000', createdAt: '2026-01-01' },
   addPatient: vi.fn(),
+  addAppointment: vi.fn(),
+  toast: vi.fn(),
+  isDoctor: false,
+  availabilityLoading: false,
+  availabilityError: false,
+  specialties: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Medicina Dentária' }],
+  consultationTypes: [{ id: '22222222-2222-4222-8222-222222222222', specialtyId: '11111111-1111-4111-8111-111111111111', name: 'Implantologia' }],
   findPatient: vi.fn(),
   schedule: () => ['09:00', '09:15'],
+  professionals: [] as Array<{ id: string; userId: string; name: string; specialty: string; specialtyIds: string[]; color: string }>,
+  availability: [] as Array<{ user_id: string; time_off: []; working_hours: Array<{ day: string; start: string; end: string; enabled: boolean }> }>,
 }));
 vi.mock('@/context/ClinicContext', () => ({ useClinic: () => ({
-  professionals: [], specialties: [], consultationTypes: [], addAppointment: vi.fn(),
+  professionals: mocks.professionals, specialties: mocks.specialties, consultationTypes: mocks.consultationTypes, addAppointment: mocks.addAppointment,
   findPatientByNif: mocks.findPatient,
   getAppointmentsByPatient: () => [], addPatient: mocks.addPatient,
 }) }));
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: null, isDoctor: false }) }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user-1' }, isDoctor: mocks.isDoctor }) }));
+vi.mock('@/hooks/useAppointmentTeamAvailability', () => ({ useAppointmentTeamAvailability: () => ({ data: mocks.professionals.map(p => ({ professional_id: p.id, available: true })), isFetching: false, isError: false }) }));
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
 vi.mock('@/hooks/useProfessionalServicePreferences', () => ({ useProfessionalServicePreferences: () => ({ data: [] }) }));
 vi.mock('@/hooks/useClinicSchedule', () => ({ useClinicSchedule: () => ({ getTimeSlotsForDate: mocks.schedule }) }));
-vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: [] }) }));
+vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: mocks.availability, isLoading: mocks.availabilityLoading, isError: mocks.availabilityError }) }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
+// Keep form state/validation real; replace only the portal-based select UI.
+vi.mock('@/components/ui/select', () => {
+  const text = (node: React.ReactNode): string => React.Children.toArray(node).map(child =>
+    React.isValidElement<{ children?: React.ReactNode }>(child) ? text(child.props.children) : String(child),
+  ).join('');
+  return {
+  Select: ({ children, value, onValueChange, disabled }: React.PropsWithChildren<{ value: string; onValueChange: (value: string) => void; disabled?: boolean }>) => <select value={value} onChange={e => onValueChange(e.target.value)} disabled={disabled}><option value="" />{children}</select>,
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+  SelectContent: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  SelectItem: ({ value, children }: React.PropsWithChildren<{ value: string }>) => <option value={value}>{text(children)}</option>,
+}; });
 
 afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.schedule = () => ['09:00', '09:15'];
+  mocks.professionals = [];
+  mocks.availability = [];
+  mocks.isDoctor = false;
+  mocks.availabilityLoading = false;
+  mocks.availabilityError = false;
+  mocks.addAppointment.mockResolvedValue(undefined);
   mocks.findPatient.mockImplementation((nif: string) => nif === mocks.patient.nif ? mocks.patient : null);
   mocks.addPatient.mockResolvedValue({ ...mocks.patient, id: 'new-patient', name: 'Novo Teste', nif: '999999999' });
 });
 
 describe('manual appointment patient flow', () => {
+  it.each([['13:00', false], ['16:00', true]])('validates a doctor booking at %s before saving', async (time, allowed) => {
+    mocks.isDoctor = true;
+    mocks.professionals = [{ id: '33333333-3333-4333-8333-333333333333', userId: 'user-1', name: 'Dr. Nogueira Nunes', specialty: mocks.specialties[0].id, specialtyIds: [mocks.specialties[0].id], color: '#fff' }];
+    mocks.availability = [{ user_id: 'user-1', time_off: [], working_hours: [{ day: 'Segunda', start: '16:00', end: '19:00', enabled: true }] }];
+    mocks.schedule = () => [time];
+    const user = userEvent.setup();
+    render(<AppointmentWizard open onOpenChange={vi.fn()} preselectedPatient={mocks.patient} preselectedDate={new Date(2026, 9, 26)} />);
+    await user.selectOptions(screen.getByRole('option', { name: 'Medicina Dentária' }).closest('select')!, mocks.specialties[0].id);
+    await user.selectOptions(screen.getByRole('option', { name: 'Implantologia' }).closest('select')!, mocks.consultationTypes[0].id);
+    await user.click(screen.getByRole('button', { name: 'Criar Consulta' }));
+    if (allowed) {
+      await waitFor(() => expect(mocks.addAppointment).toHaveBeenCalledWith(expect.objectContaining({ time: '16:00', duration: 30 })));
+    } else {
+      await waitFor(() => expect(mocks.toast).toHaveBeenCalledWith(expect.objectContaining({ title: 'Profissional indisponível' })));
+      expect(mocks.addAppointment).not.toHaveBeenCalled();
+    }
+  });
+  it('updates the doctor dropdown when appointment time or duration changes', async () => {
+    mocks.professionals = [{ id: 'doctor-1', userId: 'user-1', name: 'Dr. Nogueira Nunes', specialty: 'dental', specialtyIds: ['dental'], color: '#fff' }];
+    mocks.availability = [{ user_id: 'user-1', time_off: [], working_hours: [{ day: 'Segunda', start: '16:00', end: '19:00', enabled: true }] }];
+    mocks.schedule = () => ['13:00', '16:00', '18:30'];
+    const user = userEvent.setup();
+    render(<AppointmentWizard open onOpenChange={vi.fn()} preselectedPatient={mocks.patient} preselectedDate={new Date(2026, 9, 26)} />);
+    expect(screen.queryByRole('option', { name: 'Dr. Nogueira Nunes' })).toBeNull();
+    const time = screen.getByRole('option', { name: '13:00' }).closest('select')!;
+    await user.selectOptions(time, '16:00');
+    expect(await screen.findByRole('option', { name: 'Dr. Nogueira Nunes' })).toBeTruthy();
+    await user.selectOptions(time, '18:30');
+    const duration = screen.getByRole('spinbutton');
+    await user.clear(duration);
+    await user.type(duration, '60');
+    expect(screen.queryByRole('option', { name: 'Dr. Nogueira Nunes' })).toBeNull();
+    await user.clear(duration);
+    await user.type(duration, '30');
+    expect(await screen.findByRole('option', { name: 'Dr. Nogueira Nunes' })).toBeTruthy();
+  });
   it('preserves the selected patient and details when schedule data refreshes', async () => {
     const user = userEvent.setup();
     const props = { open: true, onOpenChange: vi.fn(), preselectedPatient: mocks.patient };
