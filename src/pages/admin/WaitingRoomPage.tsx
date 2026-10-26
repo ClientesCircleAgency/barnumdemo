@@ -1,6 +1,7 @@
 import { useClinic } from '@/context/ClinicContext';
 import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
 import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
+import { appointmentErrorMessage } from '@/utils/appointmentError';
 import { useState, useEffect, forwardRef } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
@@ -263,8 +264,8 @@ export default function WaitingRoomPage() {
           const patient = getPatient(appointment.patient_id);
           toast.success(`${patient?.name || 'Paciente'} movido para ${columns.find((c) => c.id === newStatus)?.title}`);
         },
-        onError: () => {
-          toast.error('Erro ao atualizar estado');
+        onError: (error) => {
+          toast.error(appointmentErrorMessage(error), { duration: 12000 });
         },
       }
     );
@@ -291,8 +292,8 @@ export default function WaitingRoomPage() {
           setShowFinalizationModal(false);
           setAppointmentToFinalize(null);
         },
-        onError: () => {
-          toast.error('Erro ao finalizar consulta');
+        onError: (error) => {
+          toast.error(appointmentErrorMessage(error), { duration: 12000 });
         },
       }
     );
