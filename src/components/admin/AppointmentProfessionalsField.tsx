@@ -1,18 +1,24 @@
 import { useId } from 'react';
 import { Button } from '@/components/ui/button';
+import { AppointmentTeamList } from './AppointmentTeamList';
 
 interface Props {
   primaryProfessionalId: string;
   value: string[];
   onChange: (ids: string[]) => void;
-  professionals: { id: string; name: string }[];
+  professionals: { id: string; name: string; color?: string | null }[];
   availableIds: string[];
   disabled?: boolean;
+  showSummary?: boolean;
 }
 
-export function AppointmentProfessionalsField({ primaryProfessionalId, value, onChange, professionals, availableIds, disabled }: Props) {
+export function AppointmentProfessionalsField({ primaryProfessionalId, value, onChange, professionals, availableIds, disabled, showSummary = true }: Props) {
   const prefix = useId();
   return <div className="space-y-3">
+    {showSummary && value.some(Boolean) && <div className="rounded-xl border bg-secondary/30 p-3">
+      <p className="mb-2 text-xs font-medium text-muted-foreground">Equipa da consulta</p>
+      <AppointmentTeamList appointment={{professionalId:primaryProfessionalId,additionalProfessionalIds:value.filter(Boolean)}} getProfessional={id=>professionals.find(p=>p.id===id)} className="text-sm" />
+    </div>}
     {value.map((id,index) => <div key={index} className="space-y-1">
       <label className="text-sm font-medium" htmlFor={`${prefix}-${index}`}>Profissional adicional {index+1}</label>
       <div className="flex items-center gap-2">

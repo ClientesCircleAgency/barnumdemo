@@ -1,4 +1,5 @@
-import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
+import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
@@ -101,7 +102,7 @@ export function WeekView({
                       >
                         <p className="font-medium">{apt.time.slice(0, 5)}</p>
                         <p className="truncate hidden lg:block">{patient?.name}</p>
-                        <p className="truncate hidden lg:block">{appointmentTeamLabel(apt,getProfessionalById)}</p>
+                        <div className="text-[10px] lg:text-xs"><AppointmentTeamList appointment={apt} getProfessional={getProfessionalById} /></div>
                         <p className="truncate lg:hidden">{patient?.name?.split(' ')[0]?.charAt(0)}.</p>
                       </div>
                     );

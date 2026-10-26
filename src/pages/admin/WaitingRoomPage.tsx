@@ -1,4 +1,6 @@
-import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
+import { useClinic } from '@/context/ClinicContext';
+import { AppointmentDetailDrawer } from '@/components/admin/AppointmentDetailDrawer';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { useState, useEffect, forwardRef } from 'react';
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
 import { useDroppable } from '@dnd-kit/core';
@@ -154,6 +156,8 @@ function DroppableColumn({ column, children, count }: Omit<DroppableColumnProps,
 }
 
 export default function WaitingRoomPage() {
+  const { appointments: clinicAppointments } = useClinic();
+  const [detailId,setDetailId] = useState<string | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const formattedDate = format(new Date(), "EEEE, d 'de' MMMM", { locale: pt });
 
@@ -359,7 +363,8 @@ export default function WaitingRoomPage() {
                     appointment={apt}
                     patient={getPatient(apt.patient_id)}
                     professional={getProfessional(apt.professional_id)}
-                    professionalNames={appointmentTeamLabel(apt,getProfessional)}
+                    getProfessional={getProfessional}
+                    onOpen={()=>setDetailId(apt.id)}
                     consultationType={getConsultationType(apt.consultation_type_id)}
                   />
                 ))}
@@ -381,6 +386,8 @@ export default function WaitingRoomPage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      <AppointmentDetailDrawer appointment={clinicAppointments.find(a=>a.id===detailId) ?? null} open={!!detailId} onOpenChange={open=>{if(!open)setDetailId(null);}} />
 
       {/* Finalization Modal */}
       <FinalizationModal

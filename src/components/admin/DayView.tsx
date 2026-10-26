@@ -1,3 +1,4 @@
+import { AppointmentTeamList } from './AppointmentTeamList';
 import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
 import { useMemo } from 'react';
 import { Check, CheckCheck } from 'lucide-react';
@@ -134,7 +135,7 @@ export function DayView({ appointments, professionals, onAppointmentClick }: Day
                   title={appointmentTeamLabel(appointment,getProfessionalById)}
                   onClick={() => onAppointmentClick(appointment)}
                   className={cn(
-                    'z-20 m-1 flex cursor-pointer items-center justify-between rounded-xl border border-border/60 border-l-[4px] px-2.5 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md lg:px-3',
+                    'z-20 m-1 overflow-auto flex cursor-pointer items-center justify-between rounded-xl border border-border/60 border-l-[4px] px-2.5 py-2 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md lg:px-3',
                     status.bgClass,
                   )}
                   style={{
@@ -144,6 +145,7 @@ export function DayView({ appointments, professionals, onAppointmentClick }: Day
                   }}
                 >
                   <div className="min-w-0 flex-1">
+                    <AppointmentTeamList appointment={appointment} getProfessional={getProfessionalById} className="mb-1 text-[10px]" />
                     <p className="truncate text-xs font-semibold text-foreground lg:text-sm">
                       {patient?.name || 'Paciente'}
                     </p>

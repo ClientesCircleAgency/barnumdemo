@@ -1,4 +1,5 @@
-import { appointmentProfessionalIds, appointmentTeamLabel } from '@/utils/appointmentTeam';
+import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
+import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -411,7 +412,7 @@ export default function StatisticsPage() {
                   key={appointment.id}
                   appointment={appointment}
                   patientName={getPatientById(appointment.patientId)?.name ?? 'Paciente'}
-                  professionalName={appointmentTeamLabel(appointment,getProfessionalById)}
+                  professionalName={<AppointmentTeamList appointment={appointment} getProfessional={getProfessionalById} />}
                   consultationName={
                     appointment.consultationTypeName
                     || getConsultationTypeById(appointment.consultationTypeId)?.name
@@ -552,7 +553,7 @@ function MovementCard({
 }: {
   appointment: ClinicAppointment;
   patientName: string;
-  professionalName: string;
+  professionalName: React.ReactNode;
   consultationName: string;
 }) {
   const progress = statusProgress[appointment.status] ?? 30;
@@ -583,7 +584,7 @@ function MovementCard({
             </div>
             <div className="rounded-2xl bg-background/80 px-3 py-2">
               <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Profissional</p>
-              <p className="mt-1 text-sm font-medium text-foreground">{professionalName}</p>
+              <div className="mt-1 text-sm font-medium text-foreground">{professionalName}</div>
             </div>
             <div className="rounded-2xl bg-background/80 px-3 py-2">
               <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Estado</p>

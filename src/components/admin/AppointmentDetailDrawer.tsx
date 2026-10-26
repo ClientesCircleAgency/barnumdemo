@@ -1,4 +1,4 @@
-import { appointmentTeamLabel } from '@/utils/appointmentTeam';
+import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppointmentTeamDetails } from './AppointmentTeamDetails';
@@ -22,6 +22,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetDescription,
 } from '@/components/ui/sheet';
 import {
   Dialog,
@@ -77,7 +78,7 @@ export function AppointmentDetailDrawer({
   if (!appointment) return null;
 
   const patient = getPatientById(appointment.patientId);
-  const professional = getProfessionalById(appointment.professionalId);
+
   const consultationType = getConsultationTypeById(appointment.consultationTypeId);
   const specialty = getSpecialtyById(appointment.specialtyId);
 
@@ -176,6 +177,7 @@ export function AppointmentDetailDrawer({
           <SheetHeader className="space-y-1">
             <div className="flex items-center justify-between">
               <SheetTitle>Detalhes da Consulta</SheetTitle>
+              <SheetDescription className="sr-only">Dados, equipa e notas da consulta selecionada.</SheetDescription>
               <StatusBadge status={appointment.status} />
             </div>
           </SheetHeader>
@@ -232,11 +234,10 @@ export function AppointmentDetailDrawer({
                   <span className="font-medium">{consultationType?.name}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Profissional</span>
-                  <span className="font-medium flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: professional?.color }} />
-                    {appointmentTeamLabel(appointment, getProfessionalById)}
-                  </span>
+                  <span className="text-sm text-muted-foreground">Equipa</span>
+                  <div className="font-medium max-w-[70%]">
+                    <AppointmentTeamList appointment={appointment} getProfessional={getProfessionalById} />
+                  </div>
                 </div>
                 {specialty && (
                   <div className="flex items-center justify-between">
@@ -431,6 +432,7 @@ export function AppointmentDetailDrawer({
         onOpenChange={setShowReschedule}
         source={appointment ? {
           appointment_id: appointment.id,
+          professional_id: appointment.professionalId,
           name: patient?.name || 'Paciente',
           specialty_id: appointment.specialtyId,
           consultation_type_id: appointment.consultationTypeId,

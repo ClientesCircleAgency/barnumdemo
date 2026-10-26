@@ -1,3 +1,4 @@
+import { AppointmentTeamList } from './AppointmentTeamList';
 import { appointmentProfessionalIds } from '@/utils/appointmentTeam';
 import {
   format,
@@ -157,6 +158,7 @@ export function MonthView({
                         title={`${apt.time.slice(0, 5)} - ${patient?.name}`}
                       >
                         {apt.time.slice(0, 5)} {patient?.name?.split(' ')[0]}
+                        <AppointmentTeamList appointment={apt} getProfessional={getProfessionalById} className="mt-1 text-[10px] text-foreground" />
                       </div>
                     );
                   })}

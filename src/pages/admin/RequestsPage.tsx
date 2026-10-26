@@ -469,6 +469,8 @@ export default function RequestsPage() {
         onOpenChange={setShowAlternativesModal}
         source={selectedRequest && isDurationValid ? {
           appointment_id: selectedRequest.id,
+          professional_id: selectedProfessionalId,
+          additional_professional_ids: additionalProfessionalIds,
           name: selectedRequest.name,
           specialty_id: selectedRequest.specialty_id,
           preferred_date: selectedRequest.preferred_date,
