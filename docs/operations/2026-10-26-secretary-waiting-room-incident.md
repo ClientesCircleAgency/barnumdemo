@@ -1,6 +1,6 @@
 # Sala de Espera: erro reportado por secretária
 
-Estado: causa do incidente por confirmar. Não considerar corrigido apenas pela publicação do diagnóstico.
+Estado: utilizador confirmou que a secretária já conseguiu. Causa técnica não confirmada; não atribuir a resolução à publicação do diagnóstico sem evidência.
 
 - Sintoma: secretária recebe «erro ao atualizar o estado»; administrador consegue mover.
 - Schema de produção inspecionado em 26/10: `can_manage_appointments` inclui `secretary`; RPC de estado acessível a `authenticated`, com autorização interna.
