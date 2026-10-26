@@ -151,3 +151,9 @@ Barnun is a dental clinic management SaaS built with React + Supabase + Vercel. 
 - Shared coloured team lists across appointment surfaces; suggestions use the full team and server-validated common times. Team edits clear selected alternatives.
 - Waiting-room card opens appointment details; dragging remains on the separate handle. Local demo encoding corrected.
 - 64 frontend tests, TypeScript and build passed. Local browser checked; no remote deployment or migration. See ../operations/2026-10-26-team-interface.md.
+
+### 2026-10-26 ? Production release
+- Published shared appointments and team interface in commit 13b9b9c. Six migrations applied remotely, including professional_names; delete-collaborator deployed.
+- 64 frontend tests, 45 SQL tests, TypeScript/build and local concurrency/Realtime passed. Vercel success and live production bundle verified.
+- Direct PATCH conversion supported; source_request_id comes from request.id. Names stored before webhook, legacy rows use professional_name fallback.
+- No production fixture writes or messages sent; Samuel owns end-to-end n8n tests with his number. See docs/operations/2026-10-26-production-release.md and 2026-10-26-n8n-team-handoff.md.
