@@ -1,0 +1,34 @@
+.treatment-sections { margin-top: 26px; }
+.section-headings, .consultation-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+.section-headings { padding: 0 24px 14px; gap: 46px; }
+.section-headings p { font-size: 12px; margin: 4px 0 0; }
+.consultation-row { background: white; border: 1px solid var(--line); border-radius: 16px; margin-bottom: 16px; overflow: hidden; }
+.consultation-detail { padding: 22px; background: #fcfdfe; }
+.consultation-detail .session { padding: 0; }
+.consultation-detail .session:before { display: none; }
+.consultation-detail .sessioncard { background: white; }
+.consultation-detail .next .sessioncard { background: #fffcf6; }
+.session-discussion { padding: 22px 24px; border-left: 1px solid var(--line); min-width: 0; }
+.discussion-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 17px; }
+.discussion-heading h4 { margin: 0; font-size: 13px; font-weight: 600; }
+.discussion-heading h4 span { margin-left: 6px; font-size: 11px; color: var(--muted); }
+.session-messages { max-height: 320px; overflow: auto; overflow-wrap: anywhere; }
+.session-messages .message { margin-bottom: 14px; }
+.session-note { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; font-size: 12px; }
+.session-note p { margin-bottom: 0; line-height: 1.6; }
+.empty-comments { color: var(--muted); font-size: 13px; padding: 12px 0; }
+.session-compose { border-top: 1px solid var(--line); padding-top: 12px; }
+.session-compose textarea { width: 100%; resize: vertical; min-height: 60px; padding: 10px 12px; background: #fafcfe; border: 1px solid var(--line); border-radius: 9px; }
+.session-compose .row { margin-top: 8px; }
+.session-compose button { padding: 7px 14px; font-size: 13px; }
+.session-compose small { font-size: 11px; }
+.treatment-sections > .panelactions { border: 0; padding: 4px 0; }
+@media(max-width:1100px) { .section-headings, .consultation-row { grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); } }
+@media(max-width:760px) {
+  .section-headings, .consultation-row { grid-template-columns: 1fr; }
+  .section-headings > div:last-child { display: none; }
+  .consultation-detail { padding: 16px; }
+  .session-discussion { border-left: 0; border-top: 1px solid var(--line); padding: 18px; }
+  .consultation-detail .session { grid-template-columns: 24px 1fr; gap: 8px; }
+  .sessioncard .row { flex-wrap: wrap; }
+}
