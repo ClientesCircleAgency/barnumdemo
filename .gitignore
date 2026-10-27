@@ -35,3 +35,6 @@ supabase/.temp/
 
 # Local working evidence and schema exports, not release artifacts
 .superpowers/
+
+# Local assistant settings may contain privileged credentials
+.claude/settings.local.json

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   types: [{ id: 'checkup', specialty_id: 'dental', name: 'Check-Up' }],
   professionals: [{ id: 'doctor-1', specialty_id: 'dental', name: 'Médico Teste' }],
   empty: [],
+  patientLookupError: false,
   convert: vi.fn(), updateStatus: vi.fn(), suggest: vi.fn(),
 }));
 vi.mock('@/hooks/useAppointmentRequests', () => ({
@@ -22,6 +23,7 @@ vi.mock('@/hooks/useAppointmentRequests', () => ({
   useUpdateAppointmentRequestSuggestions: () => ({ mutateAsync: mocks.suggest }),
 }));
 vi.mock('@/hooks/useAppointments', () => ({ useAppointments: () => ({ data: mocks.empty }) }));
+vi.mock('@/hooks/usePatients', () => ({ usePatientByNif: () => ({data:{id:'existing-patient',name:'Nome da ficha',phone:'+351922222222'},isError:mocks.patientLookupError,refetch:vi.fn()}) }));
 vi.mock('@/hooks/useAppointmentTeamAvailability', () => ({ useAppointmentTeamAvailability: () => ({ data: mocks.professionals.map(p => ({ professional_id: p.id, available: true })), isFetching: false, isError: false }) }));
 vi.mock('@/hooks/useSpecialties', () => ({ useSpecialties: () => ({ data: mocks.specialties }) }));
 vi.mock('@/hooks/useConsultationTypes', () => ({ useConsultationTypes: () => ({ data: mocks.types }) }));
@@ -38,7 +40,7 @@ vi.mock('@/components/ui/select', () => {
     SelectItem: ({ value, children }: React.PropsWithChildren<{ value: string }>) => <option value={value}>{text(children)}</option>,
   };
 });
-afterEach(cleanup);
+afterEach(()=>{cleanup();mocks.patientLookupError=false;});
 beforeEach(() => { vi.clearAllMocks(); mocks.request.status = 'pending'; mocks.request.rejection_reason = null; mocks.convert.mockResolvedValue(undefined); mocks.suggest.mockResolvedValue(undefined); });
 
 async function openRequest() {
@@ -47,6 +49,20 @@ async function openRequest() {
   await user.click(screen.getByRole('button', { name: /Paciente Teste/ }));
   return user;
 }
+
+it('warns about existing patient contact differences before conversion',async()=>{
+ await openRequest();
+ expect(screen.getByText(/NIF já registado: os dados do pedido diferem da ficha/)).toBeTruthy();
+ expect(screen.getByText(/Nome da ficha/)).toBeTruthy();
+ expect(mocks.convert).not.toHaveBeenCalled();
+});
+it('does not confirm while the patient comparison failed',async()=>{
+ mocks.patientLookupError=true;
+ const user=await openRequest();
+ await user.type(screen.getByRole('spinbutton'),'30');
+ await user.selectOptions(screen.getByRole('option',{name:'Check-Up'}).closest('select')!,'checkup');
+ expect((screen.getByRole('button',{name:'Confirmar e agendar consulta'}) as HTMLButtonElement).disabled).toBe(true);
+});
 
 it('removes rejection while preserving confirmation', async () => {
   const user = await openRequest();

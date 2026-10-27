@@ -280,7 +280,7 @@ export default function WaitingRoomPage() {
         expectedVersion: appointmentToFinalize.version,
         data: {
           status: 'completed',
-          final_notes: finalNotes || null,
+          final_notes: finalNotes,
           send_review: sendReview,
           finalized_at: new Date().toISOString(),
         },

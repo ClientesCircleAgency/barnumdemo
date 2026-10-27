@@ -68,10 +68,14 @@ export function useAddPatient() {
 
       const { data, error } = await supabase
         .from('patients')
-        .upsert(normalizedPatient, { onConflict: 'nif' })
+        .insert(normalizedPatient)
         .select()
         .single();
       
+      if (error?.code === '23505') {
+        await queryClient.invalidateQueries({ queryKey: ['patients'] });
+        throw new Error('NIF já registado. Selecione a ficha existente; os dados não foram alterados.');
+      }
       if (error) throw error;
       return data;
     },
