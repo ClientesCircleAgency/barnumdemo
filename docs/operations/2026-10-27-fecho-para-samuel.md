@@ -6,6 +6,8 @@
 
 Base de produção confirmada por fetch: `origin/dev` em `05d2218`. Branch local de entrega: `release/samuel-followup`, primeiro commit `0cf36d4`. Contém apenas as cinco correções de `2026-10-27-samuel-followup.md`, os testes e a remoção do ficheiro local sensível do controlo de versões. Não inclui schema, hooks ou interface de Tratamentos.
 
+Validação do pacote exato, extraído dessa branch: 70 testes em 18 ficheiros passaram, TypeScript sem erros e build concluído. Um teste existente de horários falhou por espera na execução paralela inicial; passou isoladamente e a suite completa passou com dois workers, sem alteração do produto ou do teste. Os avisos de bundle grande/Browserslist mantêm-se. A extração não contém `.claude/settings.local.json` nem a pasta de componentes de Tratamentos. A única migração diferente da base é a indicada abaixo. Nada foi publicado.
+
 Migração única: `20261027151407_samuel_followup_safety.sql`. Antes de a aplicar remotamente, comparar as funções atuais de produção com a base; não sobrescrever alterações posteriores do parceiro. Aplicar BD antes do frontend. A branch `dev` publica automaticamente; a branch de entrega não deve ser confundida com produção.
 
 Samuel precisa de confirmar dois contratos concretos:
