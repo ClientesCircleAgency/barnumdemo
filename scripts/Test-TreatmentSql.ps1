@@ -8,8 +8,13 @@ if (!$files) { throw 'No tests found' }
 foreach ($file in $files) {
   $sql=Get-Content $file.FullName -Raw -Encoding UTF8
   $sql=$sql.Replace('-- TREATMENT_FIXTURE', (Get-Content 'supabase/tests/fixtures/treatments.sql' -Raw -Encoding UTF8))
+  $sql="set client_min_messages=warning;`n"+$sql
+  $previousErrorPreference=$ErrorActionPreference
+  $ErrorActionPreference='Continue'
   $result=$sql | docker exec -i $container psql -U postgres -d postgres -v ON_ERROR_STOP=1 2>&1
+  $testExitCode=$LASTEXITCODE
+  $ErrorActionPreference=$previousErrorPreference
   $result | Set-Content ".superpowers/sdd/2026-10-27-treatments/$($file.Name).log"
-  if ($LASTEXITCODE -ne 0 -or ($result -match 'not ok|Looks like you failed')) { $result; throw "Failed: $($file.Name)" }
+  if ($testExitCode -ne 0 -or ($result -match 'not ok|Looks like you failed')) { $result; throw "Failed: $($file.Name)" }
   Write-Output "$($file.Name): PASS"
 }

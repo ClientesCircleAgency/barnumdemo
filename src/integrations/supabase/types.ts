@@ -67,6 +67,47 @@ export type Database = {
           },
         ]
       }
+      appointment_clinical_observations: {
+        Row: {
+          appointment_id: string
+          author_name: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          appointment_id: string
+          author_name: string
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          appointment_id?: string
+          author_name?: string
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_clinical_observations_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_notes: {
         Row: {
           appointment_id: string
@@ -339,6 +380,44 @@ export type Database = {
         }
         Relationships: []
       }
+      clinical_observation_revisions: {
+        Row: {
+          body: string
+          created_at: string
+          editor_name: string
+          editor_user_id: string
+          id: string
+          observation_id: string
+          version: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          editor_name: string
+          editor_user_id: string
+          id?: string
+          observation_id: string
+          version: number
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          editor_name?: string
+          editor_user_id?: string
+          id?: string
+          observation_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_observation_revisions_observation_id_fkey"
+            columns: ["observation_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_clinical_observations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_types: {
         Row: {
           color: string | null
@@ -573,6 +652,44 @@ export type Database = {
         }
         Relationships: []
       }
+      treatment_comment_revisions: {
+        Row: {
+          body: string
+          comment_id: string
+          created_at: string
+          editor_name: string
+          editor_user_id: string
+          id: string
+          version: number
+        }
+        Insert: {
+          body: string
+          comment_id: string
+          created_at?: string
+          editor_name: string
+          editor_user_id: string
+          id?: string
+          version: number
+        }
+        Update: {
+          body?: string
+          comment_id?: string
+          created_at?: string
+          editor_name?: string
+          editor_user_id?: string
+          id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_comment_revisions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_session_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_professionals: {
         Row: {
           professional_id: string
@@ -599,6 +716,47 @@ export type Database = {
             columns: ["treatment_id"]
             isOneToOne: false
             referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_session_comments: {
+        Row: {
+          author_name: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          session_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          author_name: string
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          session_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          author_name?: string
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_session_comments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "treatment_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -889,6 +1047,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      book_treatment_sessions: {
+        Args: { p_slots: Json; p_treatment_id: string }
+        Returns: Json
+      }
       convert_request_to_appointment: {
         Args: {
           p_accepted_date?: string
@@ -912,6 +1074,16 @@ export type Database = {
         }
         Returns: string
       }
+      finalize_appointment_with_observation: {
+        Args: {
+          p_appointment_id: string
+          p_expected_version: number
+          p_final_notes: string
+          p_internal_observation: string
+          p_send_review: boolean
+        }
+        Returns: string
+      }
       get_appointment_team_availability: {
         Args: {
           p_consultation_type_id: string
@@ -927,12 +1099,60 @@ export type Database = {
           reason: string
         }[]
       }
+      get_clinical_observation_revisions: {
+        Args: { p_observation_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          editor_name: string
+          editor_user_id: string
+          id: string
+          observation_id: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "clinical_observation_revisions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_treatment_comment_revisions: {
+        Args: { p_comment_id: string }
+        Returns: {
+          body: string
+          comment_id: string
+          created_at: string
+          editor_name: string
+          editor_user_id: string
+          id: string
+          version: number
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "treatment_comment_revisions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_treatment_session_context: {
+        Args: { p_treatment_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      link_treatment_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_expected_version: number
+          p_session_id: string
+        }
+        Returns: string
       }
       list_treatment_patient_directory: {
         Args: { p_query?: string }
@@ -962,6 +1182,15 @@ export type Database = {
         }
         Returns: string
       }
+      save_clinical_observation: {
+        Args: {
+          p_appointment_id: string
+          p_body: string
+          p_expected_version: number
+          p_id: string
+        }
+        Returns: string
+      }
       save_treatment: {
         Args: {
           p_expected_version: number
@@ -969,6 +1198,15 @@ export type Database = {
           p_id: string
           p_primary_professional_id: string
           p_professional_ids: string[]
+        }
+        Returns: string
+      }
+      save_treatment_comment: {
+        Args: {
+          p_body: string
+          p_expected_version: number
+          p_id: string
+          p_session_id: string
         }
         Returns: string
       }
