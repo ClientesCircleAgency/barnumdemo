@@ -39,6 +39,8 @@ import { getRequestStage, getRequestStatusLabel, requestStageStyles } from '@/ut
 import { professionalSupportsService } from '@/utils/professionalServicePreferences';
 import { AppointmentProfessionalsField } from '@/components/admin/AppointmentProfessionalsField';
 import { useAppointmentTeamAvailability } from '@/hooks/useAppointmentTeamAvailability';
+import { usePatientByNif } from '@/hooks/usePatients';
+import { normalizePortuguesePhone } from '@/lib/phone';
 
 export default function RequestsPage() {
   const { data: requests = [], isLoading: loadingRequests, isError, refetch } = useAppointmentRequests();
@@ -55,6 +57,10 @@ export default function RequestsPage() {
 
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const selectedRequest = requests.find(request => request.id === selectedRequestId) || null;
+  const {data: existingPatient,isLoading: checkingPatient,isError: patientCheckError,refetch: retryPatientCheck}=usePatientByNif(selectedRequest?.nif);
+  const contactMismatch=existingPatient && selectedRequest && (
+    existingPatient.name.trim().toLocaleLowerCase('pt-PT')!==selectedRequest.name.trim().toLocaleLowerCase('pt-PT') ||
+    normalizePortuguesePhone(existingPatient.phone)!==normalizePortuguesePhone(selectedRequest.phone));
   const setSelectedRequest = (request: AppointmentRequest | null) => setSelectedRequestId(request?.id || null);
   const [showAlternativesModal, setShowAlternativesModal] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -148,7 +154,7 @@ export default function RequestsPage() {
 
   // Convert request to confirmed appointment via RPC
   const handleConvertToAppointment = async () => {
-    if (!selectedRequest || !canConfirm) return;
+    if (!selectedRequest || !canConfirm || checkingPatient || patientCheckError) return;
     if (!selectedConsultationTypeId) {
       toast.error('Por favor selecione o tipo de consulta');
       return;
@@ -283,6 +289,14 @@ export default function RequestsPage() {
               {selectedSlot?.date && selectedSlot?.time && <p className="rounded-xl bg-secondary p-3 text-sm">Horário aceite: {format(parseISO(selectedSlot.date), 'dd/MM/yyyy', { locale: pt })} às {selectedSlot.time.slice(0, 5)}</p>}
               {selectedRequest.rejection_reason && <p className="text-sm text-muted-foreground">Motivo: {selectedRequest.rejection_reason}</p>}
 
+              {contactMismatch && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 space-y-1">
+                <p className="font-medium">NIF já registado: os dados do pedido diferem da ficha.</p>
+                <p>Ficha: {existingPatient.name} · {existingPatient.phone}</p>
+                <p>Pedido: {selectedRequest.name} · {selectedRequest.phone}</p>
+                <p>A consulta usará a ficha existente. Confirme os dados com o paciente antes de agendar; este pedido não altera a ficha.</p>
+              </div>}
+              {checkingPatient && <p role="status" className="text-sm text-muted-foreground">A verificar a ficha existente…</p>}
+              {patientCheckError && <div role="alert" className="text-sm text-destructive">Não foi possível verificar a ficha. <Button variant="outline" onClick={()=>retryPatientCheck()}>Tentar novamente</Button></div>}
               {/* CONSULTATION REASON */}
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm font-medium">Motivo da Consulta</Label>
@@ -421,7 +435,7 @@ export default function RequestsPage() {
                       <Button
                         className="w-full gap-2"
                         onClick={handleConvertToAppointment}
-                        disabled={isConverting || !selectedProfessionalId || !selectedConsultationTypeId || invalidTeam}
+                        disabled={isConverting || checkingPatient || patientCheckError || !selectedProfessionalId || !selectedConsultationTypeId || invalidTeam}
                       >
                         <CalendarPlus className="w-4 h-4" />
                         {isConverting ? 'A confirmar...' : 'Confirmar e agendar consulta'}
