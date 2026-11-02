@@ -12,6 +12,8 @@ it('restores existing notes and review choice and retains the draft after a fail
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Edited note' } });
   fireEvent.click(screen.getByRole('button', { name: 'Finalizar Consulta' }));
   expect(onFinalize).toHaveBeenCalledWith('Edited note', false);
+  expect(screen.getByLabelText('Notas para o paciente')).toBeTruthy();
+  expect(screen.getByText(/2 a 3 horas/)).toBeTruthy();
   expect((screen.getByRole('textbox') as HTMLTextAreaElement).value).toBe('Edited note');
   view.rerender(<FinalizationModal {...props} open={false} />);
   view.rerender(<FinalizationModal {...props} appointment={{ id: 'b', final_notes: null, send_review: true }} />);

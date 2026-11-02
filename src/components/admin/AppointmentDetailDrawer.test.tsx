@@ -12,6 +12,13 @@ vi.mock('@/context/ClinicContext',()=>({useClinic:()=>({appointments:[mock.appoi
 vi.mock('@/hooks/useAuth',()=>({useAuth:()=>({isAdmin:true,isSecretary:false})}));
 vi.mock('@/hooks/useAppointments',()=>({useUpdateAppointment:()=>({mutateAsync:mock.update}),useUpdateAppointmentStatus:()=>({mutateAsync:vi.fn()}),AppointmentChangedError:class extends Error {}}));
 vi.mock('./AppointmentTeamDetails',()=>({AppointmentTeamDetails:()=>null}));
+it('does not claim delivery from the review preference',()=>{
+ Object.assign(mock.appointment,{finalizedAt:'2026-11-01T10:00:00Z',sendReview:true});
+ const view=render(<AppointmentDetailDrawer appointment={mock.appointment} open onOpenChange={()=>{}}/>);
+ expect(screen.queryByText('Enviado ao paciente')).toBeNull();
+ expect(screen.getByText('Envio de avaliação autorizado')).toBeTruthy();
+ view.unmount();Object.assign(mock.appointment,{finalizedAt:undefined,sendReview:undefined});
+});
 vi.mock('./SuggestAlternativesModal',()=>({SlotSubmitError:class extends Error {},SuggestAlternativesModal:({open,onSubmit}:{open:boolean;onSubmit:(slots: {date:string;time:string;professional_id:string;additional_professional_ids:string[]}[])=>Promise<void>})=>open?<button onClick={()=>onSubmit([{date:'2026-11-11',time:'10:00',professional_id:'d',additional_professional_ids:['b']}])}>Save test slot</button>:null}));
 it('submits the version captured when rescheduling opened despite a realtime refresh',async()=>{
   const user=userEvent.setup();

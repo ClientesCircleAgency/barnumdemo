@@ -69,7 +69,7 @@ export function FinalizationModal({
           <div className="space-y-2">
             <Label htmlFor="final-notes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Notas da Consulta
+              Notas para o paciente
             </Label>
             <Textarea
               id="final-notes"
@@ -80,7 +80,7 @@ export function FinalizationModal({
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Estas notas ficarão no histórico da consulta (opcional)
+              Texto destinado ao WhatsApp do paciente. Não inclua observações clínicas internas. Na automação atual, estas notas acompanham o pedido de avaliação.
             </p>
           </div>
 
@@ -98,7 +98,7 @@ export function FinalizationModal({
                 Enviar link de review
               </Label>
               <p className="text-xs text-muted-foreground">
-                O paciente receberá mensagem WhatsApp 2h depois pedindo review da consulta
+                Pedido de avaliação previsto por WhatsApp 2 a 3 horas após a primeira conclusão. Esta opção não confirma a entrega.
               </p>
             </div>
           </div>
