@@ -298,7 +298,7 @@ export function AppointmentDetailDrawer({
                         Review
                       </span>
                       <span className={`text-sm font-medium ${appointment.sendReview ? 'text-green-600' : 'text-muted-foreground'}`}>
-                        {appointment.sendReview ? 'Enviado ao paciente' : 'Não enviado'}
+                        {appointment.sendReview ? 'Envio de avaliação autorizado' : 'Envio de avaliação desativado'}
                       </span>
                     </div>
                   </div>
