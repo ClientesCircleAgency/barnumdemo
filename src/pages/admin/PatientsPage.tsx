@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { TreatmentDirectory } from '@/components/admin/treatments/TreatmentDirectory';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -155,6 +156,7 @@ export default function PatientsPage() {
   return (
     <div className="min-h-screen bg-background pb-10">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-3 sm:px-6">
+        <TreatmentDirectory />
         <section className="overflow-hidden rounded-[2rem] border border-primary/10 bg-card shadow-[0_24px_80px_rgba(146,94,18,0.10)]">
           <div className="border-b border-primary/10 bg-gradient-to-r from-primary/10 via-secondary/70 to-card px-5 py-6 sm:px-7">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">

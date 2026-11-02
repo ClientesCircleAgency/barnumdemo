@@ -157,3 +157,7 @@ Barnun is a dental clinic management SaaS built with React + Supabase + Vercel. 
 - 64 frontend tests, 45 SQL tests, TypeScript/build and local concurrency/Realtime passed. Vercel success and live production bundle verified.
 - Direct PATCH conversion supported; source_request_id comes from request.id. Names stored before webhook, legacy rows use professional_name fallback.
 - No production fixture writes or messages sent; Samuel owns end-to-end n8n tests with his number. See docs/operations/2026-10-26-production-release.md and 2026-10-26-n8n-team-handoff.md.
+
+## 2026-11-02 — Publicação corretiva e Tratamentos locais
+
+Produção dev6983eb4: cinco correções publicadas, migração 20261027151407 aplicada; Vercel e bundle servido verificados. Automações permanecem com Samuel. Tratamentos integrados no Workbench: ficha, planeamento, comentários por sessão, marcação atómica e conclusão interna. 81 testes frontend, 116 assertions SQL, dois scripts concorrentes, TypeScript e build aprovados. Revisão identificou e levou a corrigir locks de autorização, conflitos paciente avulsa/tratamento e recuperação de versões. Navegador local validado em 1440/390px. Documentação: docs/operations/2026-11-02-release-status.md, 2026-11-02-treatments-validation.md e 2026-11-02-tratamentos-contrato-para-samuel.md. Não publicar Tratamentos sem revisão do utilizador e verificação externa do contrato; não usar testes locais como prova do n8n remoto.

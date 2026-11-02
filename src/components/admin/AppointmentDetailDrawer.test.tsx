@@ -12,6 +12,7 @@ vi.mock('@/context/ClinicContext',()=>({useClinic:()=>({appointments:[mock.appoi
 vi.mock('@/hooks/useAuth',()=>({useAuth:()=>({isAdmin:true,isSecretary:false})}));
 vi.mock('@/hooks/useAppointments',()=>({useUpdateAppointment:()=>({mutateAsync:mock.update}),useUpdateAppointmentStatus:()=>({mutateAsync:vi.fn()}),AppointmentChangedError:class extends Error {}}));
 vi.mock('./AppointmentTeamDetails',()=>({AppointmentTeamDetails:()=>null}));
+vi.mock('./treatments/AppointmentClinicalPanel',()=>({AppointmentClinicalPanel:()=>null}));
 it('does not claim delivery from the review preference',()=>{
  Object.assign(mock.appointment,{finalizedAt:'2026-11-01T10:00:00Z',sendReview:true});
  const view=render(<AppointmentDetailDrawer appointment={mock.appointment} open onOpenChange={()=>{}}/>);

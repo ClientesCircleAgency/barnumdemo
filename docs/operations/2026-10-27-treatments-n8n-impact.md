@@ -1,5 +1,7 @@
 # Tratamentos — análise preliminar de compatibilidade para Samuel/agente
 
+> Atualização 02/11/2026: integração local concluída; a análise abaixo preserva o checkpoint histórico de 27/10. O documento de respostas do Samuel já foi recebido. Consultar [validação atual](2026-11-02-treatments-validation.md) e [contrato atualizado para Samuel](2026-11-02-tratamentos-contrato-para-samuel.md), incluindo a proteção de colisões de pacientes. Tratamentos ainda não publicados.
+
 Estado em 27/10/2026: três migrações implementadas e aplicadas exclusivamente no Docker local. A integração completa na interface e a validação ponta a ponta ainda estão em curso. Nenhuma alteração de produção foi efetuada nesta análise. As secções de previsão abaixo continuam a distinguir os casos ainda não medidos; os resultados efetivos estão nesta atualização.
 
 ## Atualização: evidência local e orientação para o agente do Samuel

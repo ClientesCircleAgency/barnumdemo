@@ -1,6 +1,8 @@
 import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { TreatmentsTab } from '@/components/admin/treatments/TreatmentsTab';
 import { ArrowLeft, Phone, Mail, Calendar, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +19,7 @@ import { pt } from 'date-fns/locale';
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams,setSearchParams] = useSearchParams();
   const { getPatientById, getAppointmentsByPatient, getProfessionalById, getConsultationTypeById } = useClinic();
 
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -27,6 +30,7 @@ export default function PatientDetailPage() {
   const appointments = getAppointmentsByPatient(id || '').sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`));
 
   if (!patient) {
+    if (id && searchParams.get('tab')==='tratamentos') return <div className="space-y-4"><Button variant="ghost" onClick={()=>navigate('/admin/pacientes')}>Voltar aos pacientes</Button><TreatmentsTab patientId={id} initialTreatmentId={searchParams.get('tratamento')}/></div>;
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Paciente não encontrado</p>
@@ -72,7 +76,10 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <Tabs value={searchParams.get('tab')==='tratamentos'?'tratamentos':'historico'} onValueChange={tab=>setSearchParams(tab==='tratamentos'?{tab}: {})}>
+      <TabsList className="mb-5"><TabsTrigger value="historico">Ficha e histórico</TabsTrigger><TabsTrigger value="tratamentos">Tratamentos</TabsTrigger></TabsList>
+      <TabsContent value="tratamentos"><TreatmentsTab patientId={patient.id} initialTreatmentId={searchParams.get('tratamento')}/></TabsContent>
+      <TabsContent value="historico"><div className="grid md:grid-cols-3 gap-6">
         <Card className="md:col-span-1">
           <CardHeader><CardTitle>Dados Pessoais</CardTitle></CardHeader>
           <CardContent className="space-y-4">
@@ -113,6 +120,7 @@ export default function PatientDetailPage() {
         </Card>
       </div>
 
+      </TabsContent></Tabs>
       <AppointmentWizard open={wizardOpen} onOpenChange={setWizardOpen} preselectedPatient={patient} />
       <AppointmentDetailDrawer
         appointment={selectedAppointment}
