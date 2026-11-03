@@ -100,7 +100,7 @@ export function FinalizationModal({
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Texto destinado ao WhatsApp do paciente. Não inclua observações clínicas internas. Na automação atual, estas notas acompanham o pedido de avaliação.
+              Texto destinado ao WhatsApp do paciente. Estas notas são incluídas na mensagem de conclusão, mesmo sem pedido de avaliação. Não inclua observações clínicas internas.
             </p>
           </div>
 
