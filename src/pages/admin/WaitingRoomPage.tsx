@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PageHeader } from '@/components/admin/PageHeader';
 import { WaitingRoomCard } from '@/components/admin/WaitingRoomCard';
+import { useTreatmentRpc } from '@/hooks/useTreatments';
+import { refreshFinalization } from '@/lib/refreshFinalization';
 import { FinalizationModal } from '@/components/admin/FinalizationModal';
-import { useAppointments, useUpdateAppointmentStatus, useUpdateAppointment } from '@/hooks/useAppointments';
+import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
 import { usePatients } from '@/hooks/usePatients';
 import { useProfessionals } from '@/hooks/useProfessionals';
 import { useConsultationTypes } from '@/hooks/useConsultationTypes';
@@ -168,7 +170,7 @@ export default function WaitingRoomPage() {
   const { data: consultationTypes = [] } = useConsultationTypes();
   const { isDoctor, userRole } = useAuth();
   const updateAppointmentStatus = useUpdateAppointmentStatus();
-  const updateAppointment = useUpdateAppointment();
+  const finalizeAppointment = useTreatmentRpc('finalize_appointment_with_observation');
 
   // Doctor professional ID lookup
   const [doctorProfessionalId, setDoctorProfessionalId] = useState<string | null>(null);
@@ -271,34 +273,25 @@ export default function WaitingRoomPage() {
     );
   };
 
-  const handleFinalize = (finalNotes: string, sendReview: boolean) => {
+  const handleFinalize = async (finalNotes: string, sendReview: boolean, internalObservation = '') => {
     if (!appointmentToFinalize) return;
-
-    updateAppointment.mutate(
-      {
-        id: appointmentToFinalize.id,
-        expectedVersion: appointmentToFinalize.version,
-        data: {
-          status: 'completed',
-          final_notes: finalNotes,
-          send_review: sendReview,
-          finalized_at: new Date().toISOString(),
-        },
-      },
-      {
-        onSuccess: () => {
-          const patient = getPatient(appointmentToFinalize.patient_id);
-          toast.success(`Consulta de ${patient?.name || 'Paciente'} finalizada`);
-          setShowFinalizationModal(false);
-          setAppointmentToFinalize(null);
-        },
-        onError: (error) => {
-          toast.error(appointmentErrorMessage(error), { duration: 12000 });
-        },
-      }
-    );
+    try {
+      await finalizeAppointment.mutateAsync({
+        p_appointment_id: appointmentToFinalize.id,
+        p_expected_version: appointmentToFinalize.version,
+        p_final_notes: finalNotes,
+        p_send_review: sendReview,
+        p_internal_observation: internalObservation,
+      });
+      const patient = getPatient(appointmentToFinalize.patient_id);
+      toast.success(`Consulta de ${patient?.name || 'Paciente'} finalizada`);
+      setShowFinalizationModal(false);
+      setAppointmentToFinalize(null);
+    } catch (error) {
+      toast.error(appointmentErrorMessage(error), { duration: 12000 });
+      throw error;
+    }
   };
-
   const activeAppointment = activeId ? todayAppointments.find((apt) => apt.id === activeId) : null;
 
   // Profissionais ativos hoje
@@ -391,7 +384,8 @@ export default function WaitingRoomPage() {
       <AppointmentDetailDrawer appointment={clinicAppointments.find(a=>a.id===detailId) ?? null} open={!!detailId} onOpenChange={open=>{if(!open)setDetailId(null);}} />
 
       {/* Finalization Modal */}
-      <FinalizationModal
+      <FinalizationModal includeInternalObservation
+        onRefresh={async()=>{if(!appointmentToFinalize)throw new Error('No appointment');return refreshFinalization(appointmentToFinalize.id,row=>setAppointmentToFinalize(row));}}
         appointment={appointmentToFinalize}
         patientName={appointmentToFinalize ? getPatient(appointmentToFinalize.patient_id)?.name || null : null}
         open={showFinalizationModal}

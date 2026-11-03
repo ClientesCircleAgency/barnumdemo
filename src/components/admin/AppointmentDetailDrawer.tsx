@@ -2,6 +2,7 @@ import { AppointmentTeamList } from '@/components/admin/AppointmentTeamList';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppointmentTeamDetails } from './AppointmentTeamDetails';
+import { AppointmentClinicalPanel } from './treatments/AppointmentClinicalPanel';
 import { format, parseISO } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import {
@@ -325,6 +326,7 @@ export function AppointmentDetailDrawer({
 
             {/* Action buttons — only for active appointments */}
             <AppointmentTeamDetails key={appointment.id} appointment={appointment} />
+            <AppointmentClinicalPanel key={`clinical-${appointment.id}`} appointment={appointment}/>
             {!isTerminal && (isAdmin || isSecretary) && (
               <>
                 <Separator />
